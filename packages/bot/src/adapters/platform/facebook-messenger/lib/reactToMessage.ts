@@ -7,7 +7,8 @@
 interface FcaApi {
   setMessageReaction(
     emoji: string,
-    descriptor: { messageID: string; threadID: string },
+    messageID: string,
+    threadID: string,
     cb: (err: unknown) => void,
     force: boolean,
   ): void;
@@ -22,7 +23,8 @@ export function reactToMessage(
   return new Promise((resolve, reject) => {
     api.setMessageReaction(
       emoji,
-      { messageID, threadID },
+      messageID,
+      threadID,
       (err) => (err ? reject(err) : resolve()),
       true,
     );
