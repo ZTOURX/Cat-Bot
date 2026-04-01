@@ -1,0 +1,72 @@
+/**
+ * Global Styles Entry Point
+ *
+ * This file is the sole PostCSS entry point. It composes all style layers
+ * in the correct dependency order:
+ *
+ *   theme/   → Per-theme CSS custom property values (color roles)
+ *   tokens   → Design system tokens: typography, spacing, motion, layout, shadows
+ *   base     → HTML element defaults and scrollbar normalization via @layer base
+ *   utilities → Custom utility classes via @layer utilities
+ *   animations → @keyframes library referenced by Tailwind animate-* classes
+ *
+ * @tailwind directives appear after imports so PostCSS-import inlines all
+ * @layer declarations before Tailwind resolves layer injection order.
+ *
+ * WCAG 2.1 AA Compliant
+ *
+ * Typography Updated: January 2026
+ * - Body text sizes increased per 2026 accessibility best practices
+ * - Line heights normalized to WCAG 2.1 minimum of 1.5 for body text
+ * - Label sizes adjusted for improved readability
+ *
+ * Typography Audit: January 2026 (WCAG 2.2 Compliance Review)
+ * - Title-small line-height increased to 1.5 for WCAG compliance
+ * - Label line-heights increased to 1.5 for improved UI readability
+ * - All body text confirmed at 1.5+ line-height
+ * - Font sizes confirmed: body-md=16px (WCAG minimum), body-sm=14px
+ */
+
+/* -----------------------------------------------------------
+  1. Theme Color Variables
+  Color role → value mapping. Switching themes only requires
+  overriding these variables, not touching any component styles.
+  ----------------------------------------------------------- */
+@import './theme/light.css';
+@import './theme/dark.css';
+
+/* -----------------------------------------------------------
+  2. Design Token Variables
+  All CSS custom properties for the design system scale.
+  ----------------------------------------------------------- */
+@import './tokens.css';
+
+/* -----------------------------------------------------------
+  3. Base Layer
+  HTML element defaults, scrollbar normalization, dark mode
+  color-scheme, and reduced-motion overrides.
+  ----------------------------------------------------------- */
+@import './base.css';
+
+/* -----------------------------------------------------------
+  4. Utility Classes
+  Custom utility classes that extend Tailwind's utility layer.
+  ----------------------------------------------------------- */
+@import './utilities.css';
+
+/* -----------------------------------------------------------
+  5. Keyframe Animations
+  All @keyframes used by Tailwind animate-* classes and
+  component-level animation utilities.
+  ----------------------------------------------------------- */
+@import './animations.css';
+
+/* -----------------------------------------------------------
+  Tailwind Directives
+  Placed after imports so all @layer declarations from imported
+  files are inlined by PostCSS-import before Tailwind resolves
+  the injection order of base, components, and utilities layers.
+  ----------------------------------------------------------- */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
