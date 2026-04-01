@@ -50,6 +50,14 @@ export function createTelegramListener(
       config.sessionId,
     );
 
+    // Catch errors thrown inside any Telegraf middleware or handler.
+    // Without this, handler rejections surface as unhandled promise rejections
+    // which crash Node ≥15 and take down every other platform session.
+    // _ctx typed as unknown because callback_query / message contexts have different shapes.
+    activeBot.catch((err: unknown, _ctx: unknown) => {
+      logger.error('[telegram] Handler error (session continues)', { error: err });
+    });
+
     // Step 3: Launch polling — starts only after all handlers are registered
     // Per https://telegraf.js.org/: "this should ideally be written before bot.launch()"
     activeBot.launch({
