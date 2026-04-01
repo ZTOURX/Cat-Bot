@@ -1,0 +1,213 @@
+/* ============================================================
+   LIGHT THEME VARIABLES
+   
+   Structure:
+   1. :root - Define all light theme values with --light- prefix
+   2. :root - Reference layer mapping standard variables to light values
+   
+   This separation allows theme switching by changing the reference
+   without redefining the actual color values.
+   ============================================================ */
+
+:root {
+  /* ==================== PRIMARY ==================== */
+  --light-color-primary: 68 114 210;
+  --light-color-on-primary: 255 255 255;
+  --light-color-primary-container: 221 232 254;
+  --light-color-on-primary-container: 26 48 95;
+
+  /* ==================== SECONDARY ==================== */
+  --light-color-secondary: 126 93 209;
+  --light-color-on-secondary: 255 255 255;
+  --light-color-secondary-container: 232 228 254;
+  --light-color-on-secondary-container: 54 38 94;
+
+  /* ==================== TERTIARY ==================== */
+  --light-color-tertiary: 168 72 181;
+  --light-color-on-tertiary: 255 255 255;
+  --light-color-tertiary-container: 247 222 250;
+  --light-color-on-tertiary-container: 75 28 81;
+
+  /* ==================== SURFACE SYSTEM ==================== */
+  --light-color-surface: 255 255 255;
+  --light-color-on-surface: 0 0 0;
+  --light-color-surface-variant: 202 213 226;
+  --light-color-on-surface-variant: 50 65 87;
+  --light-color-surface-container-lowest: 255 255 255;
+  --light-color-surface-container-low: 248 250 252;
+  --light-color-surface-container: 241 245 249;
+  --light-color-surface-container-high: 227 233 241;
+  --light-color-surface-container-highest: 212 221 232;
+  --light-color-surface-bright: 255 255 255;
+  --light-color-surface-dim: 144 161 185;
+
+  /* ==================== INVERSE ==================== */
+  --light-color-inverse-surface: 29 41 58;
+  --light-color-inverse-on-surface: 248 250 252;
+  --light-color-inverse-primary: 196 216 253;
+
+  /* ==================== OUTLINE ==================== */
+  --light-color-outline: 98 116 142;
+  --light-color-outline-variant: 144 161 185;
+
+  /* ==================== SCRIM & SHADOW ==================== */
+  --light-color-scrim: 0 0 0;
+  --light-color-shadow: 0 0 0;
+
+  /* ==================== ERROR ==================== */
+  --light-color-error: 231 0 11;
+  --light-color-on-error: 254 242 242;
+  --light-color-error-container: 255 226 226;
+  --light-color-on-error-container: 130 24 26;
+
+  /* ==================== SUCCESS ==================== */
+  --light-color-success: 0 130 54;
+  --light-color-on-success: 240 253 244;
+  --light-color-success-container: 220 252 231;
+  --light-color-on-success-container: 13 84 43;
+
+  /* ==================== WARNING ==================== */
+  --light-color-warning: 225 113 0;
+  --light-color-on-warning: 255 251 235;
+  --light-color-warning-container: 254 243 198;
+  --light-color-on-warning-container: 123 51 6;
+
+  /* ==================== INFO ==================== */
+  --light-color-info: 0 132 209;
+  --light-color-on-info: 240 249 255;
+  --light-color-info-container: 223 242 254;
+  --light-color-on-info-container: 2 74 112;
+
+  /* ==================== PRIMARY GRADIENT ==================== */
+  --light-color-gradient-primary: linear-gradient(
+    135deg,
+    rgb(53, 109, 232) 0%,
+    rgb(23, 129, 175) 100%
+  );
+
+  /* ==================== SECONDARY GRADIENT ==================== */
+  --light-color-gradient-secondary: linear-gradient(
+    135deg,
+    rgb(128, 87, 221) 0%,
+    rgb(55, 109, 232) 100%
+  );
+
+  /* ==================== TERTIARY GRADIENT ==================== */
+  --light-color-gradient-tertiary: linear-gradient(
+    135deg,
+    rgb(170, 68, 184) 0%,
+    rgb(127, 88, 222) 100%
+  );
+
+  /* ==================== ERROR GRADIENT ==================== */
+  --light-color-gradient-error: linear-gradient(
+    135deg,
+    rgb(210, 53, 43) 0%,
+    rgb(174, 97, 20) 100%
+  );
+
+  /* ==================== SUCCESS GRADIENT ==================== */
+  --light-color-gradient-success: linear-gradient(
+    135deg,
+    rgb(24, 143, 58) 0%,
+    rgb(25, 138, 119) 100%
+  );
+
+  /* ==================== WARNING GRADIENT ==================== */
+  --light-color-gradient-warning: linear-gradient(
+    135deg,
+    rgb(179, 92, 19) 0%,
+    rgb(150, 113, 20) 100%
+  );
+
+  /* ==================== INFO GRADIENT ==================== */
+  --light-color-gradient-info: linear-gradient(
+    135deg,
+    rgb(23, 125, 194) 0%,
+    rgb(24, 133, 154) 100%
+  );
+}
+
+/* Reference layer: Maps standard variables to light theme values.
+   This allows the same variable names to be used in components
+   while enabling easy theme switching. */
+:root {
+  /* PRIMARY */
+  --color-primary: var(--light-color-primary);
+  --color-on-primary: var(--light-color-on-primary);
+  --color-primary-container: var(--light-color-primary-container);
+  --color-on-primary-container: var(--light-color-on-primary-container);
+
+  /* SECONDARY */
+  --color-secondary: var(--light-color-secondary);
+  --color-on-secondary: var(--light-color-on-secondary);
+  --color-secondary-container: var(--light-color-secondary-container);
+  --color-on-secondary-container: var(--light-color-on-secondary-container);
+
+  /* TERTIARY */
+  --color-tertiary: var(--light-color-tertiary);
+  --color-on-tertiary: var(--light-color-on-tertiary);
+  --color-tertiary-container: var(--light-color-tertiary-container);
+  --color-on-tertiary-container: var(--light-color-on-tertiary-container);
+
+  /* SURFACE SYSTEM */
+  --color-surface: var(--light-color-surface);
+  --color-on-surface: var(--light-color-on-surface);
+  --color-surface-variant: var(--light-color-surface-variant);
+  --color-on-surface-variant: var(--light-color-on-surface-variant);
+  --color-surface-container-lowest: var(--light-color-surface-container-lowest);
+  --color-surface-container-low: var(--light-color-surface-container-low);
+  --color-surface-container: var(--light-color-surface-container);
+  --color-surface-container-high: var(--light-color-surface-container-high);
+  --color-surface-container-highest: var(
+    --light-color-surface-container-highest
+  );
+  --color-surface-bright: var(--light-color-surface-bright);
+  --color-surface-dim: var(--light-color-surface-dim);
+
+  /* INVERSE */
+  --color-inverse-surface: var(--light-color-inverse-surface);
+  --color-inverse-on-surface: var(--light-color-inverse-on-surface);
+  --color-inverse-primary: var(--light-color-inverse-primary);
+
+  /* OUTLINE */
+  --color-outline: var(--light-color-outline);
+  --color-outline-variant: var(--light-color-outline-variant);
+
+  /* SCRIM & SHADOW */
+  --color-scrim: var(--light-color-scrim);
+  --color-shadow: var(--light-color-shadow);
+
+  /* ERROR */
+  --color-error: var(--light-color-error);
+  --color-on-error: var(--light-color-on-error);
+  --color-error-container: var(--light-color-error-container);
+  --color-on-error-container: var(--light-color-on-error-container);
+
+  /* SUCCESS */
+  --color-success: var(--light-color-success);
+  --color-on-success: var(--light-color-on-success);
+  --color-success-container: var(--light-color-success-container);
+  --color-on-success-container: var(--light-color-on-success-container);
+
+  /* WARNING */
+  --color-warning: var(--light-color-warning);
+  --color-on-warning: var(--light-color-on-warning);
+  --color-warning-container: var(--light-color-warning-container);
+  --color-on-warning-container: var(--light-color-on-warning-container);
+
+  /* INFO */
+  --color-info: var(--light-color-info);
+  --color-on-info: var(--light-color-on-info);
+  --color-info-container: var(--light-color-info-container);
+  --color-on-info-container: var(--light-color-on-info-container);
+
+  /* GRADIENTS */
+  --color-gradient-primary: var(--light-color-gradient-primary);
+  --color-gradient-secondary: var(--light-color-gradient-secondary);
+  --color-gradient-tertiary: var(--light-color-gradient-tertiary);
+  --color-gradient-error: var(--light-color-gradient-error);
+  --color-gradient-success: var(--light-color-gradient-success);
+  --color-gradient-warning: var(--light-color-gradient-warning);
+  --color-gradient-info: var(--light-color-gradient-info);
+}
