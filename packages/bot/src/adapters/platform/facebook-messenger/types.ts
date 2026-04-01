@@ -39,16 +39,16 @@ export interface FcaApi {
       err: unknown,
       users:
         | Record<
-            string,
-            {
-              name?: string;
-              firstName?: string;
-              vanity?: string | null;
-              thumbSrc?: string | null;
-              profileUrl?: string | null;
-              [key: string]: unknown;
-            }
-          >
+          string,
+          {
+            name?: string;
+            firstName?: string;
+            vanity?: string | null;
+            thumbSrc?: string | null;
+            profileUrl?: string | null;
+            [key: string]: unknown;
+          }
+        >
         | undefined,
     ) => void,
   ): void;
@@ -79,7 +79,8 @@ export interface FcaApi {
   ): void;
   setMessageReaction(
     emoji: string,
-    descriptor: { messageID: string; threadID: string },
+    messageID: string,
+    threadID: string,
     cb: (err: unknown) => void,
     force: boolean,
   ): void;
