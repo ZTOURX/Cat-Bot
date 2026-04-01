@@ -16,5 +16,5 @@ dist
 .codebase_history
 
 sqlite/
-prisma/migration
+prisma/migrations
 src/generated/
