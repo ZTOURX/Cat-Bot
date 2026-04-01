@@ -32,6 +32,7 @@
     "vitest": "^4.1.1"
   },
   "dependencies": {
+    "database": "file:../database",
     "@johnlester-0369/fca-unofficial": "^3.0.32",
     "axios": "^1.13.6",
     "discord.js": "^14.25.1",
