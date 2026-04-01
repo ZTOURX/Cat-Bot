@@ -50,5 +50,13 @@ export async function createDiscordClient(token: string): Promise<Client> {
   // SIGINT/SIGTERM so multiple Discord sessions never stack duplicate process.once listeners.
   shutdownRegistry.register(() => client.destroy());
 
+  // discord.js emits 'error' on WebSocket failures and unhandled REST errors.
+  // Without this listener, Node.js treats an emitted 'error' with no handler as a
+  // fatal exception that terminates the entire process — taking all other platforms down too.
+  // discord.js manages gateway reconnection internally, so we only need to absorb the event.
+  client.on('error', (err: Error) => {
+    logger.error('[discord] Client error (gateway will auto-reconnect)', { error: err });
+  });
+
   return client;
 }
