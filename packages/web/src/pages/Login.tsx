@@ -1,3 +1,4 @@
+import { Helmet } from '@dr.pogodin/react-helmet'
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Button from '@/components/ui/buttons/Button'
@@ -75,6 +76,8 @@ export default function LoginPage() {
 
   return (
     <div className="flex items-center justify-center min-h-[80vh] px-6 py-12">
+      {/* Sets the browser tab title for the login page */}
+      <Helmet><title>Log In · Cat-Bot</title></Helmet>
       <div className="w-full max-w-md flex flex-col gap-8">
         {/* Header */}
         <div className="text-center flex flex-col gap-2">
