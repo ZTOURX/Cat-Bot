@@ -1,3 +1,4 @@
+import { Helmet } from '@dr.pogodin/react-helmet'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Bot, ArrowLeft } from 'lucide-react'
 import Tabs from '@/components/ui/navigation/Tabs'
@@ -99,6 +100,8 @@ export default function BotPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Dynamic title shows which bot is open — operators may have multiple tabs */}
+      <Helmet><title>{bot.nickname} · Cat-Bot</title></Helmet>
       <Tabs.Root defaultValue={defaultTab}>
         <Tabs.List variant="line">
           <Tabs.Tab value="console">Console</Tabs.Tab>

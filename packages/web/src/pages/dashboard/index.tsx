@@ -1,3 +1,4 @@
+import { Helmet } from '@dr.pogodin/react-helmet'
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Bot, Plus, ChevronRight } from 'lucide-react'
@@ -243,6 +244,8 @@ export default function BotManagerPage() {
 
   return (
     <div className="flex flex-col gap-8">
+      {/* Sets the browser tab title for the Bot Manager listing page */}
+      <Helmet><title>Bot Manager · Cat-Bot</title></Helmet>
       {/* ── Page header ─────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>

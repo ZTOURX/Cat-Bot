@@ -1,3 +1,4 @@
+import { Helmet } from '@dr.pogodin/react-helmet'
 import { useState } from 'react'
 import Card from '@/components/ui/data-display/Card'
 import Button from '@/components/ui/buttons/Button'
@@ -117,6 +118,8 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-6 max-w-2xl mx-auto pb-12">
+      {/* Sets the browser tab title for the user settings page */}
+      <Helmet><title>Settings · Cat-Bot</title></Helmet>
       {/* Page header */}
       <div>
         <h1 className="text-headline-md font-semibold text-on-surface">
