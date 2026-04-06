@@ -73,7 +73,9 @@ export class BotRepo {
 
   async list(userId: string): Promise<GetBotListResponseDto> {
     const rows = await prisma.botSession.findMany({ where: { userId } });
-    return { bots: rows.map(row => ({ sessionId: row.sessionId, platformId: row.platformId, platform: (ID_TO_PLATFORM as Record<number, string>)[row.platformId], nickname: row.nickname ?? '', prefix: row.prefix ?? '' })) };
+    // ID_TO_PLATFORM lookup returns string | undefined under noUncheckedIndexedAccess;
+    // an unrecognised platformId is an integrity issue, but we fail-safe to '' rather than crashing the list endpoint.
+    return { bots: rows.map(row => ({ sessionId: row.sessionId, platformId: row.platformId, platform: (ID_TO_PLATFORM as Record<number, string>)[row.platformId] ?? '', nickname: row.nickname ?? '', prefix: row.prefix ?? '' })) };
   }
 
   async updateIsRunning(userId: string, sessionId: string, isRunning: boolean): Promise<void> {

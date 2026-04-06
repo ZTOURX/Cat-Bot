@@ -50,7 +50,7 @@ async function getDisabledNamesForSession(native: NativeContext): Promise<Set<st
   if (!sessionUserId || !sessionId) return new Set();
   try {
     const rows = await findSessionCommands(sessionUserId, native.platform, sessionId);
-    return new Set(rows.filter((r) => !r.isEnable).map((r) => r.commandName));
+    return new Set(rows.filter((r: { isEnable: boolean; commandName: string }) => !r.isEnable).map((r: { commandName: string }) => r.commandName));
   } catch {
     // Fail-open: suggestions still function without disabled-command filtering on DB error
     return new Set();

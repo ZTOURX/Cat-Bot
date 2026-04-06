@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "rootDir": "./src",
     "outDir": "./dist",
+    "rootDir": "./src",
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "target": "esnext",
@@ -13,17 +13,16 @@
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
-    "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
     "allowJs": true,
     /* Path Mapping */
-    "baseUrl": ".",
+    "baseUrl": "./src",
     "paths": {
-      "@/*": ["./src/*"],
-      "@cat-bot/*": ["./src/*"]
+      "@/*": ["./*"],
+      "@cat-bot/*": ["./*"]
     }
   },
   "include": ["src"]

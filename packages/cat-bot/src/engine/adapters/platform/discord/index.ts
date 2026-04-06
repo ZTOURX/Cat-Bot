@@ -119,8 +119,9 @@ export function createDiscordListener(config: DiscordConfig): EventEmitter & {
       const livePrefix = prefixManager.getPrefix(userId, Platforms.Discord, sessionId);
       // Fetch current enabled/disabled state from DB to filter the slash menu accurately
       const rows = await findSessionCommands(userId, Platforms.Discord, sessionId);
-      const disabledNames = new Set(
-        rows.filter((r) => !r.isEnable).map((r) => r.commandName),
+      // WHY: Explicitly cast as Set<string> because database exports fall back to `any`, causing Set<unknown> inference
+      const disabledNames = new Set<string>(
+        rows.filter((r: { isEnable: boolean; commandName: string }) => !r.isEnable).map((r: { commandName: string }) => r.commandName),
       );
       await registerSlashCommands({
         client: activeClient,

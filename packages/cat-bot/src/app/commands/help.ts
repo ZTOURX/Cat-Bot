@@ -115,7 +115,7 @@ export const onCommand = async ({
   if (sessionUserId && sessionId) {
     try {
       const rows = await findSessionCommands(sessionUserId, native.platform, sessionId);
-      disabledNames = new Set(rows.filter((r: { isEnable: boolean; commandName: string }) => !r.isEnable).map((r) => r.commandName));
+      disabledNames = new Set(rows.filter((r: { isEnable: boolean; commandName: string }) => !r.isEnable).map((r: { commandName: string }) => r.commandName));
     } catch {
       // DB unreachable — fail-open, show all commands rather than breaking /help
     }

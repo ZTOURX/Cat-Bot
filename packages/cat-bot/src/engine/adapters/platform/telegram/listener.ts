@@ -127,8 +127,9 @@ export function createTelegramListener(
       const livePrefix = prefixManager.getPrefix(config.userId, Platforms.Telegram, config.sessionId);
       // Fetch current enabled/disabled state from DB to filter the command menu accurately
       const rows = await findSessionCommands(config.userId, Platforms.Telegram, config.sessionId);
-      const disabledNames = new Set(
-        rows.filter((r) => !r.isEnable).map((r) => r.commandName),
+      // WHY: Explicitly cast as Set<string> because database exports fall back to `any`, causing Set<unknown> inference
+      const disabledNames = new Set<string>(
+        rows.filter((r: { isEnable: boolean; commandName: string }) => !r.isEnable).map((r: { commandName: string }) => r.commandName),
       );
       await registerSlashMenu(
         activeBot,

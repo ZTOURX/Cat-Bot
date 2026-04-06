@@ -2,19 +2,29 @@
   "name": "database",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "./dist/database/src/index.js",
+  "types": "./dist/database/src/index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc --noCheck && tsc-alias",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/database/src/index.d.ts",
+      "source": "./src/index.ts",
+      "import": "./dist/database/src/index.js",
+      "default": "./dist/database/src/index.js"
+    }
   },
   "devDependencies": {
     "@types/node": "^25.5.2",
+    "ts-node": "^10.9.2",
+    "tsc-alias": "^1.8.16",
     "typescript": "^6.0.2"
   },
   "dependencies": {

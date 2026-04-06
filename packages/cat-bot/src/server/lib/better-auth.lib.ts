@@ -3,9 +3,9 @@
 import 'dotenv/config';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
-// Import the shared singleton from the database workspace package — avoids opening a second
-// SQLite connection and keeps the Prisma client lifecycle owned in one place.
-import { prisma } from '../../../../database/adapters/prisma-sqlite/src/index.js';
+// Import the shared singleton exported from the database workspace package — avoids TS6059
+// rootDir errors while keeping the Prisma client lifecycle owned in one place.
+import { prisma } from 'database';
 // JSON file adapter — used when DATABASE_TYPE=json for zero-dependency local development.
 // Shares the same data.json store as the rest of the JSON adapter layer so auth tables
 // and bot tables coexist in a single file without cross-package coupling.

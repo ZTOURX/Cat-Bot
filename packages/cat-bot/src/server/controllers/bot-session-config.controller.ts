@@ -93,7 +93,7 @@ export class BotSessionConfigController {
     try {
       const rawCommands = await findSessionCommands(userId, platform, sessionId);
       // Enrich with metadata from the in-memory registry so the web UI can render details
-      const commands = rawCommands.map((cmd) => {
+      const commands = rawCommands.map((cmd: { commandName: string; isEnable: boolean }) => {
         const mod = commandRegistry.get(cmd.commandName.toLowerCase());
         const cfg = mod?.['config'] as Record<string, unknown> | undefined;
         return {
@@ -166,7 +166,7 @@ export class BotSessionConfigController {
 
     try {
       const rawEvents = await findSessionEvents(userId, platform, sessionId);
-      const events = rawEvents.map((evt) => {
+      const events = rawEvents.map((evt: { eventName: string; isEnable: boolean }) => {
         const mod = eventRegistry.get(evt.eventName.toLowerCase());
         const cfg = mod?.['config'] as Record<string, unknown> | undefined;
         return {

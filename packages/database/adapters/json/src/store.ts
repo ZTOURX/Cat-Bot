@@ -3,9 +3,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// Three levels up from src/ lands at packages/database/ — keeps the JSON store
-// alongside the SQLite file at the database package root instead of the repo root.
-const DB_FILE = path.resolve(__dirname, '../../../database/database.json');
+
+let dbRoot = path.resolve(__dirname, '../../..');
+// If compiled into dist/database/adapters/..., go up two more levels to exit dist/
+if (path.basename(dbRoot) === 'database' && path.basename(path.dirname(dbRoot)) === 'dist') {
+  dbRoot = path.resolve(dbRoot, '../..');
+}
+const DB_FILE = path.resolve(dbRoot, 'database/database.json');
 
 export let dbCache: any = null;
 

@@ -10,9 +10,13 @@ import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 // don't accidentally create an empty dev.db in their own CWD when DATABASE_URL is unset.
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// Three levels up from src/ lands at packages/database/ — centralises the SQLite
-// file at the database package root rather than inside the adapter subfolder.
-const defaultDbPath = path.resolve(__dirname, '../../../database/database.sqlite');
+
+let dbRoot = path.resolve(__dirname, '../../..');
+// If compiled into dist/database/adapters/..., go up two more levels to exit dist/
+if (path.basename(dbRoot) === 'database' && path.basename(path.dirname(dbRoot)) === 'dist') {
+  dbRoot = path.resolve(dbRoot, '../..');
+}
+const defaultDbPath = path.resolve(dbRoot, 'database/database.sqlite');
 const defaultUrl = `file:${defaultDbPath}`;
 
 // globalThis cast avoids TypeScript strict-mode errors while maintaining a true cross-reload singleton.

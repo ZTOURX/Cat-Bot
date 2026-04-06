@@ -80,7 +80,7 @@ export const onCommand = async ({
       await chat.replyMessage({ message: 'ℹ️ No bot admins registered for this session.' });
       return;
     }
-    const lines = admins.map((id, i) => `${i + 1}. ${id}`).join('\n');
+    const lines = admins.map((id: string, i: number) => `${i + 1}. ${id}`).join('\n');
     await chat.replyMessage({
       message: `Bot admins for this session (${admins.length}):\n${lines}`,
     });

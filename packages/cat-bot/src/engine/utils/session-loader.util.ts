@@ -118,8 +118,8 @@ export async function loadSessionConfigs(): Promise<SessionConfigs> {
 
   // isRunning = false sessions are excluded so a stopped bot never boots at process start or restart.
   const discord: ResolvedDiscordConfig[] = discordCreds
-    .filter((c) => runningKeys.has(`${c.userId}:${c.platformId}:${c.sessionId}`))
-    .map((c) => ({
+    .filter((c: { userId: string; platformId: number; sessionId: string; discordToken: string; discordClientId: string }) => runningKeys.has(`${c.userId}:${c.platformId}:${c.sessionId}`))
+    .map((c: { userId: string; platformId: number; sessionId: string; discordToken: string; discordClientId: string }) => ({
       token: c.discordToken,
       clientId: c.discordClientId,
       prefix: getPrefix(c.userId, c.platformId, c.sessionId),
@@ -128,8 +128,8 @@ export async function loadSessionConfigs(): Promise<SessionConfigs> {
     }));
 
   const telegram: ResolvedTelegramConfig[] = telegramCreds
-    .filter((c) => runningKeys.has(`${c.userId}:${c.platformId}:${c.sessionId}`))
-    .map((c) => ({
+    .filter((c: { userId: string; platformId: number; sessionId: string; telegramToken: string }) => runningKeys.has(`${c.userId}:${c.platformId}:${c.sessionId}`))
+    .map((c: { userId: string; platformId: number; sessionId: string; telegramToken: string }) => ({
       botToken: c.telegramToken,
       prefix: getPrefix(c.userId, c.platformId, c.sessionId),
       userId: c.userId,
@@ -137,8 +137,8 @@ export async function loadSessionConfigs(): Promise<SessionConfigs> {
     }));
 
   const fbPage: ResolvedFbPageConfig[] = fbPageCreds
-    .filter((c) => runningKeys.has(`${c.userId}:${c.platformId}:${c.sessionId}`))
-    .map((c) => ({
+    .filter((c: { userId: string; platformId: number; sessionId: string; fbAccessToken: string; fbPageId: string }) => runningKeys.has(`${c.userId}:${c.platformId}:${c.sessionId}`))
+    .map((c: { userId: string; platformId: number; sessionId: string; fbAccessToken: string; fbPageId: string }) => ({
       pageAccessToken: c.fbAccessToken,
       pageId: c.fbPageId,
       userId: c.userId,
@@ -147,8 +147,8 @@ export async function loadSessionConfigs(): Promise<SessionConfigs> {
     }));
 
   const fbMessenger: ResolvedFbMessengerConfig[] = fbMessengerCreds
-    .filter((c) => runningKeys.has(`${c.userId}:${c.platformId}:${c.sessionId}`))
-    .map((c) => ({
+    .filter((c: { userId: string; platformId: number; sessionId: string; appstate: string }) => runningKeys.has(`${c.userId}:${c.platformId}:${c.sessionId}`))
+    .map((c: { userId: string; platformId: number; sessionId: string; appstate: string }) => ({
       // appstate is stored as JSON.stringify'd text; the login module parses it
       appstate: c.appstate,
       prefix: getPrefix(c.userId, c.platformId, c.sessionId),

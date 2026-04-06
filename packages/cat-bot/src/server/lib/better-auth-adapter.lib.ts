@@ -15,9 +15,8 @@
 
 import { createAdapterFactory } from 'better-auth/adapters';
 import type { DBAdapterDebugLogOption } from 'better-auth/adapters';
-// Cross-package relative path — valid in ESM nodenext since packages/bot owns this file
-// and Node resolves relative paths at the filesystem level regardless of package boundaries.
-import { getDb, saveDb } from '../../../../database/adapters/json/src/store.js';
+// Cross-package import resolving via node_modules to avoid TS6059 rootDir compiler errors
+import { getDb, saveDb } from 'database';
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -32,13 +31,14 @@ interface JsonAdapterConfig {
 type Operator =
   | 'eq' | 'ne'
   | 'lt' | 'lte' | 'gt' | 'gte'
-  | 'in' | 'contains' | 'starts_with' | 'ends_with';
+  | 'in' | 'not_in' | 'contains' | 'starts_with' | 'ends_with';
 
 interface WhereClause {
   field: string;
   value: unknown;
-  operator?: Operator;
-  connector?: 'AND' | 'OR';
+  // exactOptionalPropertyTypes requires | undefined so Required<Where> from better-auth is assignable
+  operator?: Operator | undefined;
+  connector?: 'AND' | 'OR' | undefined;
 }
 
 /**
@@ -126,17 +126,32 @@ export const jsonAdapter = (config: JsonAdapterConfig = {}) =>
       },
 
       // ── Find one ───────────────────────────────────────────────────────────
-      findOne: async ({ model, where }) => {
+      // select and join accepted to match CustomAdapter contract; unused because we return the full record
+      findOne: async <T>({ model, where }: { model: string; where: WhereClause[]; select?: string[] | undefined; join?: unknown }) => {
         const db = (await getDb()) as Record<string, Record<string, unknown>[]>;
         const table = getTable(db, model);
         const record = table.find((r) =>
           matchesWhere(r, where as WhereClause[]),
         );
-        return record ?? null;
+        // Cast through unknown: CustomAdapter.findOne is <T> but the in-memory store is
+        // untyped — the caller (better-auth) owns T and the store faithfully returns whatever
+        // it stored, so the widening cast is safe even though it bypasses structural checking.
+        return (record ?? null) as unknown as T | null;
       },
 
       // ── Find many ──────────────────────────────────────────────────────────
-      findMany: async ({ model, where, limit, offset, sortBy }) => {
+      // select and join accepted to satisfy CustomAdapter; createAdapterFactory handles field projection
+      findMany: async <T>({ model, where, limit, offset, sortBy }: {
+        model: string;
+        // where can arrive as undefined when no filter is provided — must include | undefined
+        where?: WhereClause[] | undefined;
+        limit?: number | undefined;
+        offset?: number | undefined;
+        // sortBy shape matches better-auth CustomAdapter contract exactly
+        sortBy?: { field: string; direction: 'asc' | 'desc' } | undefined;
+        select?: string[] | undefined;
+        join?: unknown;
+      }) => {
         const db = (await getDb()) as Record<string, Record<string, unknown>[]>;
         let table = [...getTable(db, model)];
 
@@ -160,19 +175,24 @@ export const jsonAdapter = (config: JsonAdapterConfig = {}) =>
         if (typeof offset === 'number' && offset > 0) table = table.slice(offset);
         if (typeof limit === 'number' && limit > 0) table = table.slice(0, limit);
 
-        return table;
+        return table as unknown as T[];
       },
 
       // ── Update (single) ────────────────────────────────────────────────────
-      update: async ({ model, where, update }) => {
+      // update typed as T to match CustomAdapter<T> contract; cast to Record for Object.assign
+      update: async <T>({ model, where, update }: {
+        model: string;
+        where: WhereClause[];
+        update: T;
+      }) => {
         const db = (await getDb()) as Record<string, Record<string, unknown>[]>;
         const table = getTable(db, model);
         const record = table.find((r) => matchesWhere(r, where as WhereClause[]));
         if (record) {
-          Object.assign(record, update);
+          Object.assign(record, update as Record<string, unknown>);
           await saveDb();
         }
-        return record ?? null;
+        return (record ?? null) as unknown as T | null;
       },
 
       // ── Update many ────────────────────────────────────────────────────────
