@@ -1,3 +1,4 @@
+import { Helmet } from '@dr.pogodin/react-helmet'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Trash2 } from 'lucide-react'
@@ -288,6 +289,8 @@ export default function NewBotPage() {
 
   return (
     <div className="flex flex-col gap-6 max-w-2xl mx-auto">
+      {/* Sets the browser tab title for the new-bot creation wizard */}
+      <Helmet><title>Create New Bot · Cat-Bot</title></Helmet>
       {/* Page header */}
       <div>
         <h1 className="text-headline-md font-semibold text-on-surface">

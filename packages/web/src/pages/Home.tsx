@@ -1,3 +1,4 @@
+import { Helmet } from '@dr.pogodin/react-helmet'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Zap, Bot, LayoutDashboard, Globe } from 'lucide-react'
 import Button from '@/components/ui/buttons/Button'
@@ -111,6 +112,8 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col">
+      {/* Sets the browser tab title for the public landing page */}
+      <Helmet><title>Cat-Bot</title></Helmet>
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden min-h-[calc(100vh-64px)] flex items-center">
         {/* Dot-grid atmosphere: subtle enough not to compete with copy */}
