@@ -1,0 +1,39 @@
+/**
+ * Route Constants
+ *
+ * Single source of truth for all application route paths.
+ * Centralizing here means a route rename is a one-file change —
+ * no hunting for string literals scattered across pages and layouts.
+ */
+
+/**
+ * Absolute paths — used in Link `to` props and programmatic navigation
+ * (e.g. navigate(ROUTES.HOME), <Link to={ROUTES.LOGIN}>).
+ */
+export const ROUTES = {
+  HOME: '/',
+  LOGIN: '/login',
+  SIGNUP: '/signup',
+  DASHBOARD: {
+    ROOT: '/dashboard',
+    SETTINGS: '/dashboard/settings',
+    CREATE_NEW_BOT: '/dashboard/create-new-bot',
+    BOT: '/dashboard/bot',
+    BOT_SETTINGS: '/dashboard/bot/settings',
+  },
+} as const
+
+/**
+ * Relative path segments — used exclusively in createBrowserRouter path
+ * definitions. React Router requires segment-only values (no leading slash)
+ * for nested route children.
+ */
+export const ROUTE_SEGMENTS = {
+  LOGIN: 'login',
+  SIGNUP: 'signup',
+  DASHBOARD: 'dashboard',
+  BOTS: 'bots',
+  SETTINGS: 'settings',
+  CREATE_NEW_BOT: 'create-new-bot',
+  BOT: 'bot',
+} as const
