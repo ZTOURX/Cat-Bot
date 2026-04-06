@@ -14,6 +14,7 @@ import cors from 'cors';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
+import { getTelegramWebhookHandler } from './lib/telegram-webhook.registry.js';
 
 import facebookPageRoutes from './routes/v1/facebook-page.routes.js';
 import apiV1Router from './routes/v1/index.js';
@@ -52,6 +53,18 @@ export function createApp(): Application {
   // Better Auth must mount BEFORE express.json() — toNodeHandler reads the raw Node.js
   // IncomingMessage stream; json() would consume the body before better-auth can parse it.
   app.all("/api/auth/{*any}", toNodeHandler(auth));
+
+  // Telegram webhook — mounted BEFORE express.json() for the same reason as better-auth:
+  // Telegraf's RequestListener reads the raw body stream itself. If express.json() ran first
+  // the stream would be consumed and Telegraf would receive an empty update payload.
+  // The handler is registered lazily by listener.ts after bot.createWebhook() resolves,
+  // so requests arriving before a session is live receive a 404 (safe no-op).
+  app.post('/api/v1/telegram-webhook/:userId/:sessionId', (req, res) => {
+    const key = `${String(req.params['userId'])}:${String(req.params['sessionId'])}`;
+    const handler = getTelegramWebhookHandler(key);
+    if (!handler) { res.sendStatus(404); return; }
+    handler(req, res);
+  });
 
   // Parse JSON bodies before any route handler runs.
   app.use(express.json());

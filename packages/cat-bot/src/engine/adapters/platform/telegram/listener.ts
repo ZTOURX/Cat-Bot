@@ -28,6 +28,12 @@ import { registerSlashSync, unregisterSlashSync } from '@/engine/lib/slash-sync.
 // Read enabled/disabled state from DB when the dashboard triggers a sync
 import { findSessionCommands } from '@/engine/repos/bot-session-commands.repo.js';
 import { prefixManager } from '@/engine/lib/prefix-manager.lib.js';
+// Webhook handler registry — shared with server/app.ts so the existing Express HTTP server
+// can route Telegram Bot API POST requests to the correct Telegraf session handler.
+import {
+  registerTelegramWebhookHandler,
+  unregisterTelegramWebhookHandler,
+} from '@/server/lib/telegram-webhook.registry.js';
 
 /**
  * Creates a Telegram platform listener.
@@ -91,30 +97,47 @@ export function createTelegramListener(
       sessionLogger.error('[telegram] Handler error (session continues)', { error: err });
     });
 
-    // Step 3: Launch polling — starts only after all handlers are registered
-    // Per https://telegraf.js.org/: "this should ideally be written before bot.launch()"
-    activeBot.launch({
-      // message_reaction and message_reaction_count are opt-in since Bot API 7.0 —
-      // Telegram does not deliver them unless explicitly requested here.
-      allowedUpdates: [
-        'message',
-        'message_reaction',
-        'message_reaction_count',
-        'callback_query',
-      ],
-    }).catch((err: unknown) => {
-      // "Bot is stopped!" is emitted during graceful stop() — not an error condition.
-      // All other errors are logged per-session so one failing account never brings down others.
-      if (err instanceof Error && err.message === 'Bot is stopped!') return;
-      if (isAuthError(err)) {
-        sessionLogger.error('[telegram] Session offline — bot token revoked during active polling', { error: err });
-        // Alert UI proactively if token dies mid-session
-        sessionManager.markInactive(`${config.userId}:${Platforms.Telegram}:${config.sessionId}`);
-      } else {
-        sessionLogger.warn('[telegram] Polling interrupted (non-fatal; will recover if network restores)', { error: err });
-      }
-    });
-    sessionLogger.info('[telegram] Bot running.');
+    // Step 3: Start receiving updates.
+    // Webhook mode: set TELEGRAM_WEBHOOK_DOMAIN to your public HTTPS domain (e.g. "example.com").
+    //   → bot.createWebhook() registers the URL with Telegram's Bot API and returns a
+    //     RequestListener. The handler is stored in the registry so server/app.ts can route
+    //     incoming POST requests to this session without an extra port or server.
+    // Polling mode (default): no public domain required; works in local development.
+    const rawWebhookDomain = process.env['TELEGRAM_WEBHOOK_DOMAIN'];
+    if (rawWebhookDomain) {
+      // Strip any protocol prefix — Telegraf builds the full HTTPS URL from the bare domain.
+      const domain = rawWebhookDomain.replace(/^https?:\/\//, '');
+      const webhookPath = `/api/v1/telegram-webhook/${config.userId}/${config.sessionId}`;
+      const handler = await activeBot.createWebhook({ domain, path: webhookPath });
+      registerTelegramWebhookHandler(`${config.userId}:${config.sessionId}`, handler);
+      sessionLogger.info(
+        `[telegram] Webhook mode active — Telegram will POST to https://${domain}${webhookPath}`,
+      );
+    } else {
+      // Long-polling fallback — all handlers must be registered before launch() per Telegraf docs.
+      activeBot.launch({
+        // message_reaction and message_reaction_count are opt-in since Bot API 7.0 —
+        // Telegram does not deliver them unless explicitly requested here.
+        allowedUpdates: [
+          'message',
+          'message_reaction',
+          'message_reaction_count',
+          'callback_query',
+        ],
+      }).catch((err: unknown) => {
+        // "Bot is stopped!" is emitted during graceful stop() — not an error condition.
+        // All other errors are logged per-session so one failing account never brings down others.
+        if (err instanceof Error && err.message === 'Bot is stopped!') return;
+        if (isAuthError(err)) {
+          sessionLogger.error('[telegram] Session offline — bot token revoked during active polling', { error: err });
+          // Alert UI proactively if token dies mid-session
+          sessionManager.markInactive(`${config.userId}:${Platforms.Telegram}:${config.sessionId}`);
+        } else {
+          sessionLogger.warn('[telegram] Polling interrupted (non-fatal; will recover if network restores)', { error: err });
+        }
+      });
+      sessionLogger.info('[telegram] Bot running (long-polling).');
+    }
 
     sessionLogger.info('[telegram] Listener active');
 
@@ -148,6 +171,8 @@ export function createTelegramListener(
     sessionLogger.info('[telegram] Stopping Listener...');
     // Clean up before stopping the bot so stale callbacks don't fire on a dead session
     unregisterSlashSync(`${config.userId}:${Platforms.Telegram}:${config.sessionId}`);
+    // Remove the webhook handler entry so server/app.ts returns 404 for this dead session
+    unregisterTelegramWebhookHandler(`${config.userId}:${config.sessionId}`);
     activeCommands = null;
     if (activeBot) {
       try {
