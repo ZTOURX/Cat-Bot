@@ -6,7 +6,7 @@
  * no Express dependency anywhere in this module.
  */
 
-import { logger } from '@/lib/logger.lib.js';
+import { logger } from '@/engine/lib/logger.lib.js';
 import type { PageSessionConfig } from '../models/page-session.model.js';
 
 // Keyed by `userId:pageId` — POST /facebook-page/:user_id resolves sessions via
@@ -15,7 +15,7 @@ const sessions = new Map<string, PageSessionConfig>();
 
 /**
  * Registers a Facebook Page session so the webhook server can route
- * /v1/facebook-page/:user_id requests to the correct session emitter.
+ * /api/v1/facebook-page/:user_id requests to the correct session emitter.
  *
  * Safe to call before or after startPageWebhookServer() — the sessions Map
  * is checked per-request so late registration takes effect immediately.
@@ -24,7 +24,7 @@ export function registerPageSession(config: PageSessionConfig): void {
   const key = `${config.userId}:${config.pageId}`;
   sessions.set(key, config);
   logger.info(
-    `[user ${config.userId}][session ${config.sessionId}][page ${config.pageId}] Registered — Callback URL: /v1/facebook-page/${config.userId}`,
+    `[user ${config.userId}][session ${config.sessionId}][page ${config.pageId}] Registered — webhook: /api/v1/facebook-page/${config.userId}`,
   );
 }
 
@@ -48,26 +48,22 @@ export function getSession(
 }
 
 /**
- * Resolves a session by userId + verifyToken (linear scan within that user's sessions).
- * Only used during Facebook's GET verification handshake — Facebook does NOT send
- * the pageId at that stage, only the verifyToken, so we cannot key directly.
+ * Finds any registered session for the given userId (linear scan).
+ * Used during the Facebook GET verification handshake — Facebook only sends the
+ * userId URL segment at that point, not the pageId, so we cannot key directly.
+ * verifyToken validation is deferred to server-level configuration (to be refined).
  */
-export function findSessionByUserId(
-  userId: string,
-  verifyToken: string,
-): PageSessionConfig | undefined {
+export function findAnySessionForUserId(userId: string): PageSessionConfig | undefined {
   for (const [key, s] of sessions) {
-    if (key.startsWith(`${userId}:`) && s.verifyToken === verifyToken) {
-      return s;
-    }
+    if (key.startsWith(`${userId}:`)) return s;
   }
   return undefined;
 }
 
+
 /**
  * Returns deduplicated userIds across all registered sessions.
- * Used by startPageWebhookServer() to log one callback URL line per user
- * rather than one line per pageId.
+ * Used by startPageWebhookServer() to log one callback URL per user
  */
 export function getAllUserIds(): Set<string> {
   const userIds = new Set<string>();

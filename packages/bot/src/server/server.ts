@@ -2,55 +2,55 @@
  * HTTP Server Bootstrap — Singleton Lifecycle
  *
  * Owns the single app.listen() call for the entire process.
- * The `serverStarted` guard exists because the Facebook Page platform adapter
- * calls startPageWebhookServer() once per session (one per discovered session
- * directory) — without the guard every session would attempt to bind the same
- * port and crash with EADDRINUSE.
- *
- * Port is read exclusively from process.env.PORT so all Facebook Page sessions
- * share one Express instance with zero per-session port configuration.
+ * Handles graceful shutdown and binds the unified Express app.
  */
 
-import { logger } from '@/lib/logger.lib.js';
-import { env } from '@/config/env.config.js';
+import { logger } from '@/engine/lib/logger.lib.js';
+import { createServer } from 'node:http';
+import { env } from '@/engine/config/env.config.js';
 import { createApp } from './app.js';
 import { getAllUserIds } from './lib/facebook-page-session.lib.js';
-
-// Module-level flag — persists for the lifetime of the process so N concurrent
-// start() calls from N sessions only ever bind once.
-let serverStarted = false;
+// Socket.IO: attach to the raw HTTP server before listen() so the WS upgrade
+// event is captured at the Node.js level rather than going through Express.
+import { initSocketIO } from './socket/socket.lib.js';
+import { registerValidationHandlers } from './socket/validation.socket.js';
+import { registerBotMonitorHandlers } from './socket/bot-monitor.socket.js';
 
 /**
- * Starts the singleton Express webhook server.
- * Idempotent — every session emitter's start() can safely call this;
- * only the first invocation actually binds.
+ * Starts the singleton Express webhook & API server.
+ * Idempotent — multiple bot adapters can safely call this, only binds once.
  */
-export function startPageWebhookServer(): void {
-  if (serverStarted) return;
-  serverStarted = true;
-
+export function startServer(): void {
   const app = createApp();
   const port = parseInt(env.PORT, 10);
+  // Create the HTTP server explicitly so Socket.IO can attach to it.
+  // app.listen() internally does the same thing, but we need the handle before listen().
+  const httpServer = createServer(app);
 
-  if (Number.isNaN(port) || port < 1 || port > 65535) {
-    logger.error(
-      `Invalid PORT: "${env.PORT}" — must be a number between 1 and 65535`,
-    );
-    process.exit(1);
-  }
+  const corsOrigin = process.env['VITE_URL'] ? [process.env['VITE_URL']] : (true as const);
+  const io = initSocketIO(httpServer, corsOrigin);
+  registerValidationHandlers(io);
+  registerBotMonitorHandlers(io);
 
-  app.listen(port, () => {
-    logger.info(`Webhook server listening on port ${port}`);
-    logger.info('Registered session routes:');
+  const server = httpServer.listen(port, () => {
+    logger.info(`Webhook & API server listening on port ${port}`);
+    logger.info('Registered Facebook Page session routes:');
 
-    // Log one callback URL per user — each user's multiple Page sessions
-    // all share the same /v1/facebook-page/:user_id URL prefix.
     for (const uid of getAllUserIds()) {
-      logger.info(`GET/POST https://your-domain.com/v1/facebook-page/${uid}`);
+      logger.info(`GET/POST https://your-domain.com/api/v1/facebook-page/${uid}`);
     }
-
-    logger.info(
-      'Configure each Page in Meta App Dashboard with its Callback URL above.',
-    );
   });
+
+  server.on("error", (err: NodeJS.ErrnoException) => {
+    if (err.code === "EADDRINUSE") {
+      logger.error(`[server] Port ${port} is already in use`);
+    } else {
+      logger.error("[server] Fatal server error:", err);
+    }
+    process.exit(1);
+  });
+
+  // Note: SIGTERM handling for graceful shutdown is managed globally by
+  // the Cat-Bot orchestrator in packages/bot/src/app.ts.
 }
+

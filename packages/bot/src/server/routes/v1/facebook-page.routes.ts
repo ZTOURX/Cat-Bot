@@ -1,8 +1,8 @@
 /**
  * Facebook Page Routes — v1
  *
- * Mounted at /v1/facebook-page by app.ts.
- * :user_id maps to session/{user_id}/ on disk — one URL prefix covers all
+ * Mounted at /api/v1/facebook-page by app.ts.
+ * :user_id maps to the raw userId — one URL prefix covers all
  * Page sessions belonging to a single user account.
  *
  * Adding a v2 route surface never requires touching this file or the controller:

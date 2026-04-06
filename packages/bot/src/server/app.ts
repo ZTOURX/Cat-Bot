@@ -1,18 +1,24 @@
 /**
  * Express Application Factory
  *
- * Responsible for wiring middleware and routes — deliberately does NOT call
- * app.listen(). This separation means:
- *   - Tests can mount the app via supertest without binding a real port.
- *   - server.ts owns the single listen() call, keeping port resolution in one place.
- *   - Future platform webhooks (e.g. Telegram self-hosted) can be added here
- *     as additional app.use() mounts without touching the server bootstrap.
+ * Fully unified server merging the Facebook Page webhook listeners AND
+ * the API server for bot management/dashboard administration.
+ *
+ * Separated from listen() to allow supertest mounts.
  */
 
 import express, { type Application } from 'express';
-import facebookPageRoutes from './routes/v1/facebook-page.routes.js';
+import { toNodeHandler } from 'better-auth/node';
+import { auth } from '@/server/lib/better-auth.lib.js';
+import cors from 'cors';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-// Augment Express Request to carry the raw body buffer for HMAC verification.
+import facebookPageRoutes from './routes/v1/facebook-page.routes.js';
+import apiV1Router from './routes/v1/index.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -25,19 +31,52 @@ declare global {
 
 /**
  * Creates and returns a fully-configured Express application instance.
- * All platform-specific routes live under /v1 — versioning is enforced at
- * the mount point so no individual route file needs to carry the version prefix.
  */
 export function createApp(): Application {
   const app = express();
 
-  // Parse JSON bodies before any route handler runs.
-  // Raw body capture middleware for HMAC verification can be inserted here
-  // in the future without touching routes or controllers.
-  app.use(express.json());
+  // Trust proxy so req.protocol and req.get('host') accurately reflect external URLs
+  app.set('trust proxy', 1);
 
-  // Mount versioned routes — /v1/facebook-page/:user_id
-  app.use('/v1/facebook-page', facebookPageRoutes);
+  // CORS must be registered before better-auth so the browser's OPTIONS preflight receives
+  // Access-Control-Allow-* headers before better-auth's own handler processes the request.
+  app.use(cors({
+    // In production, trust same-origin implicitly. In dev, trust VITE_URL.
+    origin: process.env['VITE_URL'] ? [process.env['VITE_URL']] : true,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  }));
+
+  // Better Auth must mount BEFORE express.json() — toNodeHandler reads the raw Node.js
+  // IncomingMessage stream; json() would consume the body before better-auth can parse it.
+  app.all("/api/auth/{*any}", toNodeHandler(auth));
+
+  // Parse JSON bodies before any route handler runs.
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: false }));
+
+  // Mount Facebook Page Webhooks
+  app.use('/api/v1/facebook-page', facebookPageRoutes);
+
+  // Mount API endpoints for bot administration
+  app.use('/api/v1', apiV1Router);
+
+  // Health check
+  app.get("/api/v1/health", (_req, res) => {
+    res.json({ status: "ok" });
+  });
+
+  // Serve SPA in production — fallback for React Router
+  if (process.env.NODE_ENV === 'production') {
+    const webDistPath = path.resolve(__dirname, '../../../web/dist');
+    app.use(express.static(webDistPath));
+    app.get('/{*splat}', (req, res) => {
+      res.sendFile(path.join(webDistPath, 'index.html'));
+    });
+  }
 
   return app;
 }
+
+export default createApp();

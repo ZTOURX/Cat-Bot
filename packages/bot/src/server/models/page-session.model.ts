@@ -15,7 +15,6 @@ export interface PageSessionConfig {
   sessionId: string;
   /** Page ID fetched from the Graph API — used to route POST webhook entries to the correct session emitter. */
   pageId: string;
-  verifyToken: string;
   onMessage: (messaging: Record<string, unknown>) => Promise<void>;
 }
 

@@ -22,7 +22,8 @@
     /* Path Mapping */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@cat-bot/*": ["./src/*"]
     }
   },
   "include": ["src"]
