@@ -40,9 +40,9 @@ export type MiddlewareFn<TCtx = BaseCtx> = (
  * always provided at command-dispatch time.
  */
 export interface OnCommandCtx extends BaseCtx {
-  parsed: ParsedCommand;
+  parsed?: ParsedCommand | undefined;
   prefix: string;
-  mod: CommandModule;
+  mod?: CommandModule | undefined;
   /** Populated by validateCommandOptions; always present when handler executes. */
   options: OptionsMap;
 }
