@@ -32,8 +32,9 @@ import {
   middlewareRegistry,
   runMiddlewareChain,
 } from '@/engine/lib/middleware.lib.js';
-import type { OnChatCtx } from '@/engine/types/middleware.types.js';
+import type { OnChatCtx, OnCommandCtx } from '@/engine/types/middleware.types.js';
 import { findSimilarCommand } from '@/engine/utils/command-suggest.util.js';
+import { OptionsMap } from '@/engine/lib/options-map.lib.js';
 import { isCommandEnabled, findSessionCommands } from '@/engine/repos/bot-session-commands.repo.js';
 import { PLATFORM_TO_ID } from '@/engine/constants/platform.constants.js';
 
@@ -114,85 +115,85 @@ export async function handleMessage(
   }
 
   const body = (event['message'] ?? event['body'] ?? '') as string;
-  if (!body.startsWith(prefix)) {
-    // hasPrefix: false — allows a command to be invoked without the prefix character.
-    // The prefix check lives here at the routing layer because the early return fires
-    // before the dispatcher is ever reached; there is nowhere inside on-command.middleware
-    // that could intercept a no-prefix message that has already been discarded.
-    const tokens = body.trim().split(/\s+/).filter(Boolean);
-    if (tokens.length > 0) {
-      const firstToken = tokens[0]!.toLowerCase();
-      const noPrefixMod = commands.get(firstToken);
-      const noPrefixCfg = noPrefixMod?.['config'] as
-        | Record<string, unknown>
-        | undefined;
-      if (noPrefixCfg?.['hasPrefix'] === false) {
-        await dispatchCommand(
-          commands,
-          { name: firstToken, args: tokens.slice(1) },
-          baseCtx,
-          api,
-          event['threadID'] as string,
-          prefix,
-        );
-      }
-    }
-    return;
-  }
-
   const args = body.trim().split(/\s+/).filter(Boolean);
-  const parsed = parseCommand(args, prefix);
-  if (!parsed) {
-    await chat.replyMessage({
-      message: `Type ${prefix}help for available commands.`,
-    });
-    return;
-  }
 
-  // Exact-match check. Disabled commands are excluded from the suggestion pool
-  // so they are invisible to users — same UX as a command that was never installed.
-  if (!commands.has(parsed.name)) {
-    const disabledNames = await getDisabledNamesForSession(native);
-    const suggestion = findSimilarCommand(parsed.name, commands, disabledNames);
-    await chat.replyMessage({
-      message: suggestion
-        ? `No command "${parsed.name}" found. Did you mean "${suggestion}"?`
-        : `No command "${parsed.name}" found. Type ${prefix}help for available commands.`,
-    });
-    return;
-  }
+  let isCommandInvocation = false;
+  let parsed: import('@/engine/types/controller.types.js').ParsedCommand | undefined;
+  let mod: import('@/engine/types/controller.types.js').CommandModule | undefined;
 
-  // Disabled commands are treated as non-existent: bot admins can hide commands without
-  // surfacing an explicit "disabled" error that would reveal the command's existence.
-  // The disabled-names set is fetched here so suggestions exclude both the typed command
-  // and any other hidden commands the admin has suppressed for this session.
-  const matchedMod = commands.get(parsed.name)!;
-  const matchedCfg = matchedMod['config'] as { name?: string } | undefined;
-  const canonicalName = (matchedCfg?.name ?? parsed.name).toLowerCase();
-  const sessionUserId = native.userId ?? '';
-  const sessionId = native.sessionId ?? '';
-  if (sessionUserId && sessionId) {
-    const enabled = await isCommandEnabled(sessionUserId, native.platform, sessionId, canonicalName);
-    if (!enabled) {
-      const disabledNames = await getDisabledNamesForSession(native);
-      // Always add the typed command itself — isCommandEnabled may race with findSessionCommands
-      disabledNames.add(canonicalName);
-      const suggestion = findSimilarCommand(parsed.name, commands, disabledNames);
-      await chat.replyMessage({
-        message: suggestion
-          ? `No command "${parsed.name}" found. Did you mean "${suggestion}"?`
-          : `No command "${parsed.name}" found. Type ${prefix}help for available commands.`,
-      });
-      return;
+  // Prefix commands vs. Prefix-less commands
+  if (body.startsWith(prefix)) {
+    isCommandInvocation = true;
+    parsed = parseCommand(args, prefix) ?? undefined;
+    if (parsed) mod = commands.get(parsed.name);
+  } else if (args.length > 0) {
+    const firstToken = args[0]!.toLowerCase();
+    const noPrefixMod = commands.get(firstToken);
+    const noPrefixCfg = noPrefixMod?.['config'] as Record<string, unknown> | undefined;
+    if (noPrefixCfg?.['hasPrefix'] === false) {
+      isCommandInvocation = true;
+      parsed = { name: firstToken, args: args.slice(1) };
+      mod = noPrefixMod;
     }
   }
 
-  await dispatchCommand(
-    commands,
-    parsed,
-    baseCtx,
-    api,
-    event['threadID'] as string,
-    prefix,
-  );
+  // Intercept valid invocations and unrecognized prefix sequences for onCommand middleware execution
+  if (isCommandInvocation) {
+    const commandCtx: OnCommandCtx = {
+      ...baseCtx,
+      parsed,
+      prefix,
+      mod,
+      options: OptionsMap.empty(),
+    };
+
+    await runMiddlewareChain<OnCommandCtx>(
+      middlewareRegistry.getOnCommand(),
+      commandCtx,
+      async () => {
+        // Handle raw prefixes that result in no resolvable command after parsing
+        if (!commandCtx.parsed && body.startsWith(prefix)) {
+          await chat.replyMessage({ message: `Type ${prefix}help for available commands.` });
+          return;
+        }
+        if (!commandCtx.parsed) return;
+
+        const p = commandCtx.parsed;
+        const m = commandCtx.mod;
+
+        if (!m) {
+          const disabledNames = await getDisabledNamesForSession(native);
+          const suggestion = findSimilarCommand(p.name, commands, disabledNames);
+          await chat.replyMessage({
+            message: suggestion
+              ? `No command "${p.name}" found. Did you mean "${suggestion}"?`
+              : `No command "${p.name}" found. Type ${prefix}help for available commands.`,
+          });
+          return;
+        }
+
+        const matchedCfg = m['config'] as { name?: string } | undefined;
+        const canonicalName = (matchedCfg?.name ?? p.name).toLowerCase();
+        const sessionUserId = native.userId ?? '';
+        const sessionId = native.sessionId ?? '';
+
+        if (sessionUserId && sessionId) {
+          const enabled = await isCommandEnabled(sessionUserId, native.platform, sessionId, canonicalName);
+          if (!enabled) {
+            const disabledNames = await getDisabledNamesForSession(native);
+            disabledNames.add(canonicalName);
+            const suggestion = findSimilarCommand(p.name, commands, disabledNames);
+            await chat.replyMessage({
+              message: suggestion
+                ? `No command "${p.name}" found. Did you mean "${suggestion}"?`
+                : `No command "${p.name}" found. Type ${prefix}help for available commands.`,
+            });
+            return;
+          }
+        }
+
+        await dispatchCommand(commands, p, commandCtx, api, event['threadID'] as string, prefix);
+      }
+    );
+  }
 }
