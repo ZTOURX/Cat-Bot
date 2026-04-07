@@ -67,6 +67,16 @@ export {
   upsertFbPageWebhookVerification,
 } from '../adapters/prisma-sqlite/src/cat-bot/webhooks.repo.js';
 
+// --- BANNED ---
+export {
+  banUser,
+  unbanUser,
+  isUserBanned,
+  banThread,
+  unbanThread,
+  isThreadBanned,
+} from '../adapters/prisma-sqlite/src/cat-bot/banned.repo.js';
+
 // --- SERVER ---
 export { botRepo } from '../adapters/prisma-sqlite/src/server/bot.repo.js';
 

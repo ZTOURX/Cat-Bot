@@ -308,3 +308,33 @@ model BotSessionEvent {
   @@id([userId, platformId, sessionId, eventName])
   @@map("bot_session_events")
 }
+
+// ── Bot User Session Banned — per-session user ban records ────────────────────
+// isBanned defaults to true on insert — an explicit unban sets it false rather
+// than deleting the row so the reason field is preserved for audit purposes.
+model BotUserBanned {
+  userId     String
+  platformId Int
+  sessionId  String
+  botUserId  String
+  isBanned   Boolean @default(true)
+  // reason is optional so an immediate ban without an explanation is still valid
+  reason     String?
+
+  @@id([userId, platformId, sessionId, botUserId])
+  @@map("bot_users_session_banned")
+}
+
+// ── Bot Thread Session Banned — per-session thread ban records ────────────────
+// Mirrors BotUserBanned; keyed by botThreadId instead of botUserId.
+model BotThreadBanned {
+  userId      String
+  platformId  Int
+  sessionId   String
+  botThreadId String
+  isBanned    Boolean @default(true)
+  reason      String?
+
+  @@id([userId, platformId, sessionId, botThreadId])
+  @@map("bot_threads_session_banned")
+}

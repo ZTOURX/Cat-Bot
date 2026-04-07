@@ -65,6 +65,16 @@ export {
   upsertFbPageWebhookVerification,
 } from '../adapters/json/src/cat-bot/webhooks.repo.js';
 
+// --- BANNED ---
+export {
+  banUser,
+  unbanUser,
+  isUserBanned,
+  banThread,
+  unbanThread,
+  isThreadBanned,
+} from '../adapters/json/src/cat-bot/banned.repo.js';
+
 // --- SERVER ---
 export { botRepo } from '../adapters/json/src/server/bot.repo.js';
 
