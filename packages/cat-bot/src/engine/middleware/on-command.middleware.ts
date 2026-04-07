@@ -51,6 +51,12 @@ export const enforceCooldown: MiddlewareFn<OnCommandCtx> = async function (
   ctx,
   next,
 ): Promise<void> {
+  // Options/Cooldown/Permission middlewares silently skip if no parsed command/mod exists.
+  if (!ctx.parsed || !ctx.mod) {
+    await next();
+    return;
+  }
+
   const cfg = ctx.mod['config'] as Record<string, unknown> | undefined;
   const cooldownSec = cfg?.['cooldown'];
 
@@ -95,6 +101,12 @@ export const enforceCooldown: MiddlewareFn<OnCommandCtx> = async function (
 
 export const validateCommandOptions: MiddlewareFn<OnCommandCtx> =
   async function (ctx, next): Promise<void> {
+    if (!ctx.mod) {
+      ctx.options = OptionsMap.empty();
+      await next();
+      return;
+    }
+
     const cfg = ctx.mod['config'] as Record<string, unknown> | undefined;
     const optionDefs = (cfg?.['options'] as OptionDef[] | undefined) ?? [];
 
@@ -153,6 +165,11 @@ export const enforcePermission: MiddlewareFn<OnCommandCtx> = async function (
   ctx,
   next,
 ): Promise<void> {
+  if (!ctx.mod) {
+    await next();
+    return;
+  }
+
   const cfg = ctx.mod['config'] as Record<string, unknown> | undefined;
   const role = cfg?.['role'];
 
@@ -219,9 +236,36 @@ export const enforceNotBanned: MiddlewareFn<OnCommandCtx> = async function (
 
   const senderID = (ctx.event['senderID'] ?? ctx.event['userID'] ?? '') as string;
   const threadID = (ctx.event['threadID'] ?? '') as string;
+  const now = Date.now();
 
-  if (senderID && await isUserBanned(sessionUserId, platform, sessionId, senderID)) return;
-  if (threadID && await isThreadBanned(sessionUserId, platform, sessionId, threadID)) return;
+  // Bypass ban checks for bot admins so they retain full command control
+  // even if they or the thread they are operating within is currently banned.
+  if (senderID) {
+    const isAdmin = await isBotAdmin(sessionUserId, platform, sessionId, senderID);
+    if (isAdmin) {
+      await next();
+      return;
+    }
+  }
+
+  // Prevent banned users from executing prefix commands and send rate-limited alerts.
+  if (senderID && await isUserBanned(sessionUserId, platform, sessionId, senderID)) {
+    const key = `ban_u:${sessionUserId}:${platform}:${sessionId}:${senderID}`;
+    if (!cooldownStore.check(key, now)) {
+      await ctx.chat.replyMessage({ message: 'you are unable to use bot' });
+      cooldownStore.record(key, now, 15000);
+    }
+    return;
+  }
+
+  if (threadID && await isThreadBanned(sessionUserId, platform, sessionId, threadID)) {
+    const key = `ban_t:${sessionUserId}:${platform}:${sessionId}:${threadID}`;
+    if (!cooldownStore.check(key, now)) {
+      await ctx.chat.replyMessage({ message: 'This thread unable to use bot' });
+      cooldownStore.record(key, now, 15000);
+    }
+    return;
+  }
 
   await next();
 };
