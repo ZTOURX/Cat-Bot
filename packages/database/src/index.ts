@@ -103,3 +103,17 @@ export const prisma = m.prisma;
 export const getDb  = m.getDb;
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 export const saveDb = m.saveDb;
+
+// --- BANNED ---
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+export const banUser        = m.banUser;
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+export const unbanUser      = m.unbanUser;
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+export const isUserBanned   = m.isUserBanned;
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+export const banThread      = m.banThread;
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+export const unbanThread    = m.unbanThread;
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+export const isThreadBanned = m.isThreadBanned;
