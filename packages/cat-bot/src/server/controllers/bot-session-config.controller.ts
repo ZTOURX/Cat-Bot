@@ -31,6 +31,7 @@ import type { ToggleEnabledRequestDto } from '@/server/dtos/bot-session-config.d
 // Triggers slash command re-registration on live Discord/Telegram sessions when a command is toggled.
 // Resolves as a no-op for platforms without a registered sync (FB Messenger, FB Page) or stopped sessions.
 import { triggerSlashSync } from '@/engine/lib/slash-sync.lib.js';
+import { isPlatformAllowed } from '@/engine/utils/platform-filter.util.js';
 
 // ── Shared Auth Helper ────────────────────────────────────────────────────────
 
@@ -93,7 +94,13 @@ export class BotSessionConfigController {
     try {
       const rawCommands = await findSessionCommands(userId, platform, sessionId);
       // Enrich with metadata from the in-memory registry so the web UI can render details
-      const commands = rawCommands.map((cmd: { commandName: string; isEnable: boolean }) => {
+      const commands = rawCommands
+        // Filter out commands that are structurally disallowed on this session's platform
+        .filter((cmd: { commandName: string; isEnable: boolean }) => {
+          const mod = commandRegistry.get(cmd.commandName.toLowerCase());
+          return mod && isPlatformAllowed(mod, platform);
+        })
+        .map((cmd: { commandName: string; isEnable: boolean }) => {
         const mod = commandRegistry.get(cmd.commandName.toLowerCase());
         const cfg = mod?.['config'] as Record<string, unknown> | undefined;
         return {
@@ -135,6 +142,13 @@ export class BotSessionConfigController {
       return;
     }
 
+    // Guard against modifying state for a command that does not run on this platform
+    const mod = commandRegistry.get(commandName.toLowerCase());
+    if (!mod || !isPlatformAllowed(mod, platform)) {
+      res.status(400).json({ error: 'Command not available for this platform' });
+      return;
+    }
+
     try {
       await setCommandEnabled(userId, platform, sessionId, commandName, isEnable);
       // Fire-and-forget slash re-registration — the HTTP response must not block on a Discord REST
@@ -166,7 +180,13 @@ export class BotSessionConfigController {
 
     try {
       const rawEvents = await findSessionEvents(userId, platform, sessionId);
-      const events = rawEvents.map((evt: { eventName: string; isEnable: boolean }) => {
+      const events = rawEvents
+        // Filter out events that are structurally disallowed on this session's platform
+        .filter((evt: { eventName: string; isEnable: boolean }) => {
+          const mod = eventRegistry.get(evt.eventName.toLowerCase());
+          return mod && isPlatformAllowed(mod, platform);
+        })
+        .map((evt: { eventName: string; isEnable: boolean }) => {
         const mod = eventRegistry.get(evt.eventName.toLowerCase());
         const cfg = mod?.['config'] as Record<string, unknown> | undefined;
         return {
@@ -201,6 +221,13 @@ export class BotSessionConfigController {
     const { isEnable } = req.body as ToggleEnabledRequestDto;
     if (typeof isEnable !== 'boolean') {
       res.status(400).json({ error: 'isEnable must be a boolean' });
+      return;
+    }
+
+    // Guard against modifying state for an event that does not run on this platform
+    const mod = eventRegistry.get(eventName.toLowerCase());
+    if (!mod || !isPlatformAllowed(mod, platform)) {
+      res.status(400).json({ error: 'Event not available for this platform' });
       return;
     }
 
