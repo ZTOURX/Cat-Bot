@@ -84,7 +84,7 @@ export interface FcaApi {
     cb: (err: unknown) => void,
     force: boolean,
   ): void;
-  getCurrentUserID(): void;
+  getCurrentUserID(): string | number;
   getThreadInfo(
     threadID: string,
     cb: (
