@@ -31,6 +31,7 @@ import type { UnifiedThreadInfo } from '@/engine/adapters/models/thread.model.js
 import type { UnifiedUserInfo } from '@/engine/adapters/models/user.model.js';
 
 import { buildDiscordMentionMsg } from './utils/helper.util.js';
+import { logger } from '@/engine/lib/logger.lib.js';
 
 import { Platforms } from '@/engine/constants/platform.constants.js';
 import { sendMessage as sendMessageLib } from './lib/sendMessage.js';
@@ -98,6 +99,7 @@ class DiscordApi extends UnifiedApi {
     msg: string | SendPayload,
     _threadID: string,
   ): Promise<string | undefined> {
+    logger.debug('[discord] sendMessage called', { threadID: _threadID });
     return sendMessageLib(
       async (c, f) => {
         const idInfo = await this.#send(c, f);
@@ -109,12 +111,14 @@ class DiscordApi extends UnifiedApi {
 
   // Slash command replies cannot be deleted via interaction API — channel=null signals no-op
   override unsendMessage(_messageID: string): Promise<void> {
+    logger.debug('[discord] unsendMessage called', { messageID: _messageID });
     return unsendMessageLib(null, _messageID);
   }
 
   override getUserInfo(
     userIds: string[],
   ): Promise<Record<string, { name: string }>> {
+    logger.debug('[discord] getUserInfo called', { userCount: userIds.length });
     const interaction = this.#interaction;
     return getUserInfoLib(async (id) => {
       if (interaction.user.id === id) {
@@ -137,27 +141,33 @@ class DiscordApi extends UnifiedApi {
   }
 
   override setGroupName(_threadID: string, name: string): Promise<void> {
+    logger.debug('[discord] setGroupName called', { threadID: _threadID, name });
     return setGroupNameLib(this.#interaction.guild, name);
   }
   override setGroupImage(
     _threadID: string,
     imageSource: Buffer | import('stream').Readable | string,
   ): Promise<void> {
+    logger.debug('[discord] setGroupImage called', { threadID: _threadID });
     return setGroupImageLib(this.#interaction.guild, imageSource);
   }
   override removeGroupImage(_threadID: string): Promise<void> {
+    logger.debug('[discord] removeGroupImage called', { threadID: _threadID });
     return removeGroupImageLib(this.#interaction.guild);
   }
   override addUserToGroup(_threadID: string, _userID: string): Promise<void> {
+    logger.debug('[discord] addUserToGroup called', { threadID: _threadID, userID: _userID });
     return addUserToGroupLib();
   }
   override removeUserFromGroup(
     _threadID: string,
     userID: string,
   ): Promise<void> {
+    logger.debug('[discord] removeUserFromGroup called', { threadID: _threadID, userID });
     return removeUserFromGroupLib(this.#interaction.guild, userID);
   }
   override setGroupReaction(_threadID: string, _emoji: string): Promise<void> {
+    logger.debug('[discord] setGroupReaction called', { threadID: _threadID, emoji: _emoji });
     return setGroupReactionLib();
   }
 
@@ -165,6 +175,7 @@ class DiscordApi extends UnifiedApi {
     _threadID: string,
     options: ReplyMessageOptions = {},
   ): Promise<unknown> {
+    logger.debug('[discord] replyMessage called', { threadID: _threadID });
     // Interaction path silently ignores reply_to_message_id — slash commands reply via interaction API
     // Extract the message string from options; buildDiscordMentionMsg only accepts string | SendPayload
     const msgArg =
@@ -198,6 +209,7 @@ class DiscordApi extends UnifiedApi {
     messageID: string,
     emoji: string,
   ): Promise<void> {
+    logger.debug('[discord] reactToMessage called', { threadID: _threadID, messageID, emoji });
     return reactToMessageLib(
       this.#interaction.channel as TextChannel,
       messageID,
@@ -206,6 +218,7 @@ class DiscordApi extends UnifiedApi {
   }
 
   override editMessage(messageID: string, newBody: string): Promise<void> {
+    logger.debug('[discord] editMessage called', { messageID });
     return editMessageLib(
       this.#interaction.channel as TextChannel,
       messageID,
@@ -217,14 +230,17 @@ class DiscordApi extends UnifiedApi {
     userID: string,
     nickname: string,
   ): Promise<void> {
+    logger.debug('[discord] setNickname called', { threadID: _threadID, userID });
     return setNicknameLib(this.#interaction.guild, userID, nickname);
   }
 
   override getBotID(): Promise<string> {
+    logger.debug('[discord] getBotID called');
     return getBotIDLib(this.#interaction.client, null);
   }
 
   override getFullThreadInfo(threadID: string): Promise<UnifiedThreadInfo> {
+    logger.debug('[discord] getFullThreadInfo called', { threadID });
     return getFullThreadInfoLib(
       this.#interaction.client,
       this.#interaction.channel as TextChannel,
@@ -234,6 +250,7 @@ class DiscordApi extends UnifiedApi {
   }
 
   override getFullUserInfo(userID: string): Promise<UnifiedUserInfo> {
+    logger.debug('[discord] getFullUserInfo called', { userID });
     return getFullUserInfoLib(
       this.#interaction.client,
       this.#interaction.guild,
@@ -284,17 +301,22 @@ export function createDiscordChannelApi(
     return sent as unknown as { id: string };
   };
 
-  api.sendMessage = (msg, _threadID) =>
-    sendMessageLib(
+  api.sendMessage = (msg, _threadID) => {
+    logger.debug('[discord] sendMessage called', { threadID: _threadID });
+    return sendMessageLib(
       channelSendFn,
       buildDiscordMentionMsg(msg) as string | SendPayload,
     );
+  };
   // TextBasedChannel cast — unsendMessageLib expects TextChannel but the channel path accepts any text channel
-  api.unsendMessage = (messageID) =>
-    unsendMessageLib(channel as import('discord.js').TextChannel, messageID);
+  api.unsendMessage = (messageID) => {
+    logger.debug('[discord] unsendMessage called', { messageID });
+    return unsendMessageLib(channel as import('discord.js').TextChannel, messageID);
+  };
 
-  api.getUserInfo = (userIds) =>
-    getUserInfoLib(async (id) => {
+  api.getUserInfo = (userIds) => {
+    logger.debug('[discord] getUserInfo called', { userCount: userIds.length });
+    return getUserInfoLib(async (id) => {
       try {
         const member = await guild!.members.fetch(id);
         return { name: member.displayName };
@@ -302,16 +324,36 @@ export function createDiscordChannelApi(
         return { name: `User ${id}` };
       }
     }, userIds);
+  };
 
-  api.setGroupName = (_tid, name) => setGroupNameLib(guild, name);
-  api.setGroupImage = (_tid, img) => setGroupImageLib(guild, img);
-  api.removeGroupImage = (_tid) => removeGroupImageLib(guild);
-  api.addUserToGroup = (_tid, _uid) => addUserToGroupLib();
-  api.removeUserFromGroup = (_tid, uid) => removeUserFromGroupLib(guild, uid);
-  api.setGroupReaction = (_tid, _e) => setGroupReactionLib();
+  api.setGroupName = (_tid, name) => {
+    logger.debug('[discord] setGroupName called', { threadID: _tid, name });
+    return setGroupNameLib(guild, name);
+  };
+  api.setGroupImage = (_tid, img) => {
+    logger.debug('[discord] setGroupImage called', { threadID: _tid });
+    return setGroupImageLib(guild, img);
+  };
+  api.removeGroupImage = (_tid) => {
+    logger.debug('[discord] removeGroupImage called', { threadID: _tid });
+    return removeGroupImageLib(guild);
+  };
+  api.addUserToGroup = (_tid, _uid) => {
+    logger.debug('[discord] addUserToGroup called', { threadID: _tid, userID: _uid });
+    return addUserToGroupLib();
+  };
+  api.removeUserFromGroup = (_tid, uid) => {
+    logger.debug('[discord] removeUserFromGroup called', { threadID: _tid, userID: uid });
+    return removeUserFromGroupLib(guild, uid);
+  };
+  api.setGroupReaction = (_tid, _e) => {
+    logger.debug('[discord] setGroupReaction called', { threadID: _tid, emoji: _e });
+    return setGroupReactionLib();
+  };
 
-  api.replyMessage = (_threadID, options) =>
-    replyMessageLib(
+  api.replyMessage = (_threadID, options) => {
+    logger.debug('[discord] replyMessage called', { threadID: _threadID });
+    return replyMessageLib(
       async (content, files, replyId, components) => {
         const sendOptions: Record<string, unknown> = { content };
         // Create a Discord quote-thread back to the original message when replyId is present
@@ -344,15 +386,32 @@ export function createDiscordChannelApi(
         ...(options?.reply_to_message_id !== undefined ? { reply_to_message_id: options.reply_to_message_id } : {}),
       },
     );
+  };
 
-  api.reactToMessage = (_tid, mid, emoji) =>
-    reactToMessageLib(channel, mid, emoji, rawMessage);
-  api.editMessage = (mid, body) => editMessageLib(channel, mid, body);
-  api.setNickname = (_tid, uid, nick) => setNicknameLib(guild, uid, nick);
-  api.getBotID = () => getBotIDLib(client, guild);
-  api.getFullThreadInfo = (tid) =>
-    getFullThreadInfoLib(client, channel, guild, tid);
-  api.getFullUserInfo = (uid) => getFullUserInfoLib(client, guild, uid, null);
+  api.reactToMessage = (_tid, mid, emoji) => {
+    logger.debug('[discord] reactToMessage called', { threadID: _tid, messageID: mid, emoji });
+    return reactToMessageLib(channel, mid, emoji, rawMessage);
+  };
+  api.editMessage = (mid, body) => {
+    logger.debug('[discord] editMessage called', { messageID: mid });
+    return editMessageLib(channel, mid, body);
+  };
+  api.setNickname = (_tid, uid, nick) => {
+    logger.debug('[discord] setNickname called', { threadID: _tid, userID: uid });
+    return setNicknameLib(guild, uid, nick);
+  };
+  api.getBotID = () => {
+    logger.debug('[discord] getBotID called');
+    return getBotIDLib(client, guild);
+  };
+  api.getFullThreadInfo = (tid) => {
+    logger.debug('[discord] getFullThreadInfo called', { threadID: tid });
+    return getFullThreadInfoLib(client, channel, guild, tid);
+  };
+  api.getFullUserInfo = (uid) => {
+    logger.debug('[discord] getFullUserInfo called', { userID: uid });
+    return getFullUserInfoLib(client, guild, uid, null);
+  };
 
   return api;
 }
