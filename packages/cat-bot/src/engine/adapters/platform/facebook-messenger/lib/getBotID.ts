@@ -3,13 +3,12 @@
  */
 
 interface FcaApi {
-  getCurrentUserID(cb: (err: unknown, id: string | number) => void): void;
+  getCurrentUserID(): string | number;
 }
 
 export function getBotID(api: FcaApi): Promise<string> {
-  return new Promise((resolve, reject) => {
-    api.getCurrentUserID((err, id) =>
-      err ? reject(err) : resolve(String(id)),
-    );
+  return new Promise((resolve) => {
+    const botID = api.getCurrentUserID();
+    resolve(String(botID));
   });
 }
