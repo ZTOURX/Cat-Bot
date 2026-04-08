@@ -20,6 +20,7 @@ import { stateStore } from '@/engine/lib/reply-state.lib.js';
 // ButtonItem is used locally in resolveButtons(); others are referenced only in re-exported types.
 import type { UnifiedApi } from './api.model.js';
 import type { ButtonItem } from './interfaces/index.js';
+import { logger } from '@/engine/lib/logger.lib.js';
 
 // Re-export interfaces for backward compatibility
 export type {
@@ -43,28 +44,51 @@ export function createThreadContext(
   api: UnifiedApi,
   event: Record<string, unknown>,
 ): import('./interfaces/index.js').ThreadContext {
+  logger.debug('[context.model] createThreadContext called', { threadID: event['threadID'] });
   const threadID = event['threadID'] as string;
   return {
-    setName: (name) => api.setGroupName(threadID, name),
-    setImage: (imageSource) => api.setGroupImage(threadID, imageSource),
-    removeImage: () => api.removeGroupImage(threadID),
-    addUser: (userID) => api.addUserToGroup(threadID, userID),
-    removeUser: (userID) => api.removeUserFromGroup(threadID, userID),
-    setReaction: (emoji) => api.setGroupReaction(threadID, emoji),
+    setName: (name) => {
+      logger.debug('[context.model] ThreadContext.setName called', { threadID, name });
+      return api.setGroupName(threadID, name);
+    },
+    setImage: (imageSource) => {
+      logger.debug('[context.model] ThreadContext.setImage called', { threadID });
+      return api.setGroupImage(threadID, imageSource);
+    },
+    removeImage: () => {
+      logger.debug('[context.model] ThreadContext.removeImage called', { threadID });
+      return api.removeGroupImage(threadID);
+    },
+    addUser: (userID) => {
+      logger.debug('[context.model] ThreadContext.addUser called', { threadID, userID });
+      return api.addUserToGroup(threadID, userID);
+    },
+    removeUser: (userID) => {
+      logger.debug('[context.model] ThreadContext.removeUser called', { threadID, userID });
+      return api.removeUserFromGroup(threadID, userID);
+    },
+    setReaction: (emoji) => {
+      logger.debug('[context.model] ThreadContext.setReaction called', { threadID, emoji });
+      return api.setGroupReaction(threadID, emoji);
+    },
 
     /**
      * Set a participant's display nickname in this thread.
      * fca: changeNickname; Discord: member.setNickname; Telegram: setChatAdministratorCustomTitle.
      */
-    setNickname: ({ nickname, user_id }) =>
-      api.setNickname(threadID, user_id, nickname),
+    setNickname: ({ nickname, user_id }) => {
+      logger.debug('[context.model] ThreadContext.setNickname called', { threadID, user_id, nickname });
+      return api.setNickname(threadID, user_id, nickname);
+    },
 
     /**
      * Fetch rich structured information about a thread / group / server.
      * Defaults to the current event thread; pass a different ID to query any accessible thread.
      */
-    getInfo: (targetThreadID = threadID) =>
-      api.getFullThreadInfo(targetThreadID),
+    getInfo: (targetThreadID = threadID) => {
+      logger.debug('[context.model] ThreadContext.getInfo called', { threadID: targetThreadID });
+      return api.getFullThreadInfo(targetThreadID);
+    },
   };
 }
 
@@ -88,6 +112,7 @@ export function createChatContext(
     }
   > | null = null,
 ): import('./interfaces/index.js').ChatContext {
+  logger.debug('[context.model] createChatContext called', { threadID: event['threadID'], messageID: event['messageID'] });
   const threadID = event['threadID'] as string;
   const messageID = event['messageID'] as string;
 
@@ -97,6 +122,7 @@ export function createChatContext(
    * here avoids duplicating label/style lookups in every platform lib.
    */
   function resolveButtons(buttonIds: string[] = []): ButtonItem[] {
+    logger.debug('[context.model] resolveButtons called', { count: buttonIds.length });
     if (!buttonIds.length) return [];
     return buttonIds.map((id) => ({
       // Prefix with commandName so the platform embeds "commandName:actionId" as callback data.
@@ -113,6 +139,7 @@ export function createChatContext(
    * we simulate the button UX as a text menu the user replies to with their selection number.
    */
   function buildButtonFallbackText(msg: string, buttonIds: string[]): string {
+    logger.debug('[context.model] buildButtonFallbackText called');
     const lines = buttonIds.map(
       (id, idx) => `${idx + 1}. ${menu?.[id]?.label ?? id}`,
     );
@@ -132,6 +159,7 @@ export function createChatContext(
     msgId: string,
     buttonIds: string[],
   ): void {
+    logger.debug('[context.model] registerButtonFallbackState called', { msgId });
     // Private key (msgId:senderID) so only the user who ran the command can select from this menu
     const key = `${msgId}:${event['senderID'] as string}`;
     stateStore.create(key, {
@@ -158,6 +186,7 @@ export function createChatContext(
       attachment_url = [],
       button = [],
     } = {}) => {
+      logger.debug('[context.model] ChatContext.reply called', { threadID, hasMessage: !!message, buttonCount: button.length });
       // Facebook Messenger (fca-unofficial) has no native button components — append a numbered
       // text menu and auto-register an onReply state so user selections route to menu[id].run().
       // The state is never deleted so the menu remains re-selectable like native button platforms.
@@ -194,6 +223,7 @@ export function createChatContext(
       attachment_url = [],
       button = [],
     } = {}) => {
+      logger.debug('[context.model] ChatContext.replyMessage called', { threadID, messageID, hasMessage: !!message, buttonCount: button.length });
       // Same FB Messenger fallback as chat.reply() — preserves reply_to_message_id so
       // the numbered menu is threaded to the triggering message for clearer context
       if (
@@ -224,13 +254,19 @@ export function createChatContext(
     /**
      * React to the current event message.
      */
-    reactMessage: (emoji) => api.reactToMessage(threadID, messageID, emoji),
+    reactMessage: (emoji) => {
+      logger.debug('[context.model] ChatContext.reactMessage called', { threadID, messageID, emoji });
+      return api.reactToMessage(threadID, messageID, emoji);
+    },
 
     /**
      * Delete / unsend a specific message by its ID.
      * callers must be explicit about which message to remove.
      */
-    unsendMessage: (targetMessageID) => api.unsendMessage(targetMessageID),
+    unsendMessage: (targetMessageID) => {
+      logger.debug('[context.model] ChatContext.unsendMessage called', { targetMessageID });
+      return api.unsendMessage(targetMessageID);
+    },
   };
 }
 
@@ -241,8 +277,12 @@ export function createChatContext(
 export function createBotContext(
   api: UnifiedApi,
 ): import('./interfaces/index.js').BotContext {
+  logger.debug('[context.model] createBotContext called');
   return {
-    getID: () => api.getBotID(),
+    getID: () => {
+      logger.debug('[context.model] BotContext.getID called');
+      return api.getBotID();
+    },
   };
 }
 
@@ -253,12 +293,16 @@ export function createBotContext(
 export function createUserContext(
   api: UnifiedApi,
 ): import('./interfaces/index.js').UserContext {
+  logger.debug('[context.model] createUserContext called');
   return {
     /**
      * Fetch rich structured information about a user on this platform.
      * Returns a UnifiedUserInfo (see models/user.model.ts).
      */
-    getInfo: (userID) => api.getFullUserInfo(userID),
+    getInfo: (userID) => {
+      logger.debug('[context.model] UserContext.getInfo called', { userID });
+      return api.getFullUserInfo(userID);
+    },
   };
 }
 
@@ -274,6 +318,7 @@ export function createStateContext(
   commandName: string,
   event: Record<string, unknown>,
 ): import('./interfaces/index.js').StateContext {
+  logger.debug('[context.model] createStateContext called', { commandName });
   return {
     /**
      * Flat state surface — replaces the old onReply/onReact sub-objects.
@@ -289,6 +334,7 @@ export function createStateContext(
        * Public: `${id}:${threadID}` — any group member can advance (polls, shared flows).
        */
       generateID({ id, public: isPublic = false }) {
+        logger.debug('[context.model] state.generateID called', { id, isPublic });
         if (event['type'] === 'message_reaction') {
           return isPublic
             ? `${id}:${event['threadID'] as string}`
@@ -303,6 +349,7 @@ export function createStateContext(
        * Registers a pending state in the unified store.
        */
       create({ id, state, context }) {
+        logger.debug('[context.model] state.create called', { id, state });
         stateStore.create(id, { command: commandName, state, context });
       },
 
@@ -312,6 +359,7 @@ export function createStateContext(
        * to prevent the same bot message from re-triggering a stale handler.
        */
       delete(id) {
+        logger.debug('[context.model] state.delete called', { id });
         stateStore.delete(id);
       },
     },
