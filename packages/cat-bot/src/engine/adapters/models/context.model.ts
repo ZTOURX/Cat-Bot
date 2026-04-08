@@ -90,6 +90,14 @@ export function createThreadContext(
       logger.debug('[context.model] ThreadContext.getInfo called', { threadID: targetThreadID });
       return api.getFullThreadInfo(targetThreadID);
     },
+    /**
+     * Cache-first (Discord/Telegram) or DB-backed (FB) display name lookup.
+     * Defaults to the triggering event's own threadID so callers can omit the argument.
+     */
+    getName: (targetThreadID = threadID) => {
+      logger.debug('[context.model] ThreadContext.getName called', { threadID: targetThreadID });
+      return api.getThreadName(targetThreadID);
+    },
   };
 }
 
@@ -305,6 +313,11 @@ export function createUserContext(
     getInfo: (userID) => {
       logger.debug('[context.model] UserContext.getInfo called', { userID });
       return api.getFullUserInfo(userID);
+    },
+    // Cache-first (Discord/Telegram) or DB-backed (FB) — no external API round-trip on supported platforms
+    getName: (userID) => {
+      logger.debug('[context.model] UserContext.getName called', { userID });
+      return api.getUserName(userID);
     },
   };
 }

@@ -34,6 +34,8 @@ export interface ThreadContext {
   setReaction(emoji: string): Promise<void>;
   setNickname(options: { nickname: string; user_id: string }): Promise<void>;
   getInfo(targetThreadID?: string): Promise<UnifiedThreadInfo>;
+  /** Returns the display name of this thread/group using cached/in-flight data (Discord/Telegram) or the DB (FB). Falls back to "Thread {id}". */
+  getName(threadID?: string): Promise<string>;
 }
 
 /**
@@ -71,6 +73,8 @@ export interface BotContext {
  */
 export interface UserContext {
   getInfo(userID: string): Promise<UnifiedUserInfo>;
+  /** Returns the display name of a user using cached/in-flight data (Discord/Telegram) or the DB (FB). Falls back to "User {id}". */
+  getName(userID: string): Promise<string>;
 }
 
 /**
