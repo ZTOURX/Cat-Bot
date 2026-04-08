@@ -245,4 +245,26 @@ export class UnifiedApi {
       `getFullUserInfo not implemented on platform: ${this.platform}`,
     );
   }
+
+  /**
+   * Returns a user's display name using only cached / in-flight event data where possible.
+   *   Discord   — guild member cache (zero REST; falls back to User.username then "User {id}")
+   *   Telegram  — ctx.from (zero Bot API call; only accurate for the current sender)
+   *   FB Messenger/Page — delegates to the database layer (bot_users populated on prior messages)
+   */
+  async getUserName(_userID: string): Promise<string> {
+    logger.debug('[UnifiedApi] getUserName called', { platform: this.platform, userID: _userID });
+    throw new Error(`getUserName not implemented on platform: ${this.platform}`);
+  }
+
+  /**
+   * Returns a thread/group/channel display name using only cached / in-flight event data where possible.
+   *   Discord   — guild.name from guild cache (zero REST; falls back to channel.name then "Thread {id}")
+   *   Telegram  — ctx.chat.title for groups, ctx.chat.first_name for DMs (zero Bot API call)
+   *   FB Messenger/Page — delegates to the database layer (bot_threads populated on prior messages)
+   */
+  async getThreadName(_threadID: string): Promise<string> {
+    logger.debug('[UnifiedApi] getThreadName called', { platform: this.platform, threadID: _threadID });
+    throw new Error(`getThreadName not implemented on platform: ${this.platform}`);
+  }
 }
