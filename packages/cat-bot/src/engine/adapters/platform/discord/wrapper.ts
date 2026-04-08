@@ -55,6 +55,10 @@ import {
   setGroupReaction as setGroupReactionLib,
 } from './unsupported.js';
 
+// Database fallbacks for cross-platform unified name resolution
+import { getUserName as dbGetUserName } from '@/engine/repos/users.repo.js';
+import { getThreadName as dbGetThreadName } from '@/engine/repos/threads.repo.js';
+
 // ── DiscordApi (slash-command / interaction path) ──────────────────────────────
 
 class DiscordApi extends UnifiedApi {
@@ -258,6 +262,35 @@ class DiscordApi extends UnifiedApi {
       this.#interaction.user, // self-user shortcut avoids a REST fetch for the command sender
     );
   }
+
+  /**
+   * Cache-first user name — hits GuildMemberManager.cache only (zero REST).
+   * Interaction path: the command sender is always available via interaction.user; other
+   * member IDs are served from the guild member cache populated by GatewayIntentBits.GuildMembers.
+   * Falls back to database lookup when a member is not cached (e.g. DMs with no guild context).
+   */
+  override getUserName(userID: string): Promise<string> {
+    logger.debug('[discord] getUserName called (cache-first with db fallback)', { userID });
+    if (this.#interaction.user.id === userID) {
+      // Cast to any-shaped member so we can read displayName without importing GuildMember
+      const selfName = (this.#interaction.member as Record<string, unknown> | null)?.['displayName'] as string | undefined;
+      return Promise.resolve(selfName || this.#interaction.user.username);
+    }
+    const member = this.#interaction.guild?.members.cache.get(userID);
+    if (member) return Promise.resolve(member.displayName || member.user.username);
+    return dbGetUserName(userID);
+  }
+
+  /**
+   * Cache-first thread name — guild.name is always available in cache when the bot is in a guild.
+   * Falls back to database lookup for DM interactions where no guild is present.
+   */
+  override getThreadName(_threadID: string): Promise<string> {
+    logger.debug('[discord] getThreadName called (cache-first with db fallback)', { threadID: _threadID });
+    const name = this.#interaction.guild?.name;
+    if (name) return Promise.resolve(name);
+    return dbGetThreadName(_threadID);
+  }
 }
 
 // ── createDiscordApi (interaction factory) ─────────────────────────────────────
@@ -411,6 +444,26 @@ export function createDiscordChannelApi(
   api.getFullUserInfo = (uid) => {
     logger.debug('[discord] getFullUserInfo called', { userID: uid });
     return getFullUserInfoLib(client, guild, uid, null);
+  };
+  // Cache-first name resolution — GuildMemberManager.cache is populated by GatewayIntentBits.GuildMembers
+  // events so the common case (members who have sent messages recently) requires zero REST.
+  api.getUserName = (uid) => {
+    logger.debug('[discord] getUserName called (cache-first with db fallback)', { userID: uid });
+    const member = guild?.members.cache.get(uid);
+    if (member) return Promise.resolve(member.displayName || member.user.username);
+    // client.users.cache holds Users (without guild-specific displayName) as a last resort
+    const user = client?.users.cache.get(uid);
+    if (user) return Promise.resolve(user.username);
+    // Fallback to database lookup if user is entirely uncached
+    return dbGetUserName(uid);
+  };
+  api.getThreadName = (_tid) => {
+    logger.debug('[discord] getThreadName called (cache-first with db fallback)', { threadID: _tid });
+    // guild.name is the server name; channel.name is the channel name — guild is preferred since
+    // it represents the broader "thread" concept used in unified commands like /thread
+    const name = guild?.name || channel.name;
+    if (name) return Promise.resolve(name);
+    return dbGetThreadName(_tid);
   };
 
   return api;
