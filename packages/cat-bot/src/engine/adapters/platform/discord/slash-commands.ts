@@ -25,6 +25,8 @@ import {
 } from '@/engine/repos/credentials.repo.js';
 import { OptionType } from '@/engine/constants/command-option.constants.js';
 import type { OptionTypeValue } from '@/engine/constants/command-option.constants.js';
+import { isPlatformAllowed } from '@/engine/utils/platform-filter.util.js';
+import { Platforms } from '@/engine/constants/platform.constants.js';
 
 // Shape of each option entry in a command module's config.options array
 interface SlashOption {
@@ -69,6 +71,7 @@ function buildSlashCommandPayloads(
   // Iterate using keys to properly register both canonical names and their aliases as separate slash commands
   for (const [key, mod] of commands) {
     if (typeof mod['onCommand'] !== 'function') continue;
+    if (!isPlatformAllowed(mod, Platforms.Discord)) continue;
 
     const cfg = mod['config'] as {
       name: string;
