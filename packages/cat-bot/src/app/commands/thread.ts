@@ -49,6 +49,7 @@ export const onCommand = async ({
   chat,
   args,
   native,
+  thread,
 }: AppCtx): Promise<void> => {
   const { userId, platform, sessionId } = native;
 
@@ -69,8 +70,10 @@ export const onCommand = async ({
     // Remaining args after tid are joined as the reason so multi-word reasons work
     const reason = args.slice(2).join(' ') || undefined;
     await banThread(userId, platform, sessionId, tid, reason);
+    // Resolve the display name of the banned thread so the admin sees a human-readable confirmation
+    const threadName = await thread.getName(tid);
     const reasonSuffix = reason ? ` — Reason: ${reason}` : '';
-    await chat.replyMessage({ message: `🚫 Thread ${tid} has been banned from this session.${reasonSuffix}` });
+    await chat.replyMessage({ message: `🚫 ${threadName} (${tid}) has been banned from this session.${reasonSuffix}` });
     return;
   }
 
@@ -82,7 +85,9 @@ export const onCommand = async ({
       return;
     }
     await unbanThread(userId, platform, sessionId, tid);
-    await chat.replyMessage({ message: `✅ Thread ${tid} has been unbanned from this session.` });
+    // Resolve the display name of the unbanned thread so the admin sees a human-readable confirmation
+    const threadName = await thread.getName(tid);
+    await chat.replyMessage({ message: `✅ ${threadName} (${tid}) has been unbanned from this session.` });
     return;
   }
 
