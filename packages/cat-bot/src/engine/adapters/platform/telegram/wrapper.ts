@@ -27,6 +27,7 @@ import {
 import type { UnifiedThreadInfo } from '@/engine/adapters/models/thread.model.js';
 import type { UnifiedUserInfo } from '@/engine/adapters/models/user.model.js';
 
+import { logger } from '@/engine/lib/logger.lib.js';
 // buildTelegramMentionEntities translates {tag, user_id} entries to Bot API text_mention entity format
 import { buildTelegramMentionEntities } from './utils/helper.util.js';
 
@@ -64,6 +65,7 @@ class TelegramApi extends UnifiedApi {
     msg: string | SendPayload,
     threadID: string,
   ): Promise<string | undefined> {
+    logger.debug('[telegram] sendMessage called', { threadID });
     // When text-only mentions are present, bypass the lib to inject text_mention entities directly
     // into the Bot API request. text_mention type tags users by their numeric ID even without a
     // public @username. We fall through to the lib for attachment sends so its media-type routing
@@ -92,14 +94,17 @@ class TelegramApi extends UnifiedApi {
   }
 
   override unsendMessage(messageID: string): Promise<void> {
+    logger.debug('[telegram] unsendMessage called', { messageID });
     return unsendMessage(this.#ctx, messageID);
   }
 
   override getUserInfo(userIds: string[]): Promise<Record<string, UserInfo>> {
+    logger.debug('[telegram] getUserInfo called', { userCount: userIds.length });
     return getUserInfo(this.#ctx, userIds);
   }
 
   override setGroupName(threadID: string, name: string): Promise<void> {
+    logger.debug('[telegram] setGroupName called', { threadID, name });
     return setGroupName(this.#ctx, threadID, name);
   }
 
@@ -107,10 +112,12 @@ class TelegramApi extends UnifiedApi {
     threadID: string,
     imageSource: Buffer | Readable | string,
   ): Promise<void> {
+    logger.debug('[telegram] setGroupImage called', { threadID });
     return setGroupImage(this.#ctx, threadID, imageSource);
   }
 
   override removeGroupImage(threadID: string): Promise<void> {
+    logger.debug('[telegram] removeGroupImage called', { threadID });
     return removeGroupImage(this.#ctx, threadID);
   }
 
@@ -118,6 +125,7 @@ class TelegramApi extends UnifiedApi {
     threadID: string,
     userID: string,
   ): Promise<void> {
+    logger.debug('[telegram] removeUserFromGroup called', { threadID, userID });
     return removeUserFromGroup(this.#ctx, threadID, userID);
   }
 
@@ -125,6 +133,7 @@ class TelegramApi extends UnifiedApi {
     threadID: string,
     opts: ReplyMessageOptions = {},
   ): Promise<unknown> {
+    logger.debug('[telegram] replyMessage called', { threadID });
     return replyMessage(this.#ctx, threadID, opts);
   }
 
@@ -133,10 +142,12 @@ class TelegramApi extends UnifiedApi {
     messageID: string,
     emoji: string,
   ): Promise<void> {
+    logger.debug('[telegram] reactToMessage called', { threadID, messageID, emoji });
     return reactToMessage(this.#ctx, threadID, messageID, emoji);
   }
 
   override getBotID(): Promise<string> {
+    logger.debug('[telegram] getBotID called');
     return getBotID(this.#ctx);
   }
 
@@ -145,28 +156,34 @@ class TelegramApi extends UnifiedApi {
     userID: string,
     nickname: string,
   ): Promise<void> {
+    logger.debug('[telegram] setNickname called', { threadID, userID });
     return setNickname(this.#ctx, threadID, userID, nickname);
   }
 
   override editMessage(messageID: string, newBody: string): Promise<void> {
+    logger.debug('[telegram] editMessage called', { messageID });
     return editMessage(this.#ctx, messageID, newBody);
   }
 
   override getFullThreadInfo(threadID: string): Promise<UnifiedThreadInfo> {
+    logger.debug('[telegram] getFullThreadInfo called', { threadID });
     return getFullThreadInfo(this.#ctx, threadID);
   }
 
   override getFullUserInfo(userID: string): Promise<UnifiedUserInfo> {
+    logger.debug('[telegram] getFullUserInfo called', { userID });
     return getFullUserInfo(this.#ctx, userID);
   }
 
   // ── Unsupported stubs ─────────────────────────────────────────────────────
 
   override addUserToGroup(threadID: string, userID: string): Promise<void> {
+    logger.debug('[telegram] addUserToGroup called', { threadID, userID });
     return addUserToGroup(threadID, userID);
   }
 
   override setGroupReaction(threadID: string, emoji: string): Promise<void> {
+    logger.debug('[telegram] setGroupReaction called', { threadID, emoji });
     return setGroupReaction(threadID, emoji);
   }
 }
