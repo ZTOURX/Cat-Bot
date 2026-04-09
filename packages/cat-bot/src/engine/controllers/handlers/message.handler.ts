@@ -38,7 +38,7 @@ import { OptionsMap } from '@/engine/lib/options-map.lib.js';
 import { isCommandEnabled, findSessionCommands } from '@/engine/repos/bot-session-commands.repo.js';
 import { PLATFORM_TO_ID } from '@/engine/constants/platform.constants.js';
 import { isPlatformAllowed } from '@/engine/utils/platform-filter.util.js';
-import { getUserName } from '@/engine/repos/users.repo.js';
+import { getUserName, getAllUserSessionData } from '@/engine/repos/users.repo.js';
 import { getThreadName } from '@/engine/repos/threads.repo.js';
 import { createCollectionManager, createThreadCollectionManager } from '@/engine/lib/db-collection.lib.js';
 
@@ -115,6 +115,8 @@ export async function handleMessage(
         getName: getUserName,
         // Pre-scoped to (sessionOwnerUserId, platform, sessionId) — commands pass only botUserId
         collection: createCollectionManager(native.userId ?? '', native.platform, native.sessionId ?? ''),
+        // Returns all user sessions for the current bot identity
+        getAll: () => getAllUserSessionData(native.userId ?? '', native.platform, native.sessionId ?? ''),
       },
       threads: {
         getName: getThreadName,
