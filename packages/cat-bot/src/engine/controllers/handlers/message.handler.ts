@@ -40,6 +40,7 @@ import { PLATFORM_TO_ID } from '@/engine/constants/platform.constants.js';
 import { isPlatformAllowed } from '@/engine/utils/platform-filter.util.js';
 import { getUserName } from '@/engine/repos/users.repo.js';
 import { getThreadName } from '@/engine/repos/threads.repo.js';
+import { createCollectionManager } from '@/engine/lib/db-collection.lib.js';
 
 /**
  * Returns the set of command names disabled by the bot admin for this session.
@@ -110,7 +111,11 @@ export async function handleMessage(
     native,
     logger,
     db: {
-      users: { getName: getUserName },
+      users: {
+        getName: getUserName,
+        // Pre-scoped to (sessionOwnerUserId, platform, sessionId) — commands pass only botUserId
+        collection: createCollectionManager(native.userId ?? '', native.platform, native.sessionId ?? ''),
+      },
       threads: { getName: getThreadName },
     },
   };
