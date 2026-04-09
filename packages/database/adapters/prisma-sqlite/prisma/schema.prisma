@@ -63,7 +63,9 @@ model BotUserSession {
   platformId Int
   sessionId String
   botUserId String
-
+  // JSON blob — stores named collections (e.g. "daily", "inventory") without dynamic tables.
+  // Parsed and serialized entirely at the adapter layer; business logic never sees raw JSON.
+  data      String?
   botUser BotUser @relation("UserSessions", fields: [botUserId], references: [id])
 
   @@id([userId, platformId, sessionId, botUserId])

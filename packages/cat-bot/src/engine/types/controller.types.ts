@@ -15,6 +15,7 @@ import {
 import type { StateContext } from '@/engine/adapters/models/context.model.js';
 import type { SessionLogger } from '@/engine/lib/logger.lib.js';
 import type { OptionsMap } from '@/engine/lib/options-map.lib.js';
+import type { CollectionManager } from '@/engine/lib/db-collection.lib.js';
 
 /** A command module loaded from src/modules/commands/ */
 export type CommandModule = Record<string, unknown>;
@@ -58,6 +59,8 @@ export interface BaseCtx {
   db: {
     users: {
       getName: (userId: string) => Promise<string>;
+      /** Returns a CollectionManager bound to the calling user's bot_users_session row. */
+      collection: (botUserId: string) => CollectionManager;
     };
     threads: {
       getName: (threadId: string) => Promise<string>;
