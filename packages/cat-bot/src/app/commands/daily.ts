@@ -103,6 +103,8 @@ export const onCommand = async ({ chat, event, db }: AppCtx): Promise<void> => {
   //    intent explicit and avoid accidental merge of the whole collection.
   await daily.set('lastClaim', now);
   await daily.set('streak', newStreak);
+  // Persist earned coins so /balance can read the running total from the money collection.
+  await daily.increment('coins', totalCoins);
 
   // ── Respond ───────────────────────────────────────────────────────────────
   const streakLine = newStreak > 1
