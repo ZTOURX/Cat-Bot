@@ -57,11 +57,11 @@ export const onCommand = async ({ chat, event, db }: AppCtx): Promise<void> => {
   // so the command only needs to supply the platform user ID (senderID).
   const userColl = db.users.collection(senderID);
 
-  if (!await userColl.isCollectionExist('daily')) {
-    await userColl.createCollection('daily');
+  if (!await userColl.isCollectionExist('money')) {
+    await userColl.createCollection('money');
   }
 
-  const daily = await userColl.getCollection('daily');
+  const daily = await userColl.getCollection('money');
 
   const lastClaim = await daily.get('lastClaim') as number | undefined;
   const now = Date.now();
