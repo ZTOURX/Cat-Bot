@@ -26,7 +26,7 @@ import { createLogger } from '@/engine/lib/logger.lib.js';
 // Platform filter — enforces config.platform[] declared by each command module
 import { isPlatformAllowed } from '@/engine/utils/platform-filter.util.js';
 import { PLATFORM_TO_ID } from '@/engine/constants/platform.constants.js';
-import { getUserName } from '@/engine/repos/users.repo.js';
+import { getUserName, getAllUserSessionData } from '@/engine/repos/users.repo.js';
 import { getThreadName } from '@/engine/repos/threads.repo.js';
 import { createCollectionManager, createThreadCollectionManager } from '@/engine/lib/db-collection.lib.js';
 
@@ -190,11 +190,13 @@ export async function handleButtonAction(
     db: {
       users: {
         getName: getUserName,
-      // Pre-scoped to session — button run() handlers can access collection(botUserId)
-      collection: createCollectionManager(native.userId ?? '', native.platform, native.sessionId ?? ''),
-    },
-    threads: {
-      getName: getThreadName,
+        // Pre-scoped to session — button run() handlers can access collection(botUserId)
+        collection: createCollectionManager(native.userId ?? '', native.platform, native.sessionId ?? ''),
+        // Returns all user sessions for the current bot identity
+        getAll: () => getAllUserSessionData(native.userId ?? '', native.platform, native.sessionId ?? ''),
+      },
+      threads: {
+        getName: getThreadName,
       collection: createThreadCollectionManager(native.userId ?? '', native.platform, native.sessionId ?? ''),
     },
   },

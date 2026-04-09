@@ -24,7 +24,7 @@ import { createLogger } from '@/engine/lib/logger.lib.js';
 import { dispatchEvent } from '../dispatchers/event.dispatcher.js';
 import { dispatchOnReact } from '../dispatchers/react.dispatcher.js';
 import { PLATFORM_TO_ID } from '@/engine/constants/platform.constants.js';
-import { getUserName } from '@/engine/repos/users.repo.js';
+import { getUserName, getAllUserSessionData } from '@/engine/repos/users.repo.js';
 import { getThreadName } from '@/engine/repos/threads.repo.js';
 import { createCollectionManager, createThreadCollectionManager } from '@/engine/lib/db-collection.lib.js';
 
@@ -72,6 +72,8 @@ export async function handleEvent(
         getName: getUserName,
         // Pre-scoped to session coords — event handlers call collection(botUserId) directly
         collection: createCollectionManager(native.userId ?? '', native.platform, native.sessionId ?? ''),
+        // Returns all user sessions for the current bot identity
+        getAll: () => getAllUserSessionData(native.userId ?? '', native.platform, native.sessionId ?? ''),
       },
       threads: {
         getName: getThreadName,
