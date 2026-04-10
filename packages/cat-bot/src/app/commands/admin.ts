@@ -6,7 +6,7 @@ import {
   listBotAdmins,
   isBotAdmin,
 } from '@/engine/repos/credentials.repo.js';
-import { OptionType } from '@/engine/constants/command-option.constants.js';
+import { OptionType } from '@/engine/modules/command/command-option.constants.js';
 
 export const config = {
   name: 'admin',
