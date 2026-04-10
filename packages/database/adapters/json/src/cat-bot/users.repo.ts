@@ -1,6 +1,6 @@
 import { getDb, saveDb } from '../store.js';
 import type { BotUserData } from '@cat-bot/engine/models/users.model.js';
-import { toPlatformNumericId } from '@cat-bot/engine/utils/platform-id.util.js';
+import { toPlatformNumericId } from '@cat-bot/engine/modules/platform/platform-id.util.js';
 
 export async function upsertUser(data: BotUserData): Promise<void> {
   const db = await getDb();
