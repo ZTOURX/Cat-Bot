@@ -14,7 +14,7 @@
  *   buildTelegramMentionEntities   — builds Bot API text_mention entity array
  */
 import type { Context } from 'telegraf';
-import { Platforms } from '@/engine/constants/platform.constants.js';
+import { Platforms } from '@/engine/modules/platform/platform.constants.js';
 import type { Message, MessageEntity, PhotoSize } from 'telegraf/types';
 import type { MentionEntry } from '@/engine/adapters/models/api.model.js';
 import { EventType, LogMessageType } from '@/engine/adapters/models/enums/index.js';
