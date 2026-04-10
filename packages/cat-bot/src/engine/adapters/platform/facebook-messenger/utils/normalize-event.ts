@@ -6,7 +6,7 @@
  * domain-specific concern, not a general-purpose helper.
  */
 
-import { Platforms } from '@/engine/constants/platform.constants.js';
+import { Platforms } from '@/engine/modules/platform/platform.constants.js';
 
 /**
  * Raw fca-unofficial attachment shape — only fields consumed by normalizeMessageEvent.

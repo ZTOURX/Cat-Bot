@@ -4,7 +4,7 @@
  * adminIDs is normalised to a string array since fca returns either string or { id: string }.
  */
 
-import { Platforms } from '@/engine/constants/platform.constants.js';
+import { Platforms } from '@/engine/modules/platform/platform.constants.js';
 
 // @/ alias for cross-cutting model types — avoids fragile ../../../../ relative chains
 import { createUnifiedThreadInfo } from '@/engine/adapters/models/thread.model.js';
