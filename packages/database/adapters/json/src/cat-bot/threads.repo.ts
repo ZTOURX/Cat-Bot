@@ -88,3 +88,27 @@ export async function setThreadSessionData(
     await saveDb();
   }
 }
+
+/**
+ * Returns all group thread IDs for a given (userId, platform, sessionId) tuple.
+ * Two-step query: collect botThreadIds from bot_threads_session, then cross-reference
+ * bot_threads to keep only entries where isGroup=true.
+ * Used by /sendnoti so broadcast only reaches group chats, never 1:1 DM threads.
+ */
+export async function getAllGroupThreadIds(
+  userId: string,
+  platform: string,
+  sessionId: string,
+): Promise<string[]> {
+  const db = await getDb();
+  const pid = toPlatformNumericId(platform);
+  // Step 1 — gather every thread ID this session has ever encountered
+  const sessionThreadIds: string[] = (db.botThreadSession as any[])
+    .filter((ts) => ts.userId === userId && ts.platformId === pid && ts.sessionId === sessionId)
+    .map((ts) => ts.botThreadId as string);
+  // Step 2 — filter to group-only threads using the shared bot_threads source-of-truth table
+  return sessionThreadIds.filter((threadId) => {
+    const thread = (db.botThread as any[]).find((t) => t.id === threadId);
+    return thread?.isGroup === true;
+  });
+}

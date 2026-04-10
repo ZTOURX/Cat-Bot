@@ -76,6 +76,8 @@ export const getThreadName       = m.getThreadName;
 export const getThreadSessionData = m.getThreadSessionData;
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 export const setThreadSessionData = m.setThreadSessionData;
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+export const getAllGroupThreadIds = m.getAllGroupThreadIds;
 
 // --- USERS ---
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
