@@ -7,7 +7,7 @@
 
 import type { BaseCtx, CommandMap } from '@/engine/types/controller.types.js';
 // Platform filter — respects config.platform[] declared by each command module
-import { isPlatformAllowed } from '@/engine/utils/platform-filter.util.js';
+import { isPlatformAllowed } from '@/engine/modules/platform/platform-filter.util.js';
 
 /**
  * Fans out to every command's onChat handler — used for passive middleware

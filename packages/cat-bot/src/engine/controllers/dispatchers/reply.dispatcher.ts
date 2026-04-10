@@ -20,7 +20,7 @@ import {
 } from '@/engine/lib/middleware.lib.js';
 import type { OnReplyCtx } from '@/engine/types/middleware.types.js';
 // Platform filter — enforces config.platform[] declared by each command module
-import { isPlatformAllowed } from '@/engine/utils/platform-filter.util.js';
+import { isPlatformAllowed } from '@/engine/modules/platform/platform-filter.util.js';
 
 /**
  * Checks whether a message_reply event matches a pending onReply state and, if so,

@@ -19,11 +19,11 @@ export type {
 
 // Options — OptionsMap runtime class and OptionDef type for TypeScript command modules
 // Re-exported from lib/ for backward compatibility with consumers that import from controllers
-export { OptionsMap } from '@/engine/lib/options-map.lib.js';
-export type { OptionDef } from '@/engine/lib/options-map.lib.js';
+export { OptionsMap } from '@/engine/modules/options/options-map.lib.js';
+export type { OptionDef } from '@/engine/modules/options/options-map.lib.js';
 
 // Parsing
-export { parseCommand } from '../utils/command-parser.util.js';
+export { parseCommand } from '../modules/command/command-parser.util.js';
 
 // Fan-out
 export { runOnChat } from './on-chat-runner.js';

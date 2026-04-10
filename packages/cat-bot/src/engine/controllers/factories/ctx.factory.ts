@@ -19,7 +19,7 @@ import {
   createUserContext,
 } from '@/engine/adapters/models/context.model.js';
 import { createLogger } from '@/engine/modules/logger/logger.lib.js'; // Relocated module
-import { PLATFORM_TO_ID } from '@/engine/constants/platform.constants.js';
+import { PLATFORM_TO_ID } from '@/engine/modules/platform/platform.constants.js';
 import { getUserName, getAllUserSessionData } from '@/engine/repos/users.repo.js';
 import { getThreadName, getAllGroupThreadIds } from '@/engine/repos/threads.repo.js';
 import {

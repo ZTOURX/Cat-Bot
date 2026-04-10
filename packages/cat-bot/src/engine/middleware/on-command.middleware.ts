@@ -21,9 +21,9 @@
  */
 
 import type { MiddlewareFn, OnCommandCtx } from '@/engine/types/middleware.types.js';
-import { OptionsMap } from '@/engine/lib/options-map.lib.js';
-import type { OptionDef } from '@/engine/lib/options-map.lib.js';
-import { parseTextOptions } from '@/engine/utils/options.util.js';
+import { OptionsMap } from '@/engine/modules/options/options-map.lib.js';
+import type { OptionDef } from '@/engine/modules/options/options-map.lib.js';
+import { parseTextOptions } from '@/engine/modules/options/options.util.js';
 // Cooldown state delegated to lib/ — mirrors reply-state.lib.ts pattern;
 // this middleware file stays free of mutable Map declarations.
 import { cooldownStore } from '@/engine/lib/cooldown.lib.js';

@@ -29,7 +29,7 @@ import { createLogger } from '@/engine/modules/logger/logger.lib.js'; // Relocat
 import type { SessionLogger } from '@/engine/modules/logger/logger.lib.js'; // Relocated module
 import { sessionManager } from '@/engine/modules/session/session-manager.lib.js';
 import { withRetry, isAuthError } from '@/engine/lib/retry.lib.js';
-import { Platforms, PLATFORM_TO_ID } from '@/engine/constants/platform.constants.js';
+import { Platforms, PLATFORM_TO_ID } from '@/engine/modules/platform/platform.constants.js';
 import { upsertSessionCommands } from '@/engine/modules/session/bot-session-commands.repo.js';
 import { upsertSessionEvents } from '@/engine/modules/session/bot-session-events.repo.js';
 import { commandRegistry, eventRegistry } from '@/engine/lib/module-registry.lib.js';

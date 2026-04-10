@@ -7,7 +7,7 @@
 
 import type { EventModuleMap, BaseCtx } from '@/engine/types/controller.types.js';
 // Platform filter — enforces config.platform[] declared by each event module
-import { isPlatformAllowed } from '@/engine/utils/platform-filter.util.js';
+import { isPlatformAllowed } from '@/engine/modules/platform/platform-filter.util.js';
 // Event registry check — honours bot admin toggle decisions in bot_session_events
 import { isEventEnabled } from '@/engine/modules/session/bot-session-events.repo.js';
 
