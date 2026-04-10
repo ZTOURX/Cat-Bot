@@ -6,25 +6,47 @@
  *   /help <page>         → paginated command list, specific page
  *   /help <command_name> → full detail card for a single command
  *
- * Pagination: 20 commands per page, alphabetically sorted by canonical config.name.
- * Aliases collapse — the CommandMap stores multiple keys per aliased module, so
- * getCanonicalMods() deduplicates by config.name before counting or rendering.
+ * ── Output Format ─────────────────────────────────────────────────────────────
+ * List view:
  *
- * Context shape: onCommand receives { chat, args, commands, prefix } because
- * command.dispatcher.ts spreads commandCtx (which carries the full BaseCtx including
- * commands and prefix) before appending args and state.
+ *   ▸ Commands
+ *   ──────────────
+ *    1. !ping — Ping the bot
+ *    2. !help — Shows all available commands
+ *   ──────────────
+ *   Page 1 of 3 · 25 commands
+ *   !help <page> · !help <command>
+ *
+ * Detail view:
+ *
+ *   ▸ ping
+ *   ──────────────
+ *   Desc    : Ping the bot
+ *   Category: Info
+ *   Aliases : p, pong
+ *   Usage   : !ping
+ *   ──────────────
+ *   Role    : 0 (All users)
+ *   Cooldown: 5s
+ *   Version : 1.0.0
+ *   Author  : John Lester
+ *
+ * Pagination: 20 commands per page, alphabetically sorted by canonical config.name.
+ * Aliases collapse — getCanonicalMods() deduplicates by config.name before rendering.
+ *
+ * Context shape: onCommand receives { chat, args, commands, prefix, native } because
+ * command.dispatcher.ts spreads commandCtx before appending args and state.
  */
 
 import type { CommandMap, AppCtx } from '@/engine/types/controller.types.js';
 import { Role } from '@/engine/constants/role.constants.js';
-// Disabled-command gate — mirrors message.handler.ts: disabled commands are invisible to users
 import { findSessionCommands } from '@/engine/modules/session/bot-session-commands.repo.js';
 import { isPlatformAllowed } from '@/engine/modules/platform/platform-filter.util.js';
 import { OptionType } from '@/engine/modules/command/command-option.constants.js';
 
 export const config = {
   name: 'help',
-  aliases: ["start"] as string[],
+  aliases: ['start'] as string[],
   version: '1.0.0',
   role: Role.ANYONE,
   author: 'John Lester',
@@ -118,7 +140,11 @@ export const onCommand = async ({
   if (sessionUserId && sessionId) {
     try {
       const rows = await findSessionCommands(sessionUserId, native.platform, sessionId);
-      disabledNames = new Set(rows.filter((r: { isEnable: boolean; commandName: string }) => !r.isEnable).map((r: { commandName: string }) => r.commandName));
+      disabledNames = new Set(
+        rows
+          .filter((r: { isEnable: boolean; commandName: string }) => !r.isEnable)
+          .map((r: { commandName: string }) => r.commandName),
+      );
     } catch {
       // DB unreachable — fail-open, show all commands rather than breaking /help
     }
