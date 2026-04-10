@@ -54,6 +54,7 @@ export {
   getThreadName,
   getThreadSessionData,
   setThreadSessionData,
+  getAllGroupThreadIds,
 } from '../adapters/prisma-sqlite/src/cat-bot/threads.repo.js';
 
 // --- USERS ---

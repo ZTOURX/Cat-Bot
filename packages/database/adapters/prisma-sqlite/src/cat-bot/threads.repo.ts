@@ -108,3 +108,29 @@ export async function setThreadSessionData(
     data: { data: JSON.stringify(data) },
   });
 }
+
+/**
+ * Returns all group thread IDs for a given (userId, platform, sessionId) tuple.
+ * Two-step Prisma query: fetch botThreadIds from bot_threads_session, then filter
+ * bot_threads by isGroup=true. Used by /sendnoti to restrict broadcast to group chats.
+ */
+export async function getAllGroupThreadIds(
+  userId: string,
+  platform: string,
+  sessionId: string,
+): Promise<string[]> {
+  const platformId = toPlatformNumericId(platform);
+  // Step 1 — collect all thread IDs the session has tracked
+  const sessions = await prisma.botThreadSession.findMany({
+    where: { userId, platformId, sessionId },
+    select: { botThreadId: true },
+  });
+  const threadIds = sessions.map((s) => s.botThreadId);
+  if (threadIds.length === 0) return [];
+  // Step 2 — keep only threads flagged as group chats in the canonical bot_threads table
+  const groupThreads = await prisma.botThread.findMany({
+    where: { id: { in: threadIds }, isGroup: true },
+    select: { id: true },
+  });
+  return groupThreads.map((t) => t.id);
+}

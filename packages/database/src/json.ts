@@ -52,6 +52,7 @@ export {
   getThreadName,
   getThreadSessionData,
   setThreadSessionData,
+  getAllGroupThreadIds,
 } from '../adapters/json/src/cat-bot/threads.repo.js';
 
 // --- USERS ---
