@@ -9,7 +9,7 @@
  * To change any send/receive behaviour, edit the corresponding lib/<method>.ts file.
  */
 
-import { Platforms } from '@/engine/constants/platform.constants.js';
+import { Platforms } from '@/engine/modules/platform/platform.constants.js';
 
 import { UnifiedApi } from '@/engine/adapters/models/api.model.js';
 import type {

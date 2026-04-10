@@ -11,7 +11,7 @@
  * the target chat but has a reference to it from a forwarded message).
  */
 import type { Context } from 'telegraf';
-import { Platforms } from '@/engine/constants/platform.constants.js';
+import { Platforms } from '@/engine/modules/platform/platform.constants.js';
 import {
   createUnifiedThreadInfo,
   type UnifiedThreadInfo,

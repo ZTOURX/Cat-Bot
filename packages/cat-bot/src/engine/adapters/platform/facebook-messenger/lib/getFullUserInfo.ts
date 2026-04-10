@@ -4,7 +4,7 @@
  * we don't surface gender on the unified model, so it stays in the raw fca response.
  */
 
-import { Platforms } from '@/engine/constants/platform.constants.js';
+import { Platforms } from '@/engine/modules/platform/platform.constants.js';
 
 // @/ alias for cross-cutting model types — avoids fragile ../../../../ relative chains
 import { createUnifiedUserInfo } from '@/engine/adapters/models/user.model.js';

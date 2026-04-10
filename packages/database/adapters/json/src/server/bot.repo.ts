@@ -1,5 +1,5 @@
 import { getDb, saveDb } from '../store.js';
-import { PLATFORM_TO_ID, ID_TO_PLATFORM } from '@cat-bot/engine/constants/platform.constants.js';
+import { PLATFORM_TO_ID, ID_TO_PLATFORM } from '@cat-bot/engine/modules/platform/platform.constants.js';
 import type { CreateBotRequestDto, CreateBotResponseDto, GetBotListItemDto, GetBotListResponseDto, GetBotDetailResponseDto, UpdateBotRequestDto } from '@cat-bot/server/dtos/bot.dto.js';
 import { encrypt, decrypt } from '@cat-bot/engine/utils/crypto.util.js';
 

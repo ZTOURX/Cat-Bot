@@ -14,7 +14,7 @@ import {
 } from '@/engine/adapters/models/context.model.js';
 import type { StateContext } from '@/engine/adapters/models/context.model.js';
 import type { SessionLogger } from '@/engine/modules/logger/logger.lib.js'; // Relocated module
-import type { OptionsMap } from '@/engine/lib/options-map.lib.js';
+import type { OptionsMap } from '@/engine/modules/options/options-map.lib.js';
 import type { CollectionManager } from '@/engine/lib/db-collection.lib.js';
 
 /** A command module loaded from src/modules/commands/ */

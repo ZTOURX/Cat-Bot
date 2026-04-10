@@ -24,7 +24,7 @@
 
 import type { AppCtx } from '@/engine/types/controller.types.js';
 import { Role } from '@/engine/constants/role.constants.js';
-import { OptionType } from '@/engine/constants/command-option.constants.js';
+import { OptionType } from '@/engine/modules/command/command-option.constants.js';
 
 /** Must match the constant in rank.ts — controls EXP-to-level curve. */
 const DELTA_NEXT = 5;

@@ -18,7 +18,7 @@ import type {
 import type { UnifiedApi } from '@/engine/adapters/models/api.model.js';
 import { createChatContext } from '@/engine/adapters/models/context.model.js';
 // Platform filter — enforces config.platform[] declared by each command module
-import { isPlatformAllowed } from '@/engine/utils/platform-filter.util.js';
+import { isPlatformAllowed } from '@/engine/modules/platform/platform-filter.util.js';
 // BaseCtx construction delegated to shared factory — eliminates ~35-line duplication across handlers
 import { buildBaseCtx } from '../factories/ctx.factory.js';
 

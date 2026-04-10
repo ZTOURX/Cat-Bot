@@ -1,5 +1,5 @@
 import { getDb, saveDb } from '../store.js';
-import { toPlatformNumericId } from '@cat-bot/engine/utils/platform-id.util.js';
+import { toPlatformNumericId } from '@cat-bot/engine/modules/platform/platform-id.util.js';
 
 // ── User Bans ─────────────────────────────────────────────────────────────────
 

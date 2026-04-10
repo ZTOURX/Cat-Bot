@@ -20,16 +20,16 @@ import type { UnifiedApi } from '@/engine/adapters/models/api.model.js';
 import { runOnChat } from '../on-chat-runner.js';
 import { dispatchOnReply } from '../dispatchers/reply.dispatcher.js';
 import { dispatchCommand } from '../dispatchers/command.dispatcher.js';
-import { parseCommand } from '@/engine/utils/command-parser.util.js';
+import { parseCommand } from '@/engine/modules/command/command-parser.util.js';
 import {
   middlewareRegistry,
   runMiddlewareChain,
 } from '@/engine/lib/middleware.lib.js';
 import type { OnChatCtx, OnCommandCtx } from '@/engine/types/middleware.types.js';
-import { findSimilarCommand } from '@/engine/utils/command-suggest.util.js';
-import { OptionsMap } from '@/engine/lib/options-map.lib.js';
+import { findSimilarCommand } from '@/engine/modules/command/command-suggest.util.js';
+import { OptionsMap } from '@/engine/modules/options/options-map.lib.js';
 import { isCommandEnabled, findSessionCommands } from '@/engine/modules/session/bot-session-commands.repo.js';
-import { isPlatformAllowed } from '@/engine/utils/platform-filter.util.js';
+import { isPlatformAllowed } from '@/engine/modules/platform/platform-filter.util.js';
 // BaseCtx construction delegated to shared factory — eliminates ~35-line duplication across handlers
 import { buildBaseCtx } from '../factories/ctx.factory.js';
 

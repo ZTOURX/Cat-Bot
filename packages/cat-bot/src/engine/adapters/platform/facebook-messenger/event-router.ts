@@ -15,7 +15,7 @@
  *   (other)              → emit verbatim on original type name
  */
 
-import { Platforms } from '@/engine/constants/platform.constants.js';
+import { Platforms } from '@/engine/modules/platform/platform.constants.js';
 import type { EventEmitter } from 'events';
 import type { UnifiedApi } from '@/engine/adapters/models/api.model.js';
 import { formatEvent } from '@/engine/adapters/models/event.model.js';

@@ -37,7 +37,7 @@ import { routeRawEvent } from './event-router.js';
 import { withRetry, isAuthError } from '@/engine/lib/retry.lib.js';
 import { sessionManager } from '@/engine/modules/session/session-manager.lib.js';
 
-import { PLATFORM_TO_ID, Platforms } from '@/engine/constants/platform.constants.js';
+import { PLATFORM_TO_ID, Platforms } from '@/engine/modules/platform/platform.constants.js';
 
 // Re-export startBot so integration tests can construct FacebookApi
 // directly without going through the platform listener.

@@ -14,7 +14,7 @@
  * normalizers directly from utils/, keeping wrapper's responsibility to the
  * UnifiedApi class shell only.
  */
-import { Platforms } from '@/engine/constants/platform.constants.js';
+import { Platforms } from '@/engine/modules/platform/platform.constants.js';
 
 import type { Context } from 'telegraf';
 import type { Readable } from 'stream';

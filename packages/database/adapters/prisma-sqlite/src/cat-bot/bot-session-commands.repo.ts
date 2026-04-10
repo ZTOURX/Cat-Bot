@@ -1,5 +1,5 @@
 import { prisma } from '../index.js';
-import { toPlatformNumericId } from '@cat-bot/engine/utils/platform-id.util.js';
+import { toPlatformNumericId } from '@cat-bot/engine/modules/platform/platform-id.util.js';
 
 export async function upsertSessionCommands(userId: string, platform: string, sessionId: string, commandNames: string[]): Promise<void> {
   if (!commandNames.length) return;

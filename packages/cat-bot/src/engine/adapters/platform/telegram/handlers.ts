@@ -20,7 +20,7 @@ import type { EventEmitter } from 'events';
 import type { Telegraf } from 'telegraf';
 import { message } from 'telegraf/filters';
 import type { Message } from 'telegraf/types';
-import { Platforms } from '@/engine/constants/platform.constants.js';
+import { Platforms } from '@/engine/modules/platform/platform.constants.js';
 import { EventType } from '@/engine/adapters/models/enums/index.js';
 import { createTelegramApi } from './wrapper.js';
 import {

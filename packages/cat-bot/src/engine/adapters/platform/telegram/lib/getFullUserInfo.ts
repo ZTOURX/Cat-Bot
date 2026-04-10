@@ -10,7 +10,7 @@
  */
 import type { Context } from 'telegraf';
 import type { User } from 'telegraf/types';
-import { Platforms } from '@/engine/constants/platform.constants.js';
+import { Platforms } from '@/engine/modules/platform/platform.constants.js';
 import {
   createUnifiedUserInfo,
   type UnifiedUserInfo,

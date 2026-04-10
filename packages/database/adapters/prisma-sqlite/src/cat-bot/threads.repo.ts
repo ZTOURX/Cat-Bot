@@ -1,6 +1,6 @@
 import { prisma } from '../index.js';
 import type { BotThreadData } from '@cat-bot/engine/models/threads.model.js';
-import { toPlatformNumericId } from '@cat-bot/engine/utils/platform-id.util.js';
+import { toPlatformNumericId } from '@cat-bot/engine/modules/platform/platform-id.util.js';
 
 export async function upsertThread(data: BotThreadData): Promise<void> {
   const allUserIds = Array.from(new Set([...data.participantIDs, ...data.adminIDs]));

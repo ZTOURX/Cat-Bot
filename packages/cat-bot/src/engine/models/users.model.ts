@@ -9,7 +9,7 @@
 
 import type { UnifiedUserInfo } from '@/engine/adapters/models/user.model.js';
 // Convert the platform string to its numeric DB ID at the model boundary
-import { toPlatformNumericId } from '@/engine/utils/platform-id.util.js';
+import { toPlatformNumericId } from '@/engine/modules/platform/platform-id.util.js';
 
 // ── BotUserData — the shape repos write to bot_users ─────────────────────────
 

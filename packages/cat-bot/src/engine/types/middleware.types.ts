@@ -16,7 +16,7 @@ import type {
   ParsedCommand,
   CommandModule,
 } from '@/engine/types/controller.types.js';
-import type { OptionsMap } from '@/engine/lib/options-map.lib.js';
+import type { OptionsMap } from '@/engine/modules/options/options-map.lib.js';
 import type { StateEntry } from '@/engine/lib/reply-state.lib.js';
 
 // ── Core middleware signature ─────────────────────────────────────────────────

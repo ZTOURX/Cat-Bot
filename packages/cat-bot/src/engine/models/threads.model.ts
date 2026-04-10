@@ -7,7 +7,7 @@
 
 import type { UnifiedThreadInfo } from '@/engine/adapters/models/thread.model.js';
 // Convert the platform string to its numeric DB ID at the model boundary
-import { toPlatformNumericId } from '@/engine/utils/platform-id.util.js';
+import { toPlatformNumericId } from '@/engine/modules/platform/platform-id.util.js';
 
 // ── BotThreadData — the shape repos write to bot_threads ─────────────────────
 

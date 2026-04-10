@@ -16,13 +16,13 @@
  */
 import type { Telegraf } from 'telegraf';
 import type { SessionLogger } from '@/engine/modules/logger/logger.lib.js'; // Relocated module
-import { computeCommandHash } from '@/engine/utils/command-hash.util.js';
+import { computeCommandHash } from '@/engine/modules/command/command-hash.util.js';
 import {
   findTelegramCredentialState,
   updateTelegramCredentialCommandHash,
 } from '@/engine/repos/credentials.repo.js';
-import { isPlatformAllowed } from '@/engine/utils/platform-filter.util.js';
-import { Platforms } from '@/engine/constants/platform.constants.js';
+import { isPlatformAllowed } from '@/engine/modules/platform/platform-filter.util.js';
+import { Platforms } from '@/engine/modules/platform/platform.constants.js';
 
 /** All four broadcast scopes that must be managed in lockstep to avoid stale menu entries. */
 const BROADCAST_SCOPES = [

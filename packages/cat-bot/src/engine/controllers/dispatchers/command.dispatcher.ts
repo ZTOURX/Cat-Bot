@@ -21,10 +21,10 @@ import {
   createChatContext,
 } from '@/engine/adapters/models/context.model.js';
 // OptionsMap needed to seed commandCtx.options before validateCommandOptions middleware
-import { OptionsMap } from '@/engine/lib/options-map.lib.js';
+import { OptionsMap } from '@/engine/modules/options/options-map.lib.js';
 import type { OnCommandCtx } from '@/engine/types/middleware.types.js';
 // Platform filter — enforces config.platform[] declared by each command module
-import { isPlatformAllowed } from '@/engine/utils/platform-filter.util.js';
+import { isPlatformAllowed } from '@/engine/modules/platform/platform-filter.util.js';
 
 /**
  * Dispatches a parsed command to its registered module.

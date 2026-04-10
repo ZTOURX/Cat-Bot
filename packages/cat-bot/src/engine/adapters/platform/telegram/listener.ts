@@ -21,7 +21,7 @@ import { registerSlashMenu } from './slash-commands.js';
 import { attachHandlers } from './handlers.js';
 import { sessionManager } from '@/engine/modules/session/session-manager.lib.js';
 import { isAuthError } from '@/engine/lib/retry.lib.js';
-import { PLATFORM_TO_ID, Platforms } from '@/engine/constants/platform.constants.js';
+import { PLATFORM_TO_ID, Platforms } from '@/engine/modules/platform/platform.constants.js';
 import { env } from '@/engine/config/env.config.js';
 
 // Slash sync: register a re-registration callback so the dashboard toggle can update the live '/' menu

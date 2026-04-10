@@ -1,7 +1,7 @@
 import { prisma } from '../index.js';
 import type { BotCredentialDiscord, BotCredentialTelegram, BotCredentialFacebookPage, BotCredentialFacebookMessenger, BotSession } from '../index.js';
-import { Platforms, PLATFORM_TO_ID } from '@cat-bot/engine/constants/platform.constants.js';
-import { toPlatformNumericId } from '@cat-bot/engine/utils/platform-id.util.js';
+import { Platforms, PLATFORM_TO_ID } from '@cat-bot/engine/modules/platform/platform.constants.js';
+import { toPlatformNumericId } from '@cat-bot/engine/modules/platform/platform-id.util.js';
 import { decrypt } from '@cat-bot/engine/utils/crypto.util.js';
 
 export async function findDiscordCredentialState(userId: string, sessionId: string): Promise<{ isCommandRegister: boolean; commandHash: string | null } | null> {
