@@ -34,7 +34,7 @@ import { prefixManager } from '@/engine/modules/prefix/prefix-manager.lib.js';
 import {
   registerTelegramWebhookHandler,
   unregisterTelegramWebhookHandler,
-} from '@/server/lib/telegram-webhook.registry.js';
+} from '@/engine/modules/session/telegram-webhook.registry.js';
 
 /**
  * Creates a Telegram platform listener.
