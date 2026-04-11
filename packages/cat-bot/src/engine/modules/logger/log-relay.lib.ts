@@ -59,6 +59,12 @@ class LogRelay extends EventEmitter {
   getKeyedHistory(key: string): string[] {
     return [...(this.#keyedHistory.get(key) ?? [])];
   }
+
+  /** Wipes the per-session sliding window. Called on bot stop/restart so the next
+   *  subscribe hydration delivers only post-restart logs, not stale pre-restart entries. */
+  clearKeyedHistory(key: string): void {
+    this.#keyedHistory.delete(key);
+  }
 }
 
 /**

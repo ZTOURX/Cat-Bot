@@ -1,5 +1,5 @@
 import React from 'react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Terminal, Clock, Layers, Hash, Users, Activity } from 'lucide-react'
 import _AnsiLib from 'ansi-to-react'
 import Card from '@/components/ui/data-display/Card'
@@ -55,6 +55,9 @@ export interface ConsoleTabProps {
   onStart: () => void
   onStop: () => void
   onRestart: () => void
+  /** When provided, clears the in-memory log buffer and the server-side session history;
+   *  called on Stop and Restart so the console view starts clean after each lifecycle event. */
+  clearLogs?: () => void
   /** Pre-computed count of enabled commands — passed from parent to avoid a second fetch. */
   enabledCommandsCount?: number
   /** Pre-computed count of enabled events — same derivation pattern. */
@@ -105,7 +108,14 @@ export function ConsoleTab({
   onStart,
   onStop,
   onRestart,
+  clearLogs,
 }: ConsoleTabProps) {
+  // Scroll anchor ref — scrollIntoView fires after every log state update to keep the
+  // console pinned to the latest entry without the user needing to scroll manually.
+  const bottomRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [logs])
   return (
     <div className="flex flex-col gap-4">
       {/* ── Header: nickname + status indicator (left) | lifecycle buttons (right) ── */}
@@ -131,7 +141,7 @@ export function ConsoleTab({
           </Button>
           <Button
             color="primary"
-            onClick={onRestart}
+            onClick={() => { clearLogs?.(); onRestart() }}
             disabled={!isActive}
             className="w-full justify-center"
           >
@@ -140,7 +150,7 @@ export function ConsoleTab({
           <Button
             variant="filled"
             color="error"
-            onClick={onStop}
+            onClick={() => { clearLogs?.(); onStop() }}
             disabled={!isActive}
             className="w-full justify-center"
           >
@@ -185,6 +195,8 @@ export function ConsoleTab({
                   </Ansi>
                 ))
               )}
+              {/* Auto-scroll anchor — bottomRef.scrollIntoView() is called after each log state update */}
+              <div ref={bottomRef} />
             </ScrollArea.Viewport>
           </ScrollArea.Root>
         </div>
