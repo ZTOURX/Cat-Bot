@@ -96,7 +96,7 @@ export function createFacebookMessengerListener(
     let reconnecting = false;
 
     const listen = (fcaApi: FcaApi): void => {
-      listenerInstances = fcaApi.listenMqtt((err, rawEvent) => {
+      listenerInstances = fcaApi.listenMqtt((err, rawEvent, state) => {
         if (err) {
           sessionLogger.error('[facebook-messenger] MQTT error', {
             error: err,
@@ -163,6 +163,17 @@ export function createFacebookMessengerListener(
               });
               reconnecting = false;
             });
+          return;
+        }
+
+        // MQTT lifecycle state changes (connect, disconnect, close, error) are delivered as the
+        // third argument rather than as events — they carry no message payload, so log them
+        // for operational visibility and return before routeRawEvent sees a non-event object.
+        if (state) {
+          sessionLogger.info(
+            `[facebook-messenger] MQTT state: ${state.type}`,
+            { mqttState: state },
+          );
           return;
         }
 
