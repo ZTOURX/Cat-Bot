@@ -38,7 +38,7 @@ export default function BotPage() {
   const sessionKey = bot
     ? `${bot.userId}:${bot.platformId}:${bot.sessionId}`
     : undefined
-  const { logs } = useBotLogs(sessionKey)
+  const { logs, clearLogs } = useBotLogs(sessionKey)
 
   // Determine active presence visual status
   const botStatus = botStatuses[id] ?? { active: false, startedAt: null }
@@ -117,9 +117,10 @@ export default function BotPage() {
               logs={logs}
               isActive={isActive}
               startedAt={startedAt}
-              onStart={() => void botService.startBot(id)}
-              onStop={() => void botService.stopBot(id)}
-              onRestart={() => void botService.restartBot(id)}
+            onStart={() => void botService.startBot(id)}
+            onStop={() => void botService.stopBot(id)}
+            onRestart={() => void botService.restartBot(id)}
+            clearLogs={clearLogs}
             />
           </Tabs.Panel>
           <Tabs.Panel value="settings">
