@@ -118,6 +118,19 @@ async function loadCommands(): Promise<Map<string, Record<string, unknown>>> {
         continue;
       }
 
+      // Discord strict requirement: command names and option names must be lowercase.
+      // Normalise them at load time so developers don't encounter API errors
+      // if they accidentally use camelCase or TitleCase in their command configs.
+      if (cfg.name) cfg.name = cfg.name.toLowerCase();
+      const rawCfg = mod['config'] as { options?: Array<{ name?: string }> };
+      if (Array.isArray(rawCfg.options)) {
+        for (const opt of rawCfg.options) {
+          if (opt && typeof opt.name === 'string') {
+            opt.name = opt.name.toLowerCase();
+          }
+        }
+      }
+
       commands.set(cfg.name.toLowerCase(), mod);
       commandRegistry.set(cfg.name.toLowerCase(), mod);
       logger.info(`Loaded command: ${cfg.name}`);
