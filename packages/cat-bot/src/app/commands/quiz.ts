@@ -163,7 +163,7 @@ export const onCommand = async ({
       ``,
       question,
       ``,
-      `❤ → **True**   |   😢 → **False**`,
+      `❤️ → **True**   |   😢 → **False**`,
       `_You have ${TIMEOUT_MS / 1000} seconds to react!_`,
     ].join('\n'),
   });
