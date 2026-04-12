@@ -13,13 +13,6 @@
 
 import type { Readable } from 'stream';
 
-export async function editMessage(
-  _messageID: string,
-  _newBody: string,
-): Promise<void> {
-  throw new Error('editMessage is not supported on Facebook Pages.');
-}
-
 export async function setNickname(
   _threadID: string,
   _userID: string,

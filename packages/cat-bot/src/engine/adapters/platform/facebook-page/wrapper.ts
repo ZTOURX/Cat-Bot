@@ -42,8 +42,8 @@ import { replyMessage } from './lib/replyMessage.js';
 import { getBotID } from './lib/getBotID.js';
 import { getFullThreadInfo } from './lib/getFullThreadInfo.js';
 import { getFullUserInfo } from './lib/getFullUserInfo.js';
+import { editMessage } from './lib/editMessage.js';
 import {
-  editMessage,
   setNickname,
   setGroupName,
   setGroupImage,
@@ -135,9 +135,9 @@ class FbPageApi extends UnifiedApi {
 
   // ── Unsupported stubs (FB Page is always 1:1; no group or edit endpoints) ──
 
-  override editMessage(messageID: string, newBody: string): Promise<void> {
-    logger.debug('[facebook-page] editMessage called', { messageID });
-    return editMessage(messageID, newBody);
+  override editMessage(messageID: string, options: string | import('@/engine/adapters/models/api.model.js').EditMessageOptions): Promise<void> {
+    logger.debug('[facebook-page] editMessage called (fallback)', { messageID });
+    return editMessage(this.#pageApi, messageID, options);
   }
 
   override setNickname(
