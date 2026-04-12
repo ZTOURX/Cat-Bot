@@ -26,6 +26,8 @@ import type { AppCtx } from '@/engine/types/controller.types.js';
 import { Role } from '@/engine/constants/role.constants.js';
 import { OptionType } from '@/engine/modules/command/command-option.constants.js';
 import { MessageStyle } from '@/engine/constants/message-style.constants.js';
+import { ButtonStyle } from '@/engine/constants/button-style.constants.js';
+import { Platforms } from '@/engine/modules/platform/platform.constants.js';
 
 /** Must match the constant in rank.ts — controls EXP-to-level curve. */
 const DELTA_NEXT = 5;
@@ -116,6 +118,42 @@ export const onChat = async ({ event, db, chat }: AppCtx): Promise<void> => {
   }
 };
 
+const ACTION_ID = { my_level: 'my_level' } as const;
+
+// The rankup status view naturally prompts the question "what level am I at?" —
+// surfacing XP/level inline avoids an extra /rank command invocation.
+export const menu = {
+  [ACTION_ID.my_level]: {
+    label: '📊 My Level',
+    button_style: ButtonStyle.SECONDARY,
+    run: async ({ chat, event, db }: AppCtx) => {
+      const senderID = event['senderID'] as string | undefined;
+      if (!senderID) {
+        await chat.editMessage({
+          style: MessageStyle.MARKDOWN,
+          message_id_to_edit: event['messageID'] as string,
+          message: '❌ Could not identify your user ID on this platform.',
+        });
+        return;
+      }
+      const userColl = db.users.collection(senderID);
+      let exp = 0;
+      if (await userColl.isCollectionExist('xp')) {
+        const xpColl = await userColl.getCollection('xp');
+        const rawExp = await xpColl.get('exp');
+        exp = typeof rawExp === 'number' ? rawExp : 0;
+      }
+      // expToLevel is module-scoped — safe to call from the button handler closure.
+      const level = expToLevel(exp);
+      await chat.editMessage({
+        style: MessageStyle.MARKDOWN,
+        message_id_to_edit: event['messageID'] as string,
+        message: `⭐ **Level ${level}** — ${exp} total EXP`,
+      });
+    },
+  },
+};
+
 /**
  * Toggle rankup notifications for the current thread.
  * Stores the setting in bot_threads_session.data under "rankup_settings".
@@ -127,6 +165,7 @@ export const onCommand = async ({
   args,
   event,
   db,
+  native,
   prefix = '',
 }: AppCtx): Promise<void> => {
   const threadID = event['threadID'] as string | undefined;
@@ -153,12 +192,18 @@ export const onCommand = async ({
     } catch {
       /* fail-open */
     }
+    const hasNativeButtons =
+      native.platform === Platforms.Discord ||
+      native.platform === Platforms.Telegram ||
+      native.platform === Platforms.FacebookPage;
+
     await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
       message: [
         `Rankup notifications are currently ${current ? '✅ on' : '🔕 off'} for this thread.`,
         `Usage: ${prefix}rankup on | off`,
       ].join('\n'),
+      ...(hasNativeButtons ? { button: [ACTION_ID.my_level] } : {}),
     });
     return;
   }
