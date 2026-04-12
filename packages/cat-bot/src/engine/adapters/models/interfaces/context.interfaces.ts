@@ -20,6 +20,18 @@ import type { UnifiedThreadInfo } from '../thread.model.js';
 import type { UnifiedUserInfo } from '../user.model.js';
 import type { MessageStyleValue } from '@/engine/constants/message-style.constants.js';
 
+/**
+ * Options for chat.editMessage().
+ */
+export interface EditOptions {
+  message?: string;
+  message_id_to_edit?: string;
+  style?: MessageStyleValue;
+  button?: string[];
+  threadID?: string;
+  thread_id?: string;
+}
+
 /** Shared thread override options for context functions */
 export interface ThreadOptions {
   threadID?: string;
@@ -99,6 +111,7 @@ export interface ChatContext {
       | string
       | ({ targetMessageID?: string; messageID?: string } & MessageOptions),
   ): Promise<void>;
+  editMessage(options: EditOptions): Promise<void>;
 }
 
 /**

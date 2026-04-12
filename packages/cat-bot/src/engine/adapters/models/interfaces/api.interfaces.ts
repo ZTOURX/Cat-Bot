@@ -97,6 +97,19 @@ export interface SendPayload {
 }
 
 /**
+ * Options accepted by editMessage().
+ * Aligns closely with ReplyMessageOptions, scoped for editing payloads.
+ */
+export interface EditMessageOptions {
+  message?: string | SendPayload;
+  message_id_to_edit?: string;
+  style?: MessageStyleValue;
+  button?: ButtonItem[];
+  /** Thread ID implicitly injected by chat.editMessage for fallback use by platforms that do not support native editing. */
+  threadID?: string;
+}
+
+/**
  * Options accepted by replyMessage().
  */
 export interface ReplyMessageOptions {
