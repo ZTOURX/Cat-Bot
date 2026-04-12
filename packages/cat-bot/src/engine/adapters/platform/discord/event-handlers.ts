@@ -111,8 +111,14 @@ export async function attachEventHandlers(
   client.on('interactionCreate', async (interaction) => {
     // ── Button component interactions → emit 'button_action' ───────────────────
     if (interaction.isButton()) {
-      await interaction.deferReply();
-      const api = createDiscordApi(interaction);
+      // deferUpdate() acknowledges the interaction without spawning a new "Bot thinking…" message.
+      // Button handlers edit the ORIGINAL message via channel.messages.fetch().edit() (see lib/editMessage.ts),
+      // which bypasses the interaction reply API — deferReply() would leave an orphaned "thinking" reply.
+      await interaction.deferUpdate();
+      // Pass isButtonInteraction=true so DiscordApi.#send routes to followUp() instead of
+      // editReply(). After deferUpdate(), editReply() would overwrite the original button message;
+      // followUp() posts a brand-new message, which is what chat.reply/replyMessage expect.
+      const api = createDiscordApi(interaction, true);
       const event = {
         type: 'button_action',
         platform: Platforms.Discord,

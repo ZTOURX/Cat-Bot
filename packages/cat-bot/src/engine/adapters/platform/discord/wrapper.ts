@@ -66,11 +66,19 @@ class DiscordApi extends UnifiedApi {
   // Tracks whether the first send has been dispatched — Discord interactions must
   // use editReply (deferred) or reply (first send) before switching to followUp.
   #firstSend = true;
+  // When true this instance was created for a button (component) interaction whose
+  // deferUpdate() has already been called. Discord's rule: after deferUpdate() the
+  // ONLY way to post a NEW message is followUp() — editReply() would overwrite the
+  // original button message, which is wrong for chat.reply / chat.replyMessage calls.
+  // chat.editMessage bypasses this path entirely (uses editMessageLib via the channel),
+  // so it is unaffected by this flag.
+  #isButtonInteraction = false;
 
-  constructor(interaction: RepliableInteraction) {
+  constructor(interaction: RepliableInteraction, isButtonInteraction = false) {
     super();
     this.platform = Platforms.Discord;
     this.#interaction = interaction;
+    this.#isButtonInteraction = isButtonInteraction;
   }
 
   /** Routes to editReply (when deferred), reply (first send), or followUp (subsequent). */
@@ -87,6 +95,13 @@ class DiscordApi extends UnifiedApi {
       files,
       ...(components.length ? { components } : {}),
     };
+    // Button interactions: deferUpdate() has already been called, so i.deferred === true.
+    // Calling editReply() here would OVERWRITE the original button message — not what
+    // chat.reply / chat.replyMessage intend. Use followUp() to post a new message instead.
+    if (this.#isButtonInteraction) {
+      const sent = await i.followUp(payload as Parameters<typeof i.followUp>[0]);
+      return sent as unknown as { id: string };
+    }
     if (this.#firstSend) {
       this.#firstSend = false;
       const sent = await (i.deferred
@@ -308,12 +323,12 @@ class DiscordApi extends UnifiedApi {
     );
   }
 
-  override editMessage(messageID: string, newBody: string): Promise<void> {
+  override editMessage(messageID: string, options: string | import('@/engine/adapters/models/api.model.js').EditMessageOptions): Promise<void> {
     logger.debug('[discord] editMessage called', { messageID });
     return editMessageLib(
       this.#interaction.channel as TextChannel,
       messageID,
-      newBody,
+      options,
     );
   }
   override setNickname(
@@ -397,11 +412,17 @@ class DiscordApi extends UnifiedApi {
 /**
  * Creates a UnifiedApi adapter for a Discord slash command interaction.
  * Caller must have already called interaction.deferReply() before constructing.
+ *
+ * @param isButtonInteraction - Pass true when the interaction is a button component
+ *   interaction (deferUpdate already called). Causes chat.reply/replyMessage to use
+ *   followUp() instead of editReply(), posting a new message rather than overwriting
+ *   the original button message.
  */
 export function createDiscordApi(
   interaction: RepliableInteraction,
+  isButtonInteraction = false,
 ): UnifiedApi {
-  return new DiscordApi(interaction);
+  return new DiscordApi(interaction, isButtonInteraction);
 }
 
 // ── createDiscordChannelApi (channel factory) ──────────────────────────────────
@@ -594,9 +615,9 @@ export function createDiscordChannelApi(
     });
     return reactToMessageLib(channel, mid, emoji, rawMessage);
   };
-  api.editMessage = (mid, body) => {
+  api.editMessage = (mid, options) => {
     logger.debug('[discord] editMessage called', { messageID: mid });
-    return editMessageLib(channel, mid, body);
+    return editMessageLib(channel, mid, options);
   };
   api.setNickname = (_tid, uid, nick) => {
     logger.debug('[discord] setNickname called', {
