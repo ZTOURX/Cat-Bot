@@ -79,7 +79,12 @@ function formatUptime(totalSeconds: number): string {
 const ACTION_ID = { refresh: 'refresh' } as const;
 
 // onCommand defined before menu so the refresh handler can reference it directly.
-export const onCommand = async ({ chat, startTime, native, event }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  chat,
+  startTime,
+  native,
+  event,
+}: AppCtx): Promise<void> => {
   const cpus = os.cpus();
 
   // os.cpus() returns one entry per logical core — deduplicate model name and derive
@@ -150,7 +155,10 @@ export const onCommand = async ({ chat, startTime, native, event }: AppCtx): Pro
 
   // Update the existing message if triggered via button; otherwise send a new message
   if (event['type'] === 'button_action') {
-    await chat.editMessage({ ...payload, message_id_to_edit: event['messageID'] as string });
+    await chat.editMessage({
+      ...payload,
+      message_id_to_edit: event['messageID'] as string,
+    });
   } else {
     await chat.replyMessage(payload);
   }

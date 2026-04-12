@@ -75,7 +75,7 @@ export const menu = {
         return;
       }
       const money = await userColl.getCollection('money');
-      const coins = (await money.get('coins') as number | undefined) ?? 0;
+      const coins = ((await money.get('coins')) as number | undefined) ?? 0;
       await chat.editMessage({
         style: MessageStyle.MARKDOWN,
         message_id_to_edit: event['messageID'] as string,
@@ -85,7 +85,12 @@ export const menu = {
   },
 };
 
-export const onCommand = async ({ chat, event, db, native }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  chat,
+  event,
+  db,
+  native,
+}: AppCtx): Promise<void> => {
   const senderID = event['senderID'] as string | undefined;
 
   if (!senderID) {

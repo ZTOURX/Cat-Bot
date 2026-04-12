@@ -18,7 +18,8 @@ export async function editMessage(
   options: string | EditMessageOptions,
 ): Promise<void> {
   // Extract implicitly injected threadID from the chat context execution
-  const threadID = typeof options === 'object' && options.threadID ? options.threadID : null;
+  const threadID =
+    typeof options === 'object' && options.threadID ? options.threadID : null;
 
   if (!threadID) {
     throw new Error(

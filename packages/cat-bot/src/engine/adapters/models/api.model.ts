@@ -87,7 +87,10 @@ export class UnifiedApi {
    * Only the bot's own messages can be edited, and only within the platform's edit window.
    * Throws by default — override on platforms that expose an edit API (fca, Telegram, Discord).
    */
-  async editMessage(_messageID: string, _options: string | EditMessageOptions): Promise<void> {
+  async editMessage(
+    _messageID: string,
+    _options: string | EditMessageOptions,
+  ): Promise<void> {
     logger.debug('[UnifiedApi] editMessage called', {
       platform: this.platform,
       messageID: _messageID,

@@ -29,11 +29,12 @@ export async function editMessage(
     content = options;
   } else {
     const rawMsg = options.message;
-    content = typeof rawMsg === 'string'
-      ? rawMsg
-      : ((rawMsg as { message?: string } | undefined)?.message ??
-         (rawMsg as { body?: string } | undefined)?.body ??
-         '');
+    content =
+      typeof rawMsg === 'string'
+        ? rawMsg
+        : ((rawMsg as { message?: string } | undefined)?.message ??
+          (rawMsg as { body?: string } | undefined)?.body ??
+          '');
   }
 
   const style = typeof options === 'object' ? options.style : undefined;
@@ -64,7 +65,9 @@ export async function editMessage(
             new ButtonBuilder()
               .setCustomId(btn.id)
               .setLabel(btn.label)
-              .setStyle(STYLE_MAP[btn.style ?? 'secondary'] ?? ButtonStyle.Secondary),
+              .setStyle(
+                STYLE_MAP[btn.style ?? 'secondary'] ?? ButtonStyle.Secondary,
+              ),
           );
         }
         components.push(row);

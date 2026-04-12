@@ -362,15 +362,26 @@ async function main(): Promise<void> {
     // stored prefix is used on the FIRST message after a process restart.
     // prefix.ts onChat previously did this lazily inside middleware, but livePrefix was
     // already computed by then, making the restoration arrive one message too late.
-    if (threadID && native.userId && native.sessionId && prefixManager.getThreadPrefix(threadID) === undefined) {
+    if (
+      threadID &&
+      native.userId &&
+      native.sessionId &&
+      prefixManager.getThreadPrefix(threadID) === undefined
+    ) {
       try {
-        const threadColl = createThreadCollectionManager(native.userId, native.platform, native.sessionId)(threadID);
+        const threadColl = createThreadCollectionManager(
+          native.userId,
+          native.platform,
+          native.sessionId,
+        )(threadID);
         if (await threadColl.isCollectionExist('settings')) {
           const settings = await threadColl.getCollection('settings');
           const stored = (await settings.get('prefix')) as string | undefined;
           if (stored) prefixManager.setThreadPrefix(threadID, stored);
         }
-      } catch { /* fail-open — livePrefix falls back to session prefix on DB error */ }
+      } catch {
+        /* fail-open — livePrefix falls back to session prefix on DB error */
+      }
     }
     const threadPrefix = threadID
       ? prefixManager.getThreadPrefix(threadID)
@@ -417,15 +428,26 @@ async function main(): Promise<void> {
     // Same thread prefix restoration as the 'message' handler — message_reply events
     // carry the same threadID and must resolve the stored prefix before livePrefix
     // is computed so quoted-message reply flows also honour thread-level overrides.
-    if (threadID && native.userId && native.sessionId && prefixManager.getThreadPrefix(threadID) === undefined) {
+    if (
+      threadID &&
+      native.userId &&
+      native.sessionId &&
+      prefixManager.getThreadPrefix(threadID) === undefined
+    ) {
       try {
-        const threadColl = createThreadCollectionManager(native.userId, native.platform, native.sessionId)(threadID);
+        const threadColl = createThreadCollectionManager(
+          native.userId,
+          native.platform,
+          native.sessionId,
+        )(threadID);
         if (await threadColl.isCollectionExist('settings')) {
           const settings = await threadColl.getCollection('settings');
           const stored = (await settings.get('prefix')) as string | undefined;
           if (stored) prefixManager.setThreadPrefix(threadID, stored);
         }
-      } catch { /* fail-open */ }
+      } catch {
+        /* fail-open */
+      }
     }
     const threadPrefix = threadID
       ? prefixManager.getThreadPrefix(threadID)

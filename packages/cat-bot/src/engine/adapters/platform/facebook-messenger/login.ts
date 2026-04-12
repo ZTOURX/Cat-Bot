@@ -51,18 +51,36 @@ export async function startBot(
   // Obtain the login fn and EventEmitter logger from fcaInstances. emitLogger:true routes all
   // fca internal output through fcaLogger events instead of raw stderr — keeps process output
   // clean and ensures fca login/MQTT messages flow to the dashboard console via SessionLogger.
-  const { login, fcaLogger } = (fca as {
-    fcaInstances: (opts: { emitLogger?: boolean }) => {
-      login: (opts: { appState: unknown }, cb: (err: unknown, api: FcaApi) => void) => void;
-      fcaLogger: { on: (event: string, cb: (log: Record<string, unknown>) => void) => void };
-    };
-  }).fcaInstances({ emitLogger: true });
+  const { login, fcaLogger } = (
+    fca as {
+      fcaInstances: (opts: { emitLogger?: boolean }) => {
+        login: (
+          opts: { appState: unknown },
+          cb: (err: unknown, api: FcaApi) => void,
+        ) => void;
+        fcaLogger: {
+          on: (
+            event: string,
+            cb: (log: Record<string, unknown>) => void,
+          ) => void;
+        };
+      };
+    }
+  ).fcaInstances({ emitLogger: true });
   // Bridge fca structured log entries ({level, message}) to the session-scoped logger so the
   // dashboard console receives the full fca login sequence and MQTT lifecycle output.
-  fcaLogger.on('info', (l) => sessionLogger.info(`[facebook-messenger] ${l.message}`));
-  fcaLogger.on('warn', (l) => sessionLogger.warn(`[facebook-messenger] ${l.message}`));
-  fcaLogger.on('error', (l) => sessionLogger.error(`[facebook-messenger] ${l.message}`));
-  fcaLogger.on('log', (l) => sessionLogger.info(`[facebook-messenger] ${l.message}`));
+  fcaLogger.on('info', (l) =>
+    sessionLogger.info(`[facebook-messenger] ${l.message}`),
+  );
+  fcaLogger.on('warn', (l) =>
+    sessionLogger.warn(`[facebook-messenger] ${l.message}`),
+  );
+  fcaLogger.on('error', (l) =>
+    sessionLogger.error(`[facebook-messenger] ${l.message}`),
+  );
+  fcaLogger.on('log', (l) =>
+    sessionLogger.info(`[facebook-messenger] ${l.message}`),
+  );
 
   return new Promise((resolve, reject) => {
     login({ appState }, async (err, api) => {

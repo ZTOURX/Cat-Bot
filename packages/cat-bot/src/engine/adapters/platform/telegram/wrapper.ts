@@ -170,7 +170,12 @@ class TelegramApi extends UnifiedApi {
     return setNickname(this.#ctx, threadID, userID, nickname);
   }
 
-  override editMessage(messageID: string, options: string | import('@/engine/adapters/models/api.model.js').EditMessageOptions): Promise<void> {
+  override editMessage(
+    messageID: string,
+    options:
+      | string
+      | import('@/engine/adapters/models/api.model.js').EditMessageOptions,
+  ): Promise<void> {
     logger.debug('[telegram] editMessage called', { messageID });
     return editMessage(this.#ctx, messageID, options);
   }

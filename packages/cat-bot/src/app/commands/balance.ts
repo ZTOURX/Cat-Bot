@@ -80,12 +80,13 @@ export const menu = {
         await chat.editMessage({
           style: MessageStyle.MARKDOWN,
           message_id_to_edit: event['messageID'] as string,
-          message: "📅 You haven't claimed `/daily` yet — your first reward is waiting!",
+          message:
+            "📅 You haven't claimed `/daily` yet — your first reward is waiting!",
         });
         return;
       }
       const money = await userColl.getCollection('money');
-      const lastClaim = (await money.get('lastClaim') as number | undefined);
+      const lastClaim = (await money.get('lastClaim')) as number | undefined;
       const COOLDOWN_MS = 24 * 60 * 60 * 1000;
       if (!lastClaim || Date.now() - lastClaim >= COOLDOWN_MS) {
         await chat.editMessage({
@@ -96,7 +97,9 @@ export const menu = {
       } else {
         const remaining = COOLDOWN_MS - (Date.now() - lastClaim);
         const hours = Math.floor(remaining / (1000 * 60 * 60));
-        const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+        const minutes = Math.floor(
+          (remaining % (1000 * 60 * 60)) / (1000 * 60),
+        );
         await chat.editMessage({
           style: MessageStyle.MARKDOWN,
           message_id_to_edit: event['messageID'] as string,
@@ -107,7 +110,12 @@ export const menu = {
   },
 };
 
-export const onCommand = async ({ chat, event, db, native }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  chat,
+  event,
+  db,
+  native,
+}: AppCtx): Promise<void> => {
   const mentions = event['mentions'] as Record<string, string> | undefined;
   const mentionIDs = Object.keys(mentions ?? {});
 
@@ -117,16 +125,16 @@ export const onCommand = async ({ chat, event, db, native }: AppCtx): Promise<vo
   if (mentionIDs.length > 0) {
     const lines: string[] = [];
     for (const uid of mentionIDs) {
-    // Platforms embed '@' in the mention display name — strip it for cleaner output
-    const displayName = (mentions?.[uid] ?? uid).replace(/^@/, '');
-    const coins = await getCoins(db, uid);
-    lines.push(`**${displayName}:** ${coins.toLocaleString()} coins`);
-  }
-  // No button on the mention path — the balance is for the mentioned user, not the sender;
-  // a daily_status button would check the SENDER's daily, which is confusing in context.
-  await chat.replyMessage({
-    style: MessageStyle.MARKDOWN,
-    message: lines.join('\n'),
+      // Platforms embed '@' in the mention display name — strip it for cleaner output
+      const displayName = (mentions?.[uid] ?? uid).replace(/^@/, '');
+      const coins = await getCoins(db, uid);
+      lines.push(`**${displayName}:** ${coins.toLocaleString()} coins`);
+    }
+    // No button on the mention path — the balance is for the mentioned user, not the sender;
+    // a daily_status button would check the SENDER's daily, which is confusing in context.
+    await chat.replyMessage({
+      style: MessageStyle.MARKDOWN,
+      message: lines.join('\n'),
     });
     return;
   }

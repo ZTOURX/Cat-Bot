@@ -84,13 +84,11 @@ export async function validateDiscord(
         shouldRetry: (err) => !isAuthError(err) && isNetworkError(err),
       },
     );
-    res
-      .status(200)
-      .json({
-        valid: true,
-        botName: response.data.username,
-        botId: response.data.id,
-      });
+    res.status(200).json({
+      valid: true,
+      botName: response.data.username,
+      botId: response.data.id,
+    });
   } catch (err) {
     const e = err as { response?: { status: number } };
     if (e.response?.status === 401) {
@@ -199,12 +197,10 @@ export async function validateFacebookMessenger(
     const parsed = JSON.parse(appstate) as unknown;
 
     if (!Array.isArray(parsed) || parsed.length === 0) {
-      res
-        .status(200)
-        .json({
-          valid: false,
-          error: 'Invalid appstate: must be a non-empty JSON array',
-        });
+      res.status(200).json({
+        valid: false,
+        error: 'Invalid appstate: must be a non-empty JSON array',
+      });
       return;
     }
 

@@ -430,10 +430,15 @@ export function createChatContext(
       return api.unsendMessage(targetMessageID as string);
     },
 
-    editMessage: async (options: import('./interfaces/index.js').EditOptions) => {
-      const targetMessageID = options.message_id_to_edit || getMessageID({ messageID: undefined });
+    editMessage: async (
+      options: import('./interfaces/index.js').EditOptions,
+    ) => {
+      const targetMessageID =
+        options.message_id_to_edit || getMessageID({ messageID: undefined });
       const targetThreadID = getThreadID(options);
-      logger.debug('[context.model] ChatContext.editMessage called', { targetMessageID });
+      logger.debug('[context.model] ChatContext.editMessage called', {
+        targetMessageID,
+      });
 
       let finalMessage = options.message;
       if (
@@ -444,7 +449,10 @@ export function createChatContext(
         menu
       ) {
         // Facebook Messenger has no native button component support on message edits — fallback to text menu
-        finalMessage = buildButtonFallbackText(options.message ?? '', options.button);
+        finalMessage = buildButtonFallbackText(
+          options.message ?? '',
+          options.button,
+        );
         registerButtonFallbackState(targetMessageID, options.button);
       }
       return api.editMessage(targetMessageID, {

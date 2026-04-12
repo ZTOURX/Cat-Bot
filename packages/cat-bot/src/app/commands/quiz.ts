@@ -57,7 +57,8 @@ export const config = {
     {
       type: OptionType.string,
       name: 'difficulty',
-      description: 'Question difficulty: easy, medium, or hard (random if omitted)',
+      description:
+        'Question difficulty: easy, medium, or hard (random if omitted)',
       required: false,
     },
   ],
@@ -79,7 +80,6 @@ const STATE = {
   TRUE_DISCORD: '❤️',
   FALSE: '😢',
 } as const;
-
 
 /** Shape of a single result object from the Open Trivia DB boolean endpoint. */
 interface TriviaResult {
@@ -128,7 +128,7 @@ export const onCommand = async ({
   )
     ? (rawArg as Difficulty)
     : (DIFFICULTIES[Math.floor(Math.random() * DIFFICULTIES.length)] ??
-        'medium');
+      'medium');
 
   // Fetch one boolean question — url3986 encoding preserves special characters in
   // question text (ampersands, curly quotes) that would otherwise corrupt JSON

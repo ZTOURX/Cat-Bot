@@ -26,18 +26,18 @@ export const menu = {
     label: '🔄 Refresh',
     button_style: ButtonStyle.SECONDARY,
     run: async ({ chat, startTime, event, native }: AppCtx) => {
-  // FB Messenger has no native button components — it renders a numbered text-menu
-  // fallback which clutters a simple one-liner response. Skip buttons there.
-  const hasNativeButtons =
-    native.platform === Platforms.Discord ||
-    native.platform === Platforms.Telegram ||
-    native.platform === Platforms.FacebookPage;
-  await chat.editMessage({
-    style: MessageStyle.MARKDOWN,
-    message_id_to_edit: event.messageID as string,
-    message: `🏓 Pong! Latency: \`${Date.now() - startTime}ms\``,
-    ...(hasNativeButtons ? { button: [ACTION_ID.refresh] } : {}),
-  });
+      // FB Messenger has no native button components — it renders a numbered text-menu
+      // fallback which clutters a simple one-liner response. Skip buttons there.
+      const hasNativeButtons =
+        native.platform === Platforms.Discord ||
+        native.platform === Platforms.Telegram ||
+        native.platform === Platforms.FacebookPage;
+      await chat.editMessage({
+        style: MessageStyle.MARKDOWN,
+        message_id_to_edit: event.messageID as string,
+        message: `🏓 Pong! Latency: \`${Date.now() - startTime}ms\``,
+        ...(hasNativeButtons ? { button: [ACTION_ID.refresh] } : {}),
+      });
     },
   },
 };

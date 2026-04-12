@@ -22,11 +22,12 @@ export async function editMessage(
     text = options;
   } else {
     const rawMsg = options.message;
-    text = typeof rawMsg === 'string'
-      ? rawMsg
-      : ((rawMsg as { message?: string } | undefined)?.message ??
-         (rawMsg as { body?: string } | undefined)?.body ??
-         '');
+    text =
+      typeof rawMsg === 'string'
+        ? rawMsg
+        : ((rawMsg as { message?: string } | undefined)?.message ??
+          (rawMsg as { body?: string } | undefined)?.body ??
+          '');
   }
 
   const style = typeof options === 'object' ? options.style : undefined;
@@ -38,14 +39,17 @@ export async function editMessage(
   let replyMarkup;
 
   if (button !== undefined) {
-    replyMarkup = button.length > 0 ? {
-      inline_keyboard: [
-        button.map((btn) => ({
-          text: btn.label,
-          callback_data: btn.id.slice(0, 64),
-        })),
-      ],
-    } : { inline_keyboard: [] };
+    replyMarkup =
+      button.length > 0
+        ? {
+            inline_keyboard: [
+              button.map((btn) => ({
+                text: btn.label,
+                callback_data: btn.id.slice(0, 64),
+              })),
+            ],
+          }
+        : { inline_keyboard: [] };
   }
 
   // parseInt with base-10 radix guards against the silent failures Number() produces:
@@ -61,7 +65,7 @@ export async function editMessage(
     text,
     {
       ...(parseMode ? { parse_mode: parseMode } : {}),
-      ...(replyMarkup ? { reply_markup: replyMarkup } : {})
-    }
+      ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
+    },
   );
 }

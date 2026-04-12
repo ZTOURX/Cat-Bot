@@ -57,8 +57,8 @@ export const config = {
       name: 'user',
       description: 'User to view rank',
       required: false,
-    }
-  ]
+    },
+  ],
 };
 
 const ACTION_ID = { check_balance: 'check_balance' } as const;
@@ -81,11 +81,15 @@ export const menu = {
       }
       const userColl = db.users.collection(senderID);
       if (!(await userColl.isCollectionExist('money'))) {
-        await chat.editMessage({ style: MessageStyle.MARKDOWN, message_id_to_edit: event['messageID'] as string, message: '💰 **Your balance:** 0 coins' });
+        await chat.editMessage({
+          style: MessageStyle.MARKDOWN,
+          message_id_to_edit: event['messageID'] as string,
+          message: '💰 **Your balance:** 0 coins',
+        });
         return;
       }
       const money = await userColl.getCollection('money');
-      const coins = (await money.get('coins') as number | undefined) ?? 0;
+      const coins = ((await money.get('coins')) as number | undefined) ?? 0;
       await chat.editMessage({
         style: MessageStyle.MARKDOWN,
         message_id_to_edit: event['messageID'] as string,
@@ -106,7 +110,9 @@ export const onCommand = async ({
 
   // Priority: first @mention → sender. noUncheckedIndexedAccess: mentionIDs[0] is string | undefined.
   const targetID: string | undefined =
-    mentionIDs.length > 0 ? mentionIDs[0] : (event['senderID'] as string | undefined);
+    mentionIDs.length > 0
+      ? mentionIDs[0]
+      : (event['senderID'] as string | undefined);
 
   if (!targetID) {
     await chat.replyMessage({
@@ -157,9 +163,7 @@ export const onCommand = async ({
 
       totalRanked = Math.max(1, leaderboard.length);
 
-      const pos = leaderboard.findIndex(
-        (u) => u.botUserId === targetID
-      );
+      const pos = leaderboard.findIndex((u) => u.botUserId === targetID);
 
       if (pos !== -1) leaderboardRank = pos + 1;
     } catch {

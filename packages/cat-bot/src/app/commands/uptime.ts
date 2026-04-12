@@ -125,7 +125,10 @@ export const onCommand = async ({
 
   // Update the existing message if triggered via button; otherwise send a new message
   if (event['type'] === 'button_action') {
-    await chat.editMessage({ ...payload, message_id_to_edit: event['messageID'] as string });
+    await chat.editMessage({
+      ...payload,
+      message_id_to_edit: event['messageID'] as string,
+    });
   } else {
     await chat.replyMessage(payload);
   }

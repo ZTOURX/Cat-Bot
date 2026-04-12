@@ -21,7 +21,11 @@ export function editMessage(
   options: string | EditMessageOptions,
 ): Promise<void> {
   let content = typeof options === 'string' ? options : (options.message ?? '');
-  if (typeof content !== 'string') content = content.message ?? (content as Record<string, unknown>).body as string ?? '';
+  if (typeof content !== 'string')
+    content =
+      content.message ??
+      ((content as Record<string, unknown>).body as string) ??
+      '';
 
   const style = typeof options === 'object' ? options.style : undefined;
   // Apply unicode text formatting to simulate markdown in platforms lacking native support

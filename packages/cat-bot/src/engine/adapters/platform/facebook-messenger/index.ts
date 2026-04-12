@@ -170,10 +170,9 @@ export function createFacebookMessengerListener(
         // third argument rather than as events — they carry no message payload, so log them
         // for operational visibility and return before routeRawEvent sees a non-event object.
         if (state) {
-          sessionLogger.info(
-            `[facebook-messenger] MQTT state: ${state.type}`,
-            { mqttState: state },
-          );
+          sessionLogger.info(`[facebook-messenger] MQTT state: ${state.type}`, {
+            mqttState: state,
+          });
           return;
         }
 

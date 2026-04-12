@@ -74,7 +74,12 @@ class FacebookApi extends UnifiedApi {
     logger.debug('[facebook-messenger] unsendMessage called', { messageID });
     return unsendMessage(this.#api, messageID);
   }
-  override editMessage(messageID: string, options: string | import('@/engine/adapters/models/api.model.js').EditMessageOptions): Promise<void> {
+  override editMessage(
+    messageID: string,
+    options:
+      | string
+      | import('@/engine/adapters/models/api.model.js').EditMessageOptions,
+  ): Promise<void> {
     logger.debug('[facebook-messenger] editMessage called', { messageID });
     return editMessage(this.#api, messageID, options);
   }

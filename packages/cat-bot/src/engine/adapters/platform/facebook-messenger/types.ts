@@ -114,7 +114,13 @@ export interface FcaApi {
   refreshFb_dtsg?: (
     cb: (err: unknown, info: { data?: { fb_dtsg?: string } }) => void,
   ) => void;
-  listenMqtt(cb: (err: unknown, event: Record<string, unknown>, state?: MqttState) => void): {
+  listenMqtt(
+    cb: (
+      err: unknown,
+      event: Record<string, unknown>,
+      state?: MqttState,
+    ) => void,
+  ): {
     stopListeningAsync: () => Promise<void>;
   };
 }

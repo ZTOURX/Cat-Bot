@@ -99,7 +99,9 @@ class DiscordApi extends UnifiedApi {
     // Calling editReply() here would OVERWRITE the original button message — not what
     // chat.reply / chat.replyMessage intend. Use followUp() to post a new message instead.
     if (this.#isButtonInteraction) {
-      const sent = await i.followUp(payload as Parameters<typeof i.followUp>[0]);
+      const sent = await i.followUp(
+        payload as Parameters<typeof i.followUp>[0],
+      );
       return sent as unknown as { id: string };
     }
     if (this.#firstSend) {
@@ -323,7 +325,12 @@ class DiscordApi extends UnifiedApi {
     );
   }
 
-  override editMessage(messageID: string, options: string | import('@/engine/adapters/models/api.model.js').EditMessageOptions): Promise<void> {
+  override editMessage(
+    messageID: string,
+    options:
+      | string
+      | import('@/engine/adapters/models/api.model.js').EditMessageOptions,
+  ): Promise<void> {
     logger.debug('[discord] editMessage called', { messageID });
     return editMessageLib(
       this.#interaction.channel as TextChannel,

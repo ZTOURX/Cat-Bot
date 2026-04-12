@@ -135,8 +135,15 @@ class FbPageApi extends UnifiedApi {
 
   // ── Unsupported stubs (FB Page is always 1:1; no group or edit endpoints) ──
 
-  override editMessage(messageID: string, options: string | import('@/engine/adapters/models/api.model.js').EditMessageOptions): Promise<void> {
-    logger.debug('[facebook-page] editMessage called (fallback)', { messageID });
+  override editMessage(
+    messageID: string,
+    options:
+      | string
+      | import('@/engine/adapters/models/api.model.js').EditMessageOptions,
+  ): Promise<void> {
+    logger.debug('[facebook-page] editMessage called (fallback)', {
+      messageID,
+    });
     return editMessage(this.#pageApi, messageID, options);
   }
 
