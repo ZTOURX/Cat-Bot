@@ -128,7 +128,7 @@ export interface StateContext {
     generateID(options: { id: string; public?: boolean }): string;
     create(options: {
       id: string;
-      state: string;
+      state: string | string[];
       context: Record<string, unknown>;
     }): void;
     delete(id: string): void;
