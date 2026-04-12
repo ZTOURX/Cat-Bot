@@ -12,7 +12,8 @@
 
 export interface StateEntry {
   command: string;
-  state: string;
+  // Scalar string for onReply step names; string[] for onReact accepted-emoji sets.
+  state: string | string[];
   context: Record<string, unknown>;
 }
 
