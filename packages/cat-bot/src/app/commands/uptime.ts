@@ -18,6 +18,8 @@ import type { AppCtx } from '@/engine/types/controller.types.js';
 import { Role } from '@/engine/constants/role.constants.js';
 import { sessionManager } from '@/engine/modules/session/session-manager.lib.js';
 import { MessageStyle } from '@/engine/constants/message-style.constants.js';
+import { ButtonStyle } from '@/engine/constants/button-style.constants.js';
+import { Platforms } from '@/engine/modules/platform/platform.constants.js';
 
 export const config = {
   name: 'uptime',
@@ -53,10 +55,14 @@ function formatBytes(bytes: number): string {
   return `${formatted} ${units[unitIndex] ?? 'Bytes'}`;
 }
 
+const ACTION_ID = { refresh: 'refresh' } as const;
+
+// onCommand defined before menu so menu.refresh.run can reference it directly.
 export const onCommand = async ({
   chat,
   startTime,
   native,
+  event,
 }: AppCtx): Promise<void> => {
   // process.uptime() returns fractional seconds since the Node.js process started
   const uptimeSeconds = process.uptime();
@@ -96,7 +102,14 @@ export const onCommand = async ({
     return `${pad(bh)}h ${pad(bm)}m ${pad(bs)}s`;
   })();
 
-  await chat.replyMessage({
+  // Button only on platforms with native component support — FB Messenger text-menu
+  // fallback would add unnecessary noise to a resource-metrics display.
+  const hasNativeButtons =
+    native.platform === Platforms.Discord ||
+    native.platform === Platforms.Telegram ||
+    native.platform === Platforms.FacebookPage;
+
+  const payload = {
     message: [
       `⏱️ **Uptime:** ${pad(hours)}h ${pad(minutes)}m ${pad(seconds)}s`,
       `❯ **Bot session:** ${botUptimeFmt}`,
@@ -107,5 +120,24 @@ export const onCommand = async ({
       `❯ **Ping:** ${ping}ms`,
     ].join('\n'),
     style: MessageStyle.MARKDOWN,
-  });
+    ...(hasNativeButtons ? { button: [ACTION_ID.refresh] } : {}),
+  };
+
+  // Update the existing message if triggered via button; otherwise send a new message
+  if (event['type'] === 'button_action') {
+    await chat.editMessage({ ...payload, message_id_to_edit: event['messageID'] as string });
+  } else {
+    await chat.replyMessage(payload);
+  }
+};
+
+// Placed after onCommand — const is initialized before this object literal evaluates,
+// so run: onCommand is a valid reference at module load time.
+export const menu = {
+  [ACTION_ID.refresh]: {
+    label: '🔄 Refresh',
+    button_style: ButtonStyle.SECONDARY,
+    // Re-invokes onCommand so the refresh response is identical to re-issuing /uptime.
+    run: (ctx: AppCtx) => onCommand(ctx),
+  },
 };
