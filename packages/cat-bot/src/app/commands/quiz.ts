@@ -249,8 +249,11 @@ async function handleReact(
 // ── Reaction handlers — emoji keys match what dispatchOnReact receives ────────
 
 export const onReact = {
-  /** User reacted with ❤ — interpreted as "True". */
+  /** User reacted with ❤ (U+2764) — interpreted as "True". Fired by FB Messenger, FB Page, Telegram. */
   [STATE.TRUE]: async (ctx: AppCtx) => handleReact(ctx, 'True'),
+
+  /** User reacted with ❤️ (U+2764+FE0F) — Discord appends Variation Selector-16 to every heart reaction. */
+  [STATE.TRUE_DISCORD]: async (ctx: AppCtx) => handleReact(ctx, 'True'),
 
   /** User reacted with 😢 — interpreted as "False". */
   [STATE.FALSE]: async (ctx: AppCtx) => handleReact(ctx, 'False'),
