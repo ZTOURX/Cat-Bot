@@ -4,6 +4,9 @@
  * which is the inverse of our unified API signature (messageID, newBody).
  */
 
+import { mdToText } from '@/engine/utils/md-to-text.util.js';
+import type { EditMessageOptions } from '@/engine/adapters/models/api.model.js';
+
 interface FcaApi {
   editMessage(
     body: string,
@@ -15,10 +18,17 @@ interface FcaApi {
 export function editMessage(
   api: FcaApi,
   messageID: string,
-  newBody: string,
+  options: string | EditMessageOptions,
 ): Promise<void> {
+  let content = typeof options === 'string' ? options : (options.message ?? '');
+  if (typeof content !== 'string') content = content.message ?? (content as Record<string, unknown>).body as string ?? '';
+
+  const style = typeof options === 'object' ? options.style : undefined;
+  // Apply unicode text formatting to simulate markdown in platforms lacking native support
+  const finalContent = style === 'markdown' ? mdToText(content) : content;
+
   return new Promise((resolve, reject) => {
-    api.editMessage(newBody, messageID, (err) =>
+    api.editMessage(finalContent, messageID, (err) =>
       err ? reject(err) : resolve(),
     );
   });

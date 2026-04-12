@@ -22,6 +22,8 @@ import type { AppCtx } from '@/engine/types/controller.types.js';
 import { Role } from '@/engine/constants/role.constants.js';
 import { OptionType } from '@/engine/modules/command/command-option.constants.js';
 import { MessageStyle } from '@/engine/constants/message-style.constants.js';
+import { ButtonStyle } from '@/engine/constants/button-style.constants.js';
+import { Platforms } from '@/engine/modules/platform/platform.constants.js';
 
 /** Controls how quickly users level up — higher = slower progression. */
 const DELTA_NEXT = 5;
@@ -52,11 +54,45 @@ export const config = {
   options: [
     {
       type: OptionType.user,
-      name: 'User',
+      name: 'user',
       description: 'User to view rank',
       required: false,
     }
-  ],
+  ]
+};
+
+const ACTION_ID = { check_balance: 'check_balance' } as const;
+
+// Closes the economy loop: after viewing rank (XP), the complementary metric
+// is coins (money collection) — surfacing it as a button avoids command-switching.
+export const menu = {
+  [ACTION_ID.check_balance]: {
+    label: '💰 My Balance',
+    button_style: ButtonStyle.SECONDARY,
+    run: async ({ chat, event, db }: AppCtx) => {
+      const senderID = event['senderID'] as string | undefined;
+      if (!senderID) {
+        await chat.editMessage({
+          style: MessageStyle.MARKDOWN,
+          message_id_to_edit: event['messageID'] as string,
+          message: '❌ Could not identify your user ID on this platform.',
+        });
+        return;
+      }
+      const userColl = db.users.collection(senderID);
+      if (!(await userColl.isCollectionExist('money'))) {
+        await chat.editMessage({ style: MessageStyle.MARKDOWN, message_id_to_edit: event['messageID'] as string, message: '💰 **Your balance:** 0 coins' });
+        return;
+      }
+      const money = await userColl.getCollection('money');
+      const coins = (await money.get('coins') as number | undefined) ?? 0;
+      await chat.editMessage({
+        style: MessageStyle.MARKDOWN,
+        message_id_to_edit: event['messageID'] as string,
+        message: `💰 **Your balance:** ${coins.toLocaleString()} coins`,
+      });
+    },
+  },
 };
 
 export const onCommand = async ({
@@ -136,6 +172,11 @@ export const onCommand = async ({
       ? (mentions?.[targetID] ?? targetID).replace(/^@/, '')
       : await db.users.getName(targetID);
 
+  const hasNativeButtons =
+    native.platform === Platforms.Discord ||
+    native.platform === Platforms.Telegram ||
+    native.platform === Platforms.FacebookPage;
+
   await chat.replyMessage({
     style: MessageStyle.MARKDOWN,
     message: [
@@ -144,5 +185,6 @@ export const onCommand = async ({
       `⭐ Level: **${level}**`,
       `📊 EXP: ${currentExp}/${expNeeded}`,
     ].join('\n'),
+    ...(hasNativeButtons ? { button: [ACTION_ID.check_balance] } : {}),
   });
 };

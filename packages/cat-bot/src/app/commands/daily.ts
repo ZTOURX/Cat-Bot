@@ -19,6 +19,8 @@
 import type { AppCtx } from '@/engine/types/controller.types.js';
 import { Role } from '@/engine/constants/role.constants.js';
 import { MessageStyle } from '@/engine/constants/message-style.constants.js';
+import { ButtonStyle } from '@/engine/constants/button-style.constants.js';
+import { Platforms } from '@/engine/modules/platform/platform.constants.js';
 
 export const config = {
   name: 'daily',
@@ -45,7 +47,45 @@ const COINS_PER_STREAK_DAY = 10;
 /** Streak bonus stops growing after this many consecutive days. */
 const MAX_STREAK_BONUS_DAYS = 6;
 
-export const onCommand = async ({ chat, event, db }: AppCtx): Promise<void> => {
+const ACTION_ID = { check_balance: 'check_balance' } as const;
+
+// Natural economy-loop UX: after claiming, the most common next question is
+// "how many coins do I have now?" — surface it as a single button click.
+export const menu = {
+  [ACTION_ID.check_balance]: {
+    label: '💰 My Balance',
+    button_style: ButtonStyle.SECONDARY,
+    run: async ({ chat, event, db }: AppCtx) => {
+      const senderID = event['senderID'] as string | undefined;
+      if (!senderID) {
+        await chat.editMessage({
+          style: MessageStyle.MARKDOWN,
+          message_id_to_edit: event['messageID'] as string,
+          message: '❌ Could not identify your user ID on this platform.',
+        });
+        return;
+      }
+      const userColl = db.users.collection(senderID);
+      if (!(await userColl.isCollectionExist('money'))) {
+        await chat.editMessage({
+          style: MessageStyle.MARKDOWN,
+          message_id_to_edit: event['messageID'] as string,
+          message: '💰 **Your balance:** 0 coins',
+        });
+        return;
+      }
+      const money = await userColl.getCollection('money');
+      const coins = (await money.get('coins') as number | undefined) ?? 0;
+      await chat.editMessage({
+        style: MessageStyle.MARKDOWN,
+        message_id_to_edit: event['messageID'] as string,
+        message: `💰 **Your balance:** ${coins.toLocaleString()} coins`,
+      });
+    },
+  },
+};
+
+export const onCommand = async ({ chat, event, db, native }: AppCtx): Promise<void> => {
   const senderID = event['senderID'] as string | undefined;
 
   if (!senderID) {
@@ -106,12 +146,19 @@ export const onCommand = async ({ chat, event, db }: AppCtx): Promise<void> => {
   const totalCoins = BASE_COINS + streakBonus;
 
   // ── Persist state — write streak before coins message so state is durable even
-  //    if the message send fails. Two set calls instead of one update call to keep
+  // if the message send fails. Two set calls instead of one update call to keep
   //    intent explicit and avoid accidental merge of the whole collection.
   await daily.set('lastClaim', now);
   await daily.set('streak', newStreak);
   // Persist earned coins so /balance can read the running total from the money collection.
   await daily.increment('coins', totalCoins);
+
+  // Button offered only on platforms with native components — encourages the economy
+  // loop (daily → balance check) without adding text-menu noise on FB Messenger.
+  const hasNativeButtons =
+    native.platform === Platforms.Discord ||
+    native.platform === Platforms.Telegram ||
+    native.platform === Platforms.FacebookPage;
 
   // ── Respond ───────────────────────────────────────────────────────────────
   const streakLine =
@@ -127,5 +174,6 @@ export const onCommand = async ({ chat, event, db }: AppCtx): Promise<void> => {
       streakLine,
       '⏰ Come back in 24 hours to keep your streak going!',
     ].join('\n'),
+    ...(hasNativeButtons ? { button: [ACTION_ID.check_balance] } : {}),
   });
 };
