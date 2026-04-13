@@ -73,6 +73,25 @@ export interface OnReactCtx extends BaseCtx {
   messageID: string;
 }
 
+/**
+ * Context for onButtonClick middleware.
+ * `baseActionId`, `scopeUserId`, and `ack` start as placeholder values (set in the
+ * dispatcher) and are overwritten by enforceButtonScope before next() is called —
+ * same pattern as OnCommandCtx.options seeded as OptionsMap.empty() before validateCommandOptions.
+ */
+export interface OnButtonClickCtx extends BaseCtx {
+  /** Command name extracted from the "commandName:localActionId" prefix */
+  commandName: string;
+  /** Base action ID without tilde scope suffix — populated by enforceButtonScope */
+  baseActionId: string;
+  /** Scoped user ID from tilde suffix; null for unscoped buttons — populated by enforceButtonScope */
+  scopeUserId: string | null;
+  /** Platform acknowledgement callback — populated by enforceButtonScope */
+  ack: ((text?: string, showAlert?: boolean) => Promise<unknown>) | undefined;
+  /** Extracted button context state loaded from buttonContextLib */
+  session: { id: string; context: Record<string, unknown> };
+}
+
 // ── Registration interface ────────────────────────────────────────────────────
 
 /**
@@ -85,4 +104,5 @@ export interface MiddlewareUse {
   onChat(middlewares: MiddlewareFn<OnChatCtx>[]): void;
   onReply(middlewares: MiddlewareFn<OnReplyCtx>[]): void;
   onReact(middlewares: MiddlewareFn<OnReactCtx>[]): void;
+  onButtonClick(middlewares: MiddlewareFn<OnButtonClickCtx>[]): void;
 }
