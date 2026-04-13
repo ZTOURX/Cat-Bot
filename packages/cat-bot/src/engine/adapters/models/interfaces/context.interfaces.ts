@@ -181,7 +181,7 @@ export interface ButtonContext {
       id: string;
       label?: string;
       style?: string;
-      onClick?: (...args: any[]) => unknown;
+      onClick?: (...args: unknown[]) => unknown;
     }): void;
 
     /**
@@ -192,7 +192,7 @@ export interface ButtonContext {
       id: string;
       label: string;
       style?: string;
-      onClick: (...args: any[]) => unknown;
+      onClick: (...args: unknown[]) => unknown;
     }): void;
   };
 }

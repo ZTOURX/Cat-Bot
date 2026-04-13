@@ -59,8 +59,8 @@ export function createThreadContext(
   // Extract explicit thread ID from options, fallback to event context
   function getThreadID(opts: unknown): string {
     if (typeof opts === 'object' && opts !== null) {
-      const o = opts as any;
-      return o.threadID || o.thread_id || defaultThreadID;
+      const o = opts as Record<string, unknown>;
+      return (o.threadID as string) || (o.thread_id as string) || defaultThreadID;
     }
     return defaultThreadID;
   }
@@ -69,7 +69,7 @@ export function createThreadContext(
     setName: (nameOrOpts) => {
       const name =
         typeof nameOrOpts === 'object' && nameOrOpts !== null
-          ? (nameOrOpts as any).name
+          ? (nameOrOpts as unknown as Record<string, unknown>).name
           : nameOrOpts;
       const targetThreadID = getThreadID(nameOrOpts);
       logger.debug('[context.model] ThreadContext.setName called', {
@@ -85,7 +85,7 @@ export function createThreadContext(
         !Buffer.isBuffer(sourceOrOpts) &&
         !('pipe' in sourceOrOpts);
       const imageSource = isObj
-        ? (sourceOrOpts as any).imageSource
+        ? (sourceOrOpts as unknown as Record<string, unknown>).imageSource
         : sourceOrOpts;
       const targetThreadID = getThreadID(isObj ? sourceOrOpts : null);
       logger.debug('[context.model] ThreadContext.setImage called', {
@@ -106,7 +106,7 @@ export function createThreadContext(
     addUser: (userOrOpts) => {
       const userID =
         typeof userOrOpts === 'object' && userOrOpts !== null
-          ? (userOrOpts as any).userID
+          ? (userOrOpts as unknown as Record<string, unknown>).userID
           : userOrOpts;
       const targetThreadID = getThreadID(userOrOpts);
       logger.debug('[context.model] ThreadContext.addUser called', {
@@ -118,7 +118,7 @@ export function createThreadContext(
     removeUser: (userOrOpts) => {
       const userID =
         typeof userOrOpts === 'object' && userOrOpts !== null
-          ? (userOrOpts as any).userID
+          ? (userOrOpts as unknown as Record<string, unknown>).userID
           : userOrOpts;
       const targetThreadID = getThreadID(userOrOpts);
       logger.debug('[context.model] ThreadContext.removeUser called', {
@@ -130,7 +130,7 @@ export function createThreadContext(
     setReaction: (emojiOrOpts) => {
       const emoji =
         typeof emojiOrOpts === 'object' && emojiOrOpts !== null
-          ? (emojiOrOpts as any).emoji
+          ? (emojiOrOpts as unknown as Record<string, unknown>).emoji
           : emojiOrOpts;
       const targetThreadID = getThreadID(emojiOrOpts);
       logger.debug('[context.model] ThreadContext.setReaction called', {
@@ -215,8 +215,8 @@ export function createChatContext(
   // Extract explicit thread ID from options, fallback to event context
   function getThreadID(opts: unknown): string {
     if (typeof opts === 'object' && opts !== null) {
-      const o = opts as any;
-      return o.threadID || o.thread_id || defaultThreadID;
+      const o = opts as Record<string, unknown>;
+      return (o.threadID as string) || (o.thread_id as string) || defaultThreadID;
     }
     return defaultThreadID;
   }
@@ -224,11 +224,11 @@ export function createChatContext(
   // Extract explicit message ID from options, fallback to event context
   function getMessageID(opts: unknown): string {
     if (typeof opts === 'object' && opts !== null) {
-      const o = opts as any;
+      const o = opts as Record<string, unknown>;
       return (
-        o.messageID ||
-        o.reply_to_message_id ||
-        o.targetMessageID ||
+        (o.messageID as string) ||
+        (o.reply_to_message_id as string) ||
+        (o.targetMessageID as string) ||
         defaultMessageID
       );
     }
@@ -453,7 +453,7 @@ export function createChatContext(
      */
     reactMessage: (options) => {
       const isObj = typeof options === 'object' && options !== null;
-      const emoji = isObj ? (options as any).emoji : options;
+      const emoji = isObj ? (options as unknown as Record<string, unknown>).emoji : options;
       const targetThreadID = getThreadID(isObj ? options : null);
       const targetMessageID = getMessageID(isObj ? options : null);
       logger.debug('[context.model] ChatContext.reactMessage called', {
