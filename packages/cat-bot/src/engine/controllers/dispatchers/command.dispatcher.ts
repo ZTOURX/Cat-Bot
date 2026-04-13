@@ -62,7 +62,7 @@ export async function dispatchCommand(
       string,
       {
         label?: string;
-        style?: string;
+        style?: import('@/engine/constants/button-style.constants.js').ButtonStyleValue;
         onClick?: (...args: unknown[]) => unknown;
       }
     >) ?? null,

@@ -108,13 +108,14 @@ export async function dispatchButtonFallback(
   const hashIdx = withoutScope.indexOf('#');
   const baseFallbackId =
     hashIdx === -1 ? withoutScope : withoutScope.slice(0, hashIdx);
+  const fullLocalId = matched.id;
 
   // Merge dynamic overrides with static command definition before validating handler.
   const overrideBase = buttonContextLib.getOverride(
     `${stored.command}:${baseFallbackId}`,
   );
   const overrideFull = buttonContextLib.getOverride(
-    `${stored.command}:${fullLocalId}`,
+    `${stored.command}:${matched.id}`,
   );
   const handler = {
     ...(buttonDef[baseFallbackId] || {}),
@@ -134,7 +135,6 @@ export async function dispatchButtonFallback(
 
   const { state } = createStateContext(stored.command, buttonEvent);
   const { button: btnCtx } = createButtonContext(stored.command, buttonEvent);
-  const fullLocalId = matched.id;
   const storedContext =
     buttonContextLib.get(`${stored.command}:${fullLocalId}`) ?? {};
 
