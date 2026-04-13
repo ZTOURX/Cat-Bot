@@ -161,7 +161,7 @@ export async function dispatchButtonFallback(
 
   // State is intentionally NOT deleted — the numbered menu remains persistently re-selectable,
   // equivalent to how button components on Discord, Telegram, and FB Page stay clickable.
-  await handler.onClick(buttonCtx).catch((err: unknown) => {
+  await Promise.resolve(handler.onClick(buttonCtx)).catch((err: unknown) => {
     console.error(
       `❌ Button fallback "${stored.command}:${matched!.id}" failed`,
       err,
@@ -276,7 +276,7 @@ export async function handleButtonAction(
         messageID: (event['messageID'] as string) || '',
       };
 
-      await handler.onClick(ctx).catch((err: unknown) => {
+      await Promise.resolve(handler.onClick(ctx)).catch((err: unknown) => {
         console.error(`❌ Button action "${buttonIdStr}" failed`, err);
       });
     },
