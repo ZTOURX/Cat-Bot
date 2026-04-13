@@ -504,15 +504,17 @@ export function createChatContext(
           options.message ?? '',
           options.button,
         );
-        registerButtonFallbackState(targetMessageID, options.button);
-      }
-      return api.editMessage(targetMessageID, {
-        ...options,
-        threadID: targetThreadID,
-        message: finalMessage,
-        ...(options.button ? { button: resolveButtons(options.button) } : {}),
-      });
-    },
+      registerButtonFallbackState(targetMessageID, options.button);
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { message, button, ...restOpts } = options;
+    return api.editMessage(targetMessageID, {
+      ...restOpts,
+      threadID: targetThreadID,
+      ...(finalMessage !== undefined ? { message: finalMessage } : {}),
+      ...(button ? { button: resolveButtons(button) } : {}),
+    });
+  },
   };
 }
 
@@ -663,8 +665,8 @@ export function createButtonContext(
         });
         const key = `${commandName}:${options.id}`;
         const existing = buttonContextLib.getOverride(key) || {};
-        // Destructure id out so we don't store redundant fields on the override payload
-        const { id: _id, ...payload } = options;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { id, ...payload } = options;
         buttonContextLib.setOverride(key, { ...existing, ...payload });
       },
       create(options) {
@@ -673,8 +675,8 @@ export function createButtonContext(
         });
         const key = `${commandName}:${options.id}`;
         const existing = buttonContextLib.getOverride(key) || {};
-        // Both update and create route to setOverride. The create interface just forces type safety.
-        const { id: _id, ...payload } = options;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { id, ...payload } = options;
         buttonContextLib.setOverride(key, { ...existing, ...payload });
       },
     },
