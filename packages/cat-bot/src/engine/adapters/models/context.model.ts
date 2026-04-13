@@ -14,7 +14,8 @@
  */
 
 // stateStore is a runtime value from lib/ — cannot use `import type`
-import { stateStore } from '@/engine/lib/reply-state.lib.js';
+import { stateStore } from '@/engine/lib/state.lib.js';
+import { buttonContextLib } from '@/engine/lib/button-context.lib.js';
 
 // UnifiedApi is a class defined in api.model, not in the interfaces barrel.
 // ButtonItem is used locally in resolveButtons(); others are referenced only in re-exported types.
@@ -35,6 +36,7 @@ export type {
   BotContext,
   UserContext,
   StateContext,
+  ButtonContext,
 } from './interfaces/index.js';
 
 // ============================================================================
@@ -188,18 +190,18 @@ export function createThreadContext(
  *
  * @param commandName - Lowercased command name; when set, button IDs are prefixed
  *                      "commandName:actionId" so handleButtonAction can reverse-route.
- * @param menu        - The command's exported menu object; used to resolve label and style for each button.
+ * @param buttonDef   - The command's exported button object; used to resolve label and style for each button.
  */
 export function createChatContext(
   api: UnifiedApi,
   event: Record<string, unknown>,
   commandName = '',
-  menu: Record<
+  buttonDef: Record<
     string,
     {
       label?: string;
-      button_style?: ButtonStyleValue;
-      run?: (...args: unknown[]) => unknown;
+      style?: ButtonStyleValue;
+      onClick?: (...args: unknown[]) => unknown;
     }
   > | null = null,
 ): import('./interfaces/index.js').ChatContext {
@@ -234,6 +236,19 @@ export function createChatContext(
   }
 
   /**
+   * Strips the optional ~userId scope suffix from a raw action ID.
+   * Scoped IDs embed the original requester's platform user ID so handleButtonAction
+   * can gate button presses — the suffix is routing metadata, not part of the menu key.
+   * Example: 'refresh~123456789' → 'refresh'; 'refresh' → 'refresh' (no-op).
+   */
+  function baseKey(id: string): string {
+    const tilde = id.indexOf('~');
+    const withoutScope = tilde === -1 ? id : id.slice(0, tilde);
+    const hash = withoutScope.indexOf('#');
+    return hash === -1 ? withoutScope : withoutScope.slice(0, hash);
+  }
+
+  /**
    * Resolves raw action ID strings (from command code) to ButtonItem objects
    * that platform replyMessage implementations consume. Centralising resolution
    * here avoids duplicating label/style lookups in every platform lib.
@@ -247,10 +262,10 @@ export function createChatContext(
       // Prefix with commandName so the platform embeds "commandName:actionId" as callback data.
       // handleButtonAction splits on ':' to find the owning command without a global ID registry.
       id: commandName ? `${commandName}:${id}` : id,
-      label: menu?.[id]?.label ?? id,
+      label: buttonDef?.[baseKey(id)]?.label ?? id,
       // Optional style defaults to Neutral/Secondary to ensure cross-platform safety
       // where applicable, and provides a default visual baseline for Discord.
-      style: menu?.[id]?.button_style ?? ButtonStyle.SECONDARY,
+      style: buttonDef?.[baseKey(id)]?.style ?? ButtonStyle.SECONDARY,
     }));
   }
 
@@ -262,7 +277,7 @@ export function createChatContext(
   function buildButtonFallbackText(msg: string, buttonIds: string[]): string {
     logger.debug('[context.model] buildButtonFallbackText called');
     const lines = buttonIds.map(
-      (id, idx) => `${idx + 1}. ${menu?.[id]?.label ?? id}`,
+      (id, idx) => `${idx + 1}. ${buttonDef?.[baseKey(id)]?.label ?? id}`,
     );
     const footer = 'Reply with a number to choose an option.';
     return msg
@@ -293,7 +308,7 @@ export function createChatContext(
         buttons: buttonIds.map((id, idx) => ({
           number: idx + 1,
           id,
-          label: menu?.[id]?.label ?? id,
+          label: buttonDef?.[baseKey(id)]?.label ?? id,
         })),
       },
     });
@@ -319,13 +334,13 @@ export function createChatContext(
         buttonCount: button.length,
       });
       // Facebook Messenger (fca-unofficial) has no native button components — append a numbered
-      // text menu and auto-register an onReply state so user selections route to menu[id].run().
+      // text menu and auto-register an onReply state so user selections route to button[id].onClick().
       // The state is never deleted so the menu remains re-selectable like native button platforms.
       if (
         api.platform === 'facebook-messenger' &&
         button.length > 0 &&
         commandName &&
-        menu
+        buttonDef
       ) {
         const msgId = await api.replyMessage(targetThreadID, {
           message: buildButtonFallbackText(message, button),
@@ -374,7 +389,7 @@ export function createChatContext(
         api.platform === 'facebook-messenger' &&
         button.length > 0 &&
         commandName &&
-        menu
+        buttonDef
       ) {
         const msgId = await api.replyMessage(targetThreadID, {
           message: buildButtonFallbackText(message, button),
@@ -446,7 +461,7 @@ export function createChatContext(
         options.button &&
         options.button.length > 0 &&
         commandName &&
-        menu
+        buttonDef
       ) {
         // Facebook Messenger has no native button component support on message edits — fallback to text menu
         finalMessage = buildButtonFallbackText(
@@ -564,6 +579,44 @@ export function createStateContext(
       delete(id) {
         logger.debug('[context.model] state.delete called', { id });
         stateStore.delete(id);
+      },
+    },
+  };
+}
+
+/**
+ * Creates a command-scoped button context injected as `ctx.button` in every command.
+ * Bound to the triggering event so generateID() has access to senderID.
+ *
+ * @param commandName - Lowercased command name as registered in the commands Map
+ * @param event       - The triggering message event (senderID source)
+ */
+export function createButtonContext(
+  commandName: string,
+  event: Record<string, unknown>,
+): import('./interfaces/index.js').ButtonContext {
+  logger.debug('[context.model] createButtonContext called', { commandName });
+  return {
+    button: {
+      generateID({ id, public: isPublic = false }) {
+        logger.debug('[context.model] button.generateID called', { id, isPublic });
+        // Append a short random string to prevent context collision on repeated command invocations
+        const instanceId = Math.random().toString(36).substring(2, 8);
+        const baseWithInstance = `${id}#${instanceId}`;
+        
+        if (isPublic) return baseWithInstance;
+        return `${baseWithInstance}~${event['senderID'] as string}`;
+      },
+      createContext({ id, context }) {
+        logger.debug('[context.model] button.createContext called', { id });
+        buttonContextLib.create(`${commandName}:${id}`, context);
+      },
+      getContext(id) {
+        return buttonContextLib.get(`${commandName}:${id}`);
+      },
+      deleteContext(id) {
+        logger.debug('[context.model] button.deleteContext called', { id });
+        buttonContextLib.delete(`${commandName}:${id}`);
       },
     },
   };

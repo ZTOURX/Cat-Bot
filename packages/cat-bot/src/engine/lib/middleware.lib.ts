@@ -18,6 +18,7 @@ import type {
   OnChatCtx,
   OnReplyCtx,
   OnReactCtx,
+  OnButtonClickCtx,
 } from '@/engine/types/middleware.types.js';
 
 // ── Registry ──────────────────────────────────────────────────────────────────
@@ -27,6 +28,7 @@ class MiddlewareRegistry implements MiddlewareUse {
   #onChat: MiddlewareFn<OnChatCtx>[] = [];
   #onReply: MiddlewareFn<OnReplyCtx>[] = [];
   #onReact: MiddlewareFn<OnReactCtx>[] = [];
+  #onButtonClick: MiddlewareFn<OnButtonClickCtx>[] = [];
 
   onCommand(middlewares: MiddlewareFn<OnCommandCtx>[]): void {
     this.#onCommand.push(...middlewares);
@@ -44,6 +46,10 @@ class MiddlewareRegistry implements MiddlewareUse {
     this.#onReact.push(...middlewares);
   }
 
+  onButtonClick(middlewares: MiddlewareFn<OnButtonClickCtx>[]): void {
+    this.#onButtonClick.push(...middlewares);
+  }
+
   /** Snapshot copy — callers cannot mutate the registry's internal array mid-chain. */
   getOnCommand(): MiddlewareFn<OnCommandCtx>[] {
     return [...this.#onCommand];
@@ -59,6 +65,10 @@ class MiddlewareRegistry implements MiddlewareUse {
 
   getOnReact(): MiddlewareFn<OnReactCtx>[] {
     return [...this.#onReact];
+  }
+
+  getOnButtonClick(): MiddlewareFn<OnButtonClickCtx>[] {
+    return [...this.#onButtonClick];
   }
 }
 

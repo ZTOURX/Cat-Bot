@@ -24,6 +24,7 @@ export type {
   OnChatCtx,
   OnReplyCtx,
   OnReactCtx,
+  OnButtonClickCtx,
 } from '@/engine/types/middleware.types.js';
 
 import { use } from '@/engine/lib/middleware.lib.js';
@@ -36,6 +37,7 @@ import {
 import { chatPassthrough, chatLogThread } from './on-chat.middleware.js';
 import { replyStateValidation } from './on-reply.middleware.js';
 import { reactStateValidation } from './on-react.middleware.js';
+import { enforceButtonScope } from './on-button-click.middleware.js';
 
 // ── Default middleware pipeline ────────────────────────────────────────────────
 
@@ -69,4 +71,9 @@ use.onReply([
 use.onReact([
   // Passthrough placeholder — extend with emoji allowlists, cooldowns.
   reactStateValidation,
+]);
+
+use.onButtonClick([
+  // Scope ownership enforced here — non-owners receive a private ack() rejection invisible to the group.
+  enforceButtonScope,
 ]);

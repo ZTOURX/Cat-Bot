@@ -127,11 +127,12 @@ export function attachHandlers(
 
   // ── Inline keyboard button press → emit 'button_action' ─────────────────────
   // callback_query fires when a user taps an InlineKeyboardButton sent with callback_data.
-  // answerCbQuery() MUST be called to dismiss the loading spinner on the button — Telegram
-  // will show an error to the user after ~10 s if the query is not answered.
+  // answerCbQuery() MUST be called within ~10 s to dismiss the loading spinner — the call is
+  // deliberately deferred to button.dispatcher so it can pass an alert message (show_alert=true)
+  // for unauthorized button clicks before acknowledging the query.
   bot.on('callback_query', async (ctx) => {
-    // Acknowledge first to remove the loading indicator before any async work
-    await ctx.answerCbQuery();
+    // Do NOT call ctx.answerCbQuery() here — button.dispatcher owns the call so it can show
+    // a show_alert=true popup (private modal visible only to the button clicker) on scope failure.
     const api = createTelegramApi(ctx);
     const cbq = ctx.callbackQuery as {
       data?: string;
@@ -147,7 +148,19 @@ export function attachHandlers(
       messageID: String(cbq.message?.message_id ?? ''),
       timestamp: Date.now(),
     };
-    const native = { platform: Platforms.Telegram, userId, sessionId, ctx };
+    const native = {
+      platform: Platforms.Telegram,
+      userId,
+      sessionId,
+      ctx,
+      // Expose answerCbQuery so button.dispatcher can pass an alert text for unauthorized clicks
+      // (show_alert=true renders a native modal popup visible only to the user who pressed the button)
+      // or call with no arguments for a normal silent acknowledgement on authorized clicks.
+      ack: (text?: string, showAlert?: boolean) =>
+        ctx.answerCbQuery(text, {
+          show_alert: showAlert,
+        }),
+    };
     emitter.emit(EventType.BUTTON_ACTION, { api, event, native, prefix });
   });
 }

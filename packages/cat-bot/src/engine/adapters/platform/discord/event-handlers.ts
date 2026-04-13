@@ -15,6 +15,8 @@
 
 import { EventEmitter } from 'events';
 import type { Client } from 'discord.js';
+// MessageFlags is a runtime enum (not a type) — required for the Ephemeral flag on followUp()
+import { MessageFlags } from 'discord.js';
 import type { SessionLogger } from '@/engine/modules/logger/logger.lib.js'; // Relocated module
 import { Platforms } from '@/engine/modules/platform/platform.constants.js';
 import { createDiscordApi, createDiscordChannelApi } from './wrapper.js';
@@ -134,6 +136,14 @@ export async function attachEventHandlers(
         userId,
         sessionId,
         interaction,
+        // Expose an ephemeral followUp so button.dispatcher can privately notify the unauthorized
+        // user when the button scope check fails (e.g. another user clicking /ping's Refresh).
+        // Ephemeral messages are visible ONLY to the interaction sender — the rejection never
+        // appears in the channel. The showAlert param is a no-op on Discord (no alert popup API).
+        ack: (text?: string) =>
+          text
+            ? interaction.followUp({ content: text, flags: MessageFlags.Ephemeral })
+            : Promise.resolve(undefined),
       };
       emitter.emit('button_action', { api, event, native, prefix });
       return;
