@@ -188,7 +188,7 @@ export const env: EnvConfig = {
 
   // Bot Management API / Web
   BETTER_AUTH_SECRET: getRequiredEnv('BETTER_AUTH_SECRET'),
-  BETTER_AUTH_URL: getOptionalEnv('BETTER_AUTH_URL'),
+  BETTER_AUTH_URL: getRequiredEnv('BETTER_AUTH_URL'),
   VITE_URL: getOptionalEnv('VITE_URL'),
 
   // Security
