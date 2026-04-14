@@ -18,6 +18,8 @@
   "workspaces": [
     "packages/cat-bot",
     "packages/database",
+    "packages/database/adapters/json",
+    "packages/database/adapters/neondb",
     "packages/database/adapters/mongodb",
     "packages/web"
   ]
