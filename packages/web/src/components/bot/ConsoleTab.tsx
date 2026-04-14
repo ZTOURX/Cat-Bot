@@ -202,8 +202,8 @@ export function ConsoleTab({
         </div>
 
         {/* Metric sidebar — Pterodactyl-style stacked info cards */}
-        {/* Single column on mobile so each metric card spans full width; 2-up grid removed because narrow cards truncate labels on small phones */}
-        <div className="w-full lg:w-60 shrink-0 grid grid-cols-1 lg:flex lg:flex-col gap-4">
+        {/* 1-col on mobile, 2-col grid on tablet, stacked column on desktop sidebar */}
+        <div className="w-full lg:w-60 shrink-0 grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-col gap-4">
           {/* Status */}
           <InfoCard icon={<Activity />} label="Status">
             <Status.Root
