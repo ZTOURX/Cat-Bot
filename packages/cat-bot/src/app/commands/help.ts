@@ -47,6 +47,8 @@ import { MessageStyle } from '@/engine/constants/message-style.constants.js';
 import { ButtonStyle } from '@/engine/constants/button-style.constants.js';
 import { hasNativeButtons } from '@/engine/utils/ui-capabilities.util.js';
 import { Platforms } from '@/engine/modules/platform/platform.constants.js';
+import { isThreadAdmin } from '@/engine/repos/threads.repo.js';
+import { isBotAdmin } from '@/engine/repos/credentials.repo.js';
 
 export const config = {
   name: 'help',
@@ -202,6 +204,49 @@ export const onCommand = async ({
     const cfg = mod['config'] as Record<string, unknown> | undefined;
     const name = (cfg?.['name'] as string | undefined)?.toLowerCase();
     if (name && !isPlatformAllowed(mod, native.platform)) {
+      disabledNames.add(name);
+    }
+  }
+
+  // Resolve the invoking user's effective privilege ceiling so the help list only surfaces
+  // commands the user is actually able to run. Bot admins inherit all levels; thread admins
+  // inherit ANYONE; regular users see only ANYONE. Mirrors the role hierarchy enforced by
+  // enforcePermission middleware in on-command.middleware.ts — /help and the gate agree.
+  // Fail-open: any DB error leaves userMaxRole at ANYONE so /help never returns an empty list.
+  const senderID = (event['senderID'] ?? event['userID'] ?? '') as string;
+  const threadID = (event['threadID'] ?? '') as string;
+  // Explicit : number avoids TypeScript inferring the literal type 0, which would reject
+  // subsequent Role.BOT_ADMIN (2) or Role.THREAD_ADMIN (1) assignments under strict mode.
+  let userMaxRole: number = Role.ANYONE;
+  if (sessionUserId && sessionId && senderID) {
+    try {
+      const isAdmin = await isBotAdmin(
+        sessionUserId,
+        native.platform,
+        sessionId,
+        senderID,
+      );
+      if (isAdmin) {
+        userMaxRole = Role.BOT_ADMIN;
+      } else if (threadID) {
+        const isThreadAdm = await isThreadAdmin(threadID, senderID);
+        if (isThreadAdm) userMaxRole = Role.THREAD_ADMIN;
+      }
+    } catch {
+      // Fail-open: DB outage defaults to ANYONE — /help degrades gracefully rather than
+      // surfacing restricted commands or breaking entirely.
+    }
+  }
+
+  // Commands with config.role > userMaxRole are added to disabledNames — they are treated as
+  // non-existent for both the paginated list and the detail view (/help <command_name>), which
+  // returns the same "not found" message as bot-admin-disabled commands. This prevents privilege
+  // probing: a regular user cannot discover BOT_ADMIN commands by name.
+  for (const mod of commands.values()) {
+    const cfg = mod['config'] as Record<string, unknown> | undefined;
+    const name = (cfg?.['name'] as string | undefined)?.toLowerCase();
+    const cmdRole = Number((cfg?.['role'] as number | undefined) ?? Role.ANYONE);
+    if (name && cmdRole > userMaxRole) {
       disabledNames.add(name);
     }
   }
