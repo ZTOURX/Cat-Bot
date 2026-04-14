@@ -32,20 +32,20 @@ import { lruCache } from '@/engine/lib/lru-cache.lib.js';
 // ── Cache key builders ────────────────────────────────────────────────────────
 
 const discordStateKey = (userId: string, sessionId: string): string =>
-  `cred:discord:state:${userId}:${sessionId}`;
+  `${userId}:discord:${sessionId}:cred:state`;
 
 const telegramStateKey = (userId: string, sessionId: string): string =>
-  `cred:telegram:state:${userId}:${sessionId}`;
+  `${userId}:telegram:${sessionId}:cred:state`;
 
 const adminCheckKey = (
   userId: string,
   platform: string,
   sessionId: string,
   adminId: string,
-): string => `admin:check:${userId}:${platform}:${sessionId}:${adminId}`;
+): string => `${userId}:${platform}:${sessionId}:admin:check:${adminId}`;
 
 const adminListKey = (userId: string, platform: string, sessionId: string): string =>
-  `admin:list:${userId}:${platform}:${sessionId}`;
+  `${userId}:${platform}:${sessionId}:admin:list`;
 
 // Singleton keys for aggregate credential/session lists that contain all rows.
 const DISCORD_ALL_KEY = 'cred:discord:all';
@@ -252,4 +252,8 @@ export async function updateBotSessionPrefix(
   // The all-sessions list embeds the prefix field — clear it so session-loader
   // picks up the new prefix on next boot or session reload.
   lruCache.del(SESSIONS_ALL_KEY);
+  // Detail and list endpoints embed the prefix; clear them so the web dashboard
+  // immediately reflects the prefix change executed from chat.
+  lruCache.del(`bot:detail:${userId}:${sessionId}`);
+  lruCache.del(`bot:list:${userId}`);
 }
