@@ -36,7 +36,6 @@ import {
   getUserSessionUpdatedAt,
   upsertUserSession,
 } from '../repos/users.repo.js';
-import { logger } from '@/engine/modules/logger/logger.lib.js'; // Relocated module
 
 // ── Resync policy ────────────────────────────────────────────────────────────
 // Single named constant so the entire hourly-resync behaviour is controlled here.
@@ -57,6 +56,7 @@ export const chatPassthrough: MiddlewareFn<OnChatCtx> = async function (
   next,
 ): Promise<void> {
   const platform = ctx.native.platform;
+  const { logger } = ctx;
   // Resolve session identity from native context — set by the platform transport layer from
   // session/{userId}/{platform}/{sessionId}/ directory at boot time.
   const sessionUserId = ctx.native.userId ?? '';
