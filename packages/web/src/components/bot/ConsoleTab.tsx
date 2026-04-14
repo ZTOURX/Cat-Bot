@@ -114,7 +114,13 @@ export function ConsoleTab({
   // console pinned to the latest entry without the user needing to scroll manually.
   const bottomRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const el = bottomRef.current
+    if (!el) return
+    // scrollIntoView propagates up the entire DOM ancestor chain and will scroll
+    // the document itself on mobile, causing the whole page to jump. Targeting
+    // parentElement (the ScrollArea.Viewport div) scopes the scroll to the
+    // terminal container only.
+    el.parentElement?.scrollTo({ top: el.parentElement.scrollHeight, behavior: 'smooth' })
   }, [logs])
   return (
     <div className="flex flex-col gap-4">
