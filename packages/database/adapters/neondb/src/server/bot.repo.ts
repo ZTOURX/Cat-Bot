@@ -1,5 +1,5 @@
 import { pool } from '../client.js';
-import { PLATFORM_TO_ID, ID_TO_PLATFORM } from '@cat-bot/engine/modules/platform/platform.constants.js';
+import { PLATFORM_TO_ID, ID_TO_PLATFORM, Platforms } from '@cat-bot/engine/modules/platform/platform.constants.js';
 import type {
   CreateBotRequestDto,
   CreateBotResponseDto,
@@ -16,8 +16,7 @@ export class BotRepo {
     dto: CreateBotRequestDto,
   ): Promise<CreateBotResponseDto> {
     const platformId =
-      (PLATFORM_TO_ID as Record<string, number>)[dto.credentials.platform] ??
-      (PLATFORM_TO_ID as Record<string, number>)[dto.credentials.platform.replace('_', '-')];
+      (PLATFORM_TO_ID as Record<string, number>)[dto.credentials.platform];
     if (platformId === undefined)
       throw new Error(`Unknown platform ${dto.credentials.platform}`);
 
@@ -40,19 +39,19 @@ export class BotRepo {
       }
 
       const { credentials } = dto;
-      if (credentials.platform === 'discord') {
+      if (credentials.platform === Platforms.Discord) {
         await client.query(
           `INSERT INTO bot_credential_discord (user_id, platform_id, session_id, discord_token, discord_client_id)
            VALUES ($1, $2, $3, $4, $5)`,
           [userId, platformId, sessionId, encrypt(credentials.discordToken), credentials.discordClientId],
         );
-      } else if (credentials.platform === 'telegram') {
+      } else if (credentials.platform === Platforms.Telegram) {
         await client.query(
           `INSERT INTO bot_credential_telegram (user_id, platform_id, session_id, telegram_token)
            VALUES ($1, $2, $3, $4)`,
           [userId, platformId, sessionId, encrypt(credentials.telegramToken)],
         );
-      } else if (credentials.platform === 'facebook_page') {
+      } else if (credentials.platform === Platforms.FacebookPage) {
         await client.query(
           `INSERT INTO bot_credential_facebook_page (user_id, platform_id, session_id, fb_access_token, fb_page_id)
            VALUES ($1, $2, $3, $4, $5)`,
@@ -99,10 +98,9 @@ export class BotRepo {
       [userId, sessionId],
     );
 
-    const normalizedPlatform = platform.replace('-', '_');
     let credentials: GetBotDetailResponseDto['credentials'];
 
-    if (normalizedPlatform === 'discord') {
+    if (platform === Platforms.Discord) {
       const credRes = await pool.query<{ discord_token: string; discord_client_id: string }>(
         `SELECT discord_token, discord_client_id FROM bot_credential_discord
          WHERE user_id = $1 AND session_id = $2 LIMIT 1`,
@@ -110,19 +108,19 @@ export class BotRepo {
       );
       if (!credRes.rows[0]) throw new Error('Missing credentials');
       credentials = {
-        platform: 'discord',
+        platform: Platforms.Discord,
         discordToken: decrypt(credRes.rows[0].discord_token),
         discordClientId: credRes.rows[0].discord_client_id,
       };
-    } else if (normalizedPlatform === 'telegram') {
+    } else if (platform === Platforms.Telegram) {
       const credRes = await pool.query<{ telegram_token: string }>(
         `SELECT telegram_token FROM bot_credential_telegram
          WHERE user_id = $1 AND session_id = $2 LIMIT 1`,
         [userId, sessionId],
       );
       if (!credRes.rows[0]) throw new Error('Missing credentials');
-      credentials = { platform: 'telegram', telegramToken: decrypt(credRes.rows[0].telegram_token) };
-    } else if (normalizedPlatform === 'facebook_page') {
+      credentials = { platform: Platforms.Telegram, telegramToken: decrypt(credRes.rows[0].telegram_token) };
+    } else if (platform === Platforms.FacebookPage) {
       const credRes = await pool.query<{ fb_access_token: string; fb_page_id: string }>(
         `SELECT fb_access_token, fb_page_id FROM bot_credential_facebook_page
          WHERE user_id = $1 AND session_id = $2 LIMIT 1`,
@@ -130,7 +128,7 @@ export class BotRepo {
       );
       if (!credRes.rows[0]) throw new Error('Missing credentials');
       credentials = {
-        platform: 'facebook_page',
+        platform: Platforms.FacebookPage,
         fbAccessToken: decrypt(credRes.rows[0].fb_access_token),
         fbPageId: credRes.rows[0].fb_page_id,
       };
@@ -141,7 +139,7 @@ export class BotRepo {
         [userId, sessionId],
       );
       if (!credRes.rows[0]) throw new Error('Missing credentials');
-      credentials = { platform: 'facebook_messenger', appstate: decrypt(credRes.rows[0].appstate) };
+      credentials = { platform: Platforms.FacebookMessenger, appstate: decrypt(credRes.rows[0].appstate) };
     }
 
     return {
@@ -162,8 +160,7 @@ export class BotRepo {
     isCredentialsModified = false,
   ): Promise<void> {
     const platformId =
-      (PLATFORM_TO_ID as Record<string, number>)[dto.credentials.platform] ??
-      (PLATFORM_TO_ID as Record<string, number>)[dto.credentials.platform.replace('_', '-')];
+      (PLATFORM_TO_ID as Record<string, number>)[dto.credentials.platform];
 
     const sessionRes = await pool.query<{ platform_id: number }>(
       `SELECT platform_id FROM bot_session WHERE user_id = $1 AND session_id = $2 LIMIT 1`,
@@ -197,7 +194,7 @@ export class BotRepo {
       }
 
       const { credentials } = dto;
-      if (credentials.platform === 'discord') {
+      if (credentials.platform === Platforms.Discord) {
         const extra = isCredentialsModified
           ? ', is_command_register = FALSE, command_hash = NULL'
           : '';
@@ -207,7 +204,7 @@ export class BotRepo {
            WHERE user_id = $1 AND platform_id = $2 AND session_id = $3`,
           [userId, platformId, sessionId, encrypt(credentials.discordToken), credentials.discordClientId],
         );
-      } else if (credentials.platform === 'telegram') {
+      } else if (credentials.platform === Platforms.Telegram) {
         const extra = isCredentialsModified
           ? ', is_command_register = FALSE, command_hash = NULL'
           : '';
@@ -217,7 +214,7 @@ export class BotRepo {
            WHERE user_id = $1 AND platform_id = $2 AND session_id = $3`,
           [userId, platformId, sessionId, encrypt(credentials.telegramToken)],
         );
-      } else if (credentials.platform === 'facebook_page') {
+      } else if (credentials.platform === Platforms.FacebookPage) {
         await client.query(
           `UPDATE bot_credential_facebook_page
            SET fb_access_token = $4, fb_page_id = $5
