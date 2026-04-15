@@ -17,6 +17,7 @@ import { io as socketIOConnect } from 'socket.io-client'
 import type { Socket } from 'socket.io-client'
 import { validationService } from '@/services/validation.service'
 import type { PlatformCredentials } from '@/dtos/bot.dto'
+import { Platforms } from '@/constants/platform.constants'
 
 // ── Status union — discriminated on `phase` ────────────────────────────────────
 
@@ -70,7 +71,7 @@ export function useBotValidation(): {
     setStatus({ phase: 'validating' })
 
     switch (credentials.platform) {
-      case 'discord': {
+      case Platforms.Discord: {
         void validationService
           .validateDiscord(credentials.discordToken)
           .then((result) => {
@@ -95,7 +96,7 @@ export function useBotValidation(): {
         break
       }
 
-      case 'telegram': {
+      case Platforms.Telegram: {
         void validationService
           .validateTelegram(credentials.telegramToken)
           .then((result) => {
@@ -120,7 +121,7 @@ export function useBotValidation(): {
         break
       }
 
-      case 'facebook_messenger': {
+      case Platforms.FacebookMessenger: {
         void validationService
           .validateFacebookMessenger(credentials.appstate)
           .then((result) => {
@@ -145,7 +146,7 @@ export function useBotValidation(): {
         break
       }
 
-      case 'facebook_page': {
+      case Platforms.FacebookPage: {
         // Connect a fresh socket for this validation attempt
         const socket = socketIOConnect(window.location.origin, {
           withCredentials: true,

@@ -14,6 +14,7 @@ import { useBotList } from '@/hooks/useBotList'
 import { useBotStatus } from '@/hooks/useBotStatus'
 import type { GetBotListItemDto } from '@/dtos/bot.dto'
 import { getPlatformLabel } from '@/utils/bot.util'
+import { Platforms } from '@/constants/platform.constants'
 
 // ============================================================================
 // Helpers
@@ -88,15 +89,13 @@ function FacebookMessengerIcon({ className }: { className?: string }) {
 function getPlatformIcon(platform: string) {
   const iconClass = 'h-5 w-5'
   switch (platform) {
-    case 'discord':
+    case Platforms.Discord:
       return <DiscordIcon className={iconClass} />
-    case 'telegram':
+    case Platforms.Telegram:
       return <TelegramIcon className={iconClass} />
-    case 'facebook-page':
-    case 'facebook_page':
+    case Platforms.FacebookPage:
       return <FacebookPageIcon className={iconClass} />
-    case 'facebook-messenger':
-    case 'facebook_messenger':
+    case Platforms.FacebookMessenger:
       return <FacebookMessengerIcon className={iconClass} />
     default:
       return <Bot className={iconClass} />
@@ -110,15 +109,13 @@ function getPlatformIcon(platform: string) {
 // Map platforms to their official brand colors, mirroring the Home page aesthetics
 function getPlatformColors(platform: string) {
   switch (platform) {
-    case 'discord':
+    case Platforms.Discord:
       return 'bg-[#5865F2]/10 text-[#5865F2]'
-    case 'telegram':
+    case Platforms.Telegram:
       return 'bg-[#26A5E4]/10 text-[#26A5E4]'
-    case 'facebook-page':
-    case 'facebook_page':
+    case Platforms.FacebookPage:
       return 'bg-[#0866FF]/10 text-[#0866FF]'
-    case 'facebook-messenger':
-    case 'facebook_messenger':
+    case Platforms.FacebookMessenger:
       return 'bg-[#0084FF]/10 text-[#0084FF]'
     default:
       return 'bg-primary-container text-on-primary-container'

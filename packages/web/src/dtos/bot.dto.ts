@@ -1,16 +1,15 @@
-export type Platform =
-  | 'discord'
-  | 'telegram'
-  | 'facebook_page'
-  | 'facebook_messenger'
+// Platform type lives in platform.constants.ts — re-exported here so all
+// existing consumers (components, hooks, pages) continue to import from '@/dtos/bot.dto'
+// without changing their import paths.
+export type { Platform } from '@/constants/platform.constants'
 
 // Discriminated union — mirrors the server model exactly so the web form and
 // API contract stay in sync; changing a platform's shape forces updates on both sides.
 export type PlatformCredentials =
   | { platform: 'discord'; discordToken: string; discordClientId?: string }
   | { platform: 'telegram'; telegramToken: string }
-  | { platform: 'facebook_page'; fbAccessToken: string; fbPageId: string }
-  | { platform: 'facebook_messenger'; appstate: string }
+  | { platform: 'facebook-page'; fbAccessToken: string; fbPageId: string }
+  | { platform: 'facebook-messenger'; appstate: string }
 
 export interface CreateBotRequestDto {
   botNickname: string

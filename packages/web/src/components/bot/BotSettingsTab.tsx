@@ -16,6 +16,7 @@ import { VerificationStatusDisplay } from './VerificationStatusDisplay'
 import { getPlatformLabel } from '@/utils/bot.util'
 import { botService } from '@/services/bot.service'
 import { useSnackbar } from '@/contexts/SnackbarContext'
+import { Platforms } from '@/constants/platform.constants'
 
 interface FormState {
   botNickname: string
@@ -61,27 +62,27 @@ export function BotSettingsTab({
     platform: bot.credentials.platform,
     platformFields: {
       discordToken:
-        bot.credentials.platform === 'discord'
+        bot.credentials.platform === Platforms.Discord
           ? bot.credentials.discordToken
           : '',
       discordClientId:
-        bot.credentials.platform === 'discord'
+        bot.credentials.platform === Platforms.Discord
           ? (bot.credentials.discordClientId ?? '')
           : '',
       telegramToken:
-        bot.credentials.platform === 'telegram'
+        bot.credentials.platform === Platforms.Telegram
           ? bot.credentials.telegramToken
           : '',
       fbPageAccessToken:
-        bot.credentials.platform === 'facebook_page'
+        bot.credentials.platform === Platforms.FacebookPage
           ? bot.credentials.fbAccessToken
           : '',
       fbPageId:
-        bot.credentials.platform === 'facebook_page'
+        bot.credentials.platform === Platforms.FacebookPage
           ? bot.credentials.fbPageId
           : '',
       appstate:
-        bot.credentials.platform === 'facebook_messenger'
+        bot.credentials.platform === Platforms.FacebookMessenger
           ? bot.credentials.appstate
           : '',
     },
@@ -131,16 +132,16 @@ export function BotSettingsTab({
 
   const canVerify = (() => {
     switch (form.platform) {
-      case 'discord':
+      case Platforms.Discord:
         return !!form.platformFields.discordToken
-      case 'telegram':
+      case Platforms.Telegram:
         return !!form.platformFields.telegramToken
-      case 'facebook_page':
+      case Platforms.FacebookPage:
         return (
           !!form.platformFields.fbPageAccessToken &&
           !!form.platformFields.fbPageId
         )
-      case 'facebook_messenger':
+      case Platforms.FacebookMessenger:
         return !!form.platformFields.appstate.trim()
       default:
         return false
@@ -151,28 +152,28 @@ export function BotSettingsTab({
     if (!form.platform || !canVerify) return
     let credentials: PlatformCredentials
     switch (form.platform) {
-      case 'discord':
+      case Platforms.Discord:
         credentials = {
-          platform: 'discord',
+          platform: Platforms.Discord,
           discordToken: form.platformFields.discordToken,
         }
         break
-      case 'telegram':
+      case Platforms.Telegram:
         credentials = {
-          platform: 'telegram',
+          platform: Platforms.Telegram,
           telegramToken: form.platformFields.telegramToken,
         }
         break
-      case 'facebook_page':
+      case Platforms.FacebookPage:
         credentials = {
-          platform: 'facebook_page',
+          platform: Platforms.FacebookPage,
           fbAccessToken: form.platformFields.fbPageAccessToken,
           fbPageId: form.platformFields.fbPageId,
         }
         break
-      case 'facebook_messenger':
+      case Platforms.FacebookMessenger:
         credentials = {
-          platform: 'facebook_messenger',
+          platform: Platforms.FacebookMessenger,
           appstate: form.platformFields.appstate,
         }
         break
@@ -191,35 +192,35 @@ export function BotSettingsTab({
 
   // Detect whether any credential field differs from the persisted baseline
   const isCredentialsModified = (() => {
-    if (form.platform === 'discord')
+    if (form.platform === Platforms.Discord)
       return (
         form.platformFields.discordToken !==
-        (bot.credentials.platform === 'discord'
+        (bot.credentials.platform === Platforms.Discord
           ? bot.credentials.discordToken
           : '')
       )
-    if (form.platform === 'telegram')
+    if (form.platform === Platforms.Telegram)
       return (
         form.platformFields.telegramToken !==
-        (bot.credentials.platform === 'telegram'
+        (bot.credentials.platform === Platforms.Telegram
           ? bot.credentials.telegramToken
           : '')
       )
-    if (form.platform === 'facebook_page')
+    if (form.platform === Platforms.FacebookPage)
       return (
         form.platformFields.fbPageAccessToken !==
-          (bot.credentials.platform === 'facebook_page'
+          (bot.credentials.platform === Platforms.FacebookPage
             ? bot.credentials.fbAccessToken
             : '') ||
         form.platformFields.fbPageId !==
-          (bot.credentials.platform === 'facebook_page'
+          (bot.credentials.platform === Platforms.FacebookPage
             ? bot.credentials.fbPageId
             : '')
       )
-    if (form.platform === 'facebook_messenger')
+    if (form.platform === Platforms.FacebookMessenger)
       return (
         form.platformFields.appstate !==
-        (bot.credentials.platform === 'facebook_messenger'
+        (bot.credentials.platform === Platforms.FacebookMessenger
           ? bot.credentials.appstate
           : '')
       )
@@ -237,29 +238,29 @@ export function BotSettingsTab({
   const handleSubmit = async () => {
     let credentials: PlatformCredentials
     switch (form.platform) {
-      case 'discord':
+      case Platforms.Discord:
         credentials = {
-          platform: 'discord',
+          platform: Platforms.Discord,
           discordToken: form.platformFields.discordToken,
           discordClientId: form.platformFields.discordClientId,
         }
         break
-      case 'telegram':
+      case Platforms.Telegram:
         credentials = {
-          platform: 'telegram',
+          platform: Platforms.Telegram,
           telegramToken: form.platformFields.telegramToken,
         }
         break
-      case 'facebook_page':
+      case Platforms.FacebookPage:
         credentials = {
-          platform: 'facebook_page',
+          platform: Platforms.FacebookPage,
           fbAccessToken: form.platformFields.fbPageAccessToken,
           fbPageId: form.platformFields.fbPageId,
         }
         break
-      case 'facebook_messenger':
+      case Platforms.FacebookMessenger:
         credentials = {
-          platform: 'facebook_messenger',
+          platform: Platforms.FacebookMessenger,
           appstate: form.platformFields.appstate,
         }
         break
@@ -269,8 +270,8 @@ export function BotSettingsTab({
 
     try {
       const isSlashPlatform =
-        bot.credentials.platform === 'discord' ||
-        bot.credentials.platform === 'telegram'
+        bot.credentials.platform === Platforms.Discord ||
+        bot.credentials.platform === Platforms.Telegram
 
       if (
         isCredentialsModified &&

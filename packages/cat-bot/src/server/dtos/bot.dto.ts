@@ -3,8 +3,8 @@
 export type PlatformCredentials =
   | { platform: 'discord'; discordToken: string; discordClientId: string }
   | { platform: 'telegram'; telegramToken: string }
-  | { platform: 'facebook_page'; fbAccessToken: string; fbPageId: string }
-  | { platform: 'facebook_messenger'; appstate: string };
+  | { platform: 'facebook-page'; fbAccessToken: string; fbPageId: string }
+  | { platform: 'facebook-messenger'; appstate: string };
 
 export interface CreateBotRequestDto {
   botNickname: string;

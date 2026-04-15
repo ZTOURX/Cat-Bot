@@ -1,12 +1,13 @@
 import { getDb, saveDb } from '../store.js';
-import { PLATFORM_TO_ID, ID_TO_PLATFORM } from '@cat-bot/engine/modules/platform/platform.constants.js';
+import { PLATFORM_TO_ID, ID_TO_PLATFORM, Platforms } from '@cat-bot/engine/modules/platform/platform.constants.js';
 import type { CreateBotRequestDto, CreateBotResponseDto, GetBotListItemDto, GetBotListResponseDto, GetBotDetailResponseDto, UpdateBotRequestDto } from '@cat-bot/server/dtos/bot.dto.js';
 import { encrypt, decrypt } from '@cat-bot/engine/utils/crypto.util.js';
 
 export class BotRepo {
   async create(userId: string, sessionId: string, dto: CreateBotRequestDto): Promise<CreateBotResponseDto> {
     const db = await getDb();
-    const platformId = (PLATFORM_TO_ID as Record<string, number>)[dto.credentials.platform] ?? (PLATFORM_TO_ID as Record<string, number>)[dto.credentials.platform.replace('_', '-')];
+    // dto.credentials.platform is always hyphen-format ('facebook-page' etc.) — no fallback replace needed
+    const platformId = (PLATFORM_TO_ID as Record<string, number>)[dto.credentials.platform];
     if (platformId === undefined) throw new Error(`Unknown platform ${dto.credentials.platform}`);
 
     // isRunning: true mirrors the Prisma schema's @default(true) so session-loader.util.ts
@@ -15,10 +16,10 @@ export class BotRepo {
     for (const adminId of dto.botAdmins) db.botAdmin.push({ userId, platformId, sessionId, adminId });
 
     const creds = dto.credentials;
-    if (creds.platform === 'discord') db.botCredentialDiscord.push({ userId, platformId, sessionId, discordToken: encrypt(creds.discordToken), discordClientId: creds.discordClientId, isCommandRegister: false, commandHash: null });
-    else if (creds.platform === 'telegram') db.botCredentialTelegram.push({ userId, platformId, sessionId, telegramToken: encrypt(creds.telegramToken), isCommandRegister: false, commandHash: null });
-    else if (creds.platform === 'facebook_page') db.botCredentialFacebookPage.push({ userId, platformId, sessionId, fbAccessToken: encrypt(creds.fbAccessToken), fbPageId: creds.fbPageId });
-    else db.botCredentialFacebookMessenger.push({ userId, platformId, sessionId, appstate: encrypt(creds.appstate) });
+    if (creds.platform === Platforms.Discord) db.botCredentialDiscord.push({ userId, platformId, sessionId, discordToken: encrypt(creds.discordToken), discordClientId: creds.discordClientId, isCommandRegister: false, commandHash: null });
+    else if (creds.platform === Platforms.Telegram) db.botCredentialTelegram.push({ userId, platformId, sessionId, telegramToken: encrypt(creds.telegramToken), isCommandRegister: false, commandHash: null });
+    else if (creds.platform === Platforms.FacebookPage) db.botCredentialFacebookPage.push({ userId, platformId, sessionId, fbAccessToken: encrypt(creds.fbAccessToken), fbPageId: creds.fbPageId });
+    else db.botCredentialFacebookMessenger.push({ userId, platformId, sessionId, appstate: encrypt(creds.appstate) }); // facebook-messenger
     
     await saveDb();
     return { sessionId, userId, platformId, nickname: dto.botNickname, prefix: dto.botPrefix };
@@ -34,20 +35,19 @@ export class BotRepo {
 
     const admins = db.botAdmin.filter((a: any) => a.userId === userId && a.sessionId === sessionId).map((a: any) => a.adminId);
     let credentials: GetBotDetailResponseDto['credentials'];
-    const p = platform.replace('-', '_');
 
-    if (p === 'discord') {
+    if (platform === Platforms.Discord) {
       const c = db.botCredentialDiscord.find((c: any) => c.userId === userId && c.sessionId === sessionId);
-      credentials = { platform: 'discord', discordToken: decrypt(c.discordToken as string), discordClientId: c.discordClientId };
-    } else if (p === 'telegram') {
+      credentials = { platform: Platforms.Discord, discordToken: decrypt(c.discordToken as string), discordClientId: c.discordClientId };
+    } else if (platform === Platforms.Telegram) {
       const c = db.botCredentialTelegram.find((c: any) => c.userId === userId && c.sessionId === sessionId);
-      credentials = { platform: 'telegram', telegramToken: decrypt(c.telegramToken as string) };
-    } else if (p === 'facebook_page') {
+      credentials = { platform: Platforms.Telegram, telegramToken: decrypt(c.telegramToken as string) };
+    } else if (platform === Platforms.FacebookPage) {
       const c = db.botCredentialFacebookPage.find((c: any) => c.userId === userId && c.sessionId === sessionId);
-      credentials = { platform: 'facebook_page', fbAccessToken: decrypt(c.fbAccessToken as string), fbPageId: c.fbPageId };
+      credentials = { platform: Platforms.FacebookPage, fbAccessToken: decrypt(c.fbAccessToken as string), fbPageId: c.fbPageId };
     } else {
       const c = db.botCredentialFacebookMessenger.find((c: any) => c.userId === userId && c.sessionId === sessionId);
-      credentials = { platform: 'facebook_messenger', appstate: decrypt(c.appstate as string) };
+      credentials = { platform: Platforms.FacebookMessenger, appstate: decrypt(c.appstate as string) };
     }
 
     return { sessionId, userId, platformId: session.platformId, platform, nickname: session.nickname ?? '', prefix: session.prefix ?? '', admins, credentials };
@@ -55,7 +55,7 @@ export class BotRepo {
 
   async update(userId: string, sessionId: string, dto: UpdateBotRequestDto, isCredentialsModified: boolean = false): Promise<void> {
     const db = await getDb();
-    const platformId = (PLATFORM_TO_ID as Record<string, number>)[dto.credentials.platform] ?? (PLATFORM_TO_ID as Record<string, number>)[dto.credentials.platform.replace('_', '-')];
+    const platformId = (PLATFORM_TO_ID as Record<string, number>)[dto.credentials.platform];
     const session = db.botSession.find((s: any) => s.userId === userId && s.sessionId === sessionId);
     if (!session) throw new Error('Bot not found');
     // Guard matches Prisma: admin deletions and credential updates use the incoming platformId,
@@ -69,13 +69,13 @@ export class BotRepo {
     for (const adminId of dto.botAdmins) db.botAdmin.push({ userId, platformId, sessionId, adminId });
 
     const creds = dto.credentials;
-    if (creds.platform === 'discord') {
+    if (creds.platform === Platforms.Discord) {
       const c = db.botCredentialDiscord.find((c: any) => c.userId === userId && c.sessionId === sessionId);
       if (c) { c.discordToken = encrypt(creds.discordToken); c.discordClientId = creds.discordClientId; if (isCredentialsModified) { c.isCommandRegister = false; c.commandHash = null; } }
-    } else if (creds.platform === 'telegram') {
+    } else if (creds.platform === Platforms.Telegram) {
       const c = db.botCredentialTelegram.find((c: any) => c.userId === userId && c.sessionId === sessionId);
       if (c) { c.telegramToken = encrypt(creds.telegramToken); if (isCredentialsModified) { c.isCommandRegister = false; c.commandHash = null; } }
-    } else if (creds.platform === 'facebook_page') {
+    } else if (creds.platform === Platforms.FacebookPage) {
       const c = db.botCredentialFacebookPage.find((c: any) => c.userId === userId && c.sessionId === sessionId);
       if (c) { c.fbAccessToken = encrypt(creds.fbAccessToken); c.fbPageId = creds.fbPageId; }
     } else {

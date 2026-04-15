@@ -2,6 +2,7 @@ import { Field } from '@/components/ui/forms/Field'
 import Input from '@/components/ui/forms/Input'
 import Textarea from '@/components/ui/forms/Textarea'
 import type { Platform } from '@/dtos/bot.dto'
+import { Platforms } from '@/constants/platform.constants'
 
 // Unified schema covering all platform credentials required during both creation and edits
 export interface PlatformFields {
@@ -29,7 +30,7 @@ export function PlatformFieldInputs({
   onChange,
 }: PlatformFieldInputsProps) {
   switch (platform) {
-    case 'discord':
+    case Platforms.Discord:
       return (
         <>
           <Field.Root>
@@ -43,7 +44,7 @@ export function PlatformFieldInputs({
         </>
       )
 
-    case 'telegram':
+    case Platforms.Telegram:
       return (
         <Field.Root>
           <Field.Label>Telegram Token</Field.Label>
@@ -52,10 +53,10 @@ export function PlatformFieldInputs({
             value={fields.telegramToken}
             onChange={(e) => onChange('telegramToken', e.target.value)}
           />
-        </Field.Root>
-      )
+      </Field.Root>
+    )
 
-    case 'facebook_page':
+    case Platforms.FacebookPage:
       return (
         <>
           <Field.Root>
@@ -78,7 +79,7 @@ export function PlatformFieldInputs({
         </>
       )
 
-    case 'facebook_messenger':
+    case Platforms.FacebookMessenger:
       return (
         <Field.Root>
           <Field.Label>Appstate</Field.Label>

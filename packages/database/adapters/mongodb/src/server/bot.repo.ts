@@ -1,5 +1,5 @@
 import { getMongoDb } from '../client.js';
-import { PLATFORM_TO_ID, ID_TO_PLATFORM } from '@cat-bot/engine/modules/platform/platform.constants.js';
+import { PLATFORM_TO_ID, ID_TO_PLATFORM, Platforms } from '@cat-bot/engine/modules/platform/platform.constants.js';
 import type {
   CreateBotRequestDto,
   CreateBotResponseDto,
@@ -18,8 +18,7 @@ export class BotRepo {
   async create(userId: string, sessionId: string, dto: CreateBotRequestDto): Promise<CreateBotResponseDto> {
     const db = getMongoDb();
     const platformId =
-      (PLATFORM_TO_ID as Record<string, number>)[dto.credentials.platform] ??
-      (PLATFORM_TO_ID as Record<string, number>)[dto.credentials.platform.replace('_', '-')];
+      (PLATFORM_TO_ID as Record<string, number>)[dto.credentials.platform];
     if (platformId === undefined) throw new Error(`Unknown platform ${dto.credentials.platform}`);
 
     // isRunning: true mirrors the Prisma schema's @default(true) so session-loader picks
@@ -37,20 +36,20 @@ export class BotRepo {
     }
 
     const creds = dto.credentials;
-    if (creds.platform === 'discord') {
+    if (creds.platform === Platforms.Discord) {
       await db.collection('botCredentialDiscord').insertOne({
         userId, platformId, sessionId,
         discordToken: encrypt(creds.discordToken),
         discordClientId: creds.discordClientId,
         isCommandRegister: false, commandHash: null,
       });
-    } else if (creds.platform === 'telegram') {
+    } else if (creds.platform === Platforms.Telegram) {
       await db.collection('botCredentialTelegram').insertOne({
         userId, platformId, sessionId,
         telegramToken: encrypt(creds.telegramToken),
         isCommandRegister: false, commandHash: null,
       });
-    } else if (creds.platform === 'facebook_page') {
+    } else if (creds.platform === Platforms.FacebookPage) {
       await db.collection('botCredentialFacebookPage').insertOne({
         userId, platformId, sessionId,
         fbAccessToken: encrypt(creds.fbAccessToken),
@@ -59,8 +58,8 @@ export class BotRepo {
     } else {
       await db.collection('botCredentialFacebookMessenger').insertOne({
         userId, platformId, sessionId,
-        // Narrowed via exhaustive if-else — creds.platform must be 'facebook_messenger' here
-        appstate: encrypt((creds as { platform: 'facebook_messenger'; appstate: string }).appstate),
+        // Narrowed via exhaustive if-else — creds.platform is Platforms.FacebookMessenger here
+        appstate: encrypt((creds as { platform: typeof Platforms.FacebookMessenger; appstate: string }).appstate),
       });
     }
 
@@ -82,29 +81,28 @@ export class BotRepo {
       .toArray();
     const admins = adminDocs.map((a) => a.adminId);
 
-    const normalizedPlatform = platform.replace('-', '_');
     let credentials: GetBotDetailResponseDto['credentials'];
 
-    if (normalizedPlatform === 'discord') {
+    if (platform === Platforms.Discord) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const c = await db.collection<any>('botCredentialDiscord').findOne({ userId, sessionId });
       if (!c) throw new Error('Missing credentials');
-      credentials = { platform: 'discord', discordToken: decrypt(c.discordToken as string), discordClientId: c.discordClientId as string };
-    } else if (normalizedPlatform === 'telegram') {
+      credentials = { platform: Platforms.Discord, discordToken: decrypt(c.discordToken as string), discordClientId: c.discordClientId as string };
+    } else if (platform === Platforms.Telegram) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const c = await db.collection<any>('botCredentialTelegram').findOne({ userId, sessionId });
       if (!c) throw new Error('Missing credentials');
-      credentials = { platform: 'telegram', telegramToken: decrypt(c.telegramToken as string) };
-    } else if (normalizedPlatform === 'facebook_page') {
+      credentials = { platform: Platforms.Telegram, telegramToken: decrypt(c.telegramToken as string) };
+    } else if (platform === Platforms.FacebookPage) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const c = await db.collection<any>('botCredentialFacebookPage').findOne({ userId, sessionId });
       if (!c) throw new Error('Missing credentials');
-      credentials = { platform: 'facebook_page', fbAccessToken: decrypt(c.fbAccessToken as string), fbPageId: c.fbPageId as string };
+      credentials = { platform: Platforms.FacebookPage, fbAccessToken: decrypt(c.fbAccessToken as string), fbPageId: c.fbPageId as string };
     } else {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const c = await db.collection<any>('botCredentialFacebookMessenger').findOne({ userId, sessionId });
       if (!c) throw new Error('Missing credentials');
-      credentials = { platform: 'facebook_messenger', appstate: decrypt(c.appstate as string) };
+      credentials = { platform: Platforms.FacebookMessenger, appstate: decrypt(c.appstate as string) };
     }
 
     return {
@@ -127,8 +125,7 @@ export class BotRepo {
   ): Promise<void> {
     const db = getMongoDb();
     const platformId =
-      (PLATFORM_TO_ID as Record<string, number>)[dto.credentials.platform] ??
-      (PLATFORM_TO_ID as Record<string, number>)[dto.credentials.platform.replace('_', '-')];
+      (PLATFORM_TO_ID as Record<string, number>)[dto.credentials.platform];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const session = await db.collection<any>('botSessions').findOne({ userId, sessionId }, { projection: { _id: 0 } });
     if (!session) throw new Error('Bot not found');
@@ -150,7 +147,7 @@ export class BotRepo {
     }
 
     const creds = dto.credentials;
-    if (creds.platform === 'discord') {
+    if (creds.platform === Platforms.Discord) {
       await db.collection('botCredentialDiscord').updateOne(
         { userId, sessionId },
         {
@@ -161,7 +158,7 @@ export class BotRepo {
           },
         },
       );
-    } else if (creds.platform === 'telegram') {
+    } else if (creds.platform === Platforms.Telegram) {
       await db.collection('botCredentialTelegram').updateOne(
         { userId, sessionId },
         {
@@ -171,7 +168,7 @@ export class BotRepo {
           },
         },
       );
-    } else if (creds.platform === 'facebook_page') {
+    } else if (creds.platform === Platforms.FacebookPage) {
       await db.collection('botCredentialFacebookPage').updateOne(
         { userId, sessionId },
         { $set: { fbAccessToken: encrypt(creds.fbAccessToken), fbPageId: creds.fbPageId } },
@@ -179,7 +176,7 @@ export class BotRepo {
     } else {
       await db.collection('botCredentialFacebookMessenger').updateOne(
         { userId, sessionId },
-        { $set: { appstate: encrypt((creds as { platform: 'facebook_messenger'; appstate: string }).appstate) } },
+        { $set: { appstate: encrypt((creds as { platform: typeof Platforms.FacebookMessenger; appstate: string }).appstate) } },
       );
     }
   }
