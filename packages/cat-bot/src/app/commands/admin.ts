@@ -114,8 +114,9 @@ export const onCommand = async ({
     const names = await Promise.all(
       admins.map((id: string) => user.getName(id)),
     );
+    // Append the raw platform ID so admins can be uniquely identified and copied for the 'delete' command
     const lines = admins
-      .map((id: string, i: number) => `${i + 1}. **${names[i] ?? id}**`)
+      .map((id: string, i: number) => `${i + 1}. **${names[i] ?? id}** (${id})`)
       .join('\n');
     await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
