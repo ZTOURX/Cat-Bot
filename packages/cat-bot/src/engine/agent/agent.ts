@@ -21,7 +21,8 @@ import { Role } from '@/engine/constants/role.constants.js';
 // Load synchronously at module evaluation time so it is instantly available
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const SYSTEM_PROMPT_TEMPLATE = fs.readFileSync(path.join(__dirname, 'system_prompt.md'), 'utf-8');
+// Read prompt from relocated agent directory (works symmetrically from src/ and dist/ contexts)
+const SYSTEM_PROMPT_TEMPLATE = fs.readFileSync(path.join(__dirname, '../../../agent/system_prompt.md'), 'utf-8');
 
 // ============================================================================
 // CONTEXT HELPER
