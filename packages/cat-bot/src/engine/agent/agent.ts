@@ -71,8 +71,12 @@ export async function loadAgentTools(): Promise<AgentTool[]> {
  * Runs the ReAct-style agent loop, resolving tool calls recursively until a
  * final text answer is produced or the turn limit is reached.
  */
-
-export async function runAgent(userInput: string, ctx: AppCtx, nickname?: string | null, userName?: string | null): Promise<string> {
+export async function runAgent(
+  userInput: string,
+  ctx: AppCtx,
+  nickname?: string | null,
+  userName?: string | null
+): Promise<string> {
   const groqApiKey = process.env.GROQ_API_KEY;
   if (!groqApiKey) {
     throw new Error(
@@ -107,10 +111,10 @@ export async function runAgent(userInput: string, ctx: AppCtx, nickname?: string
         if (isThreadAdm) userRoleLabel = 'Thread Administrator';
       }
     } catch {
-      // Fail-open — a temporary DB outage defaults to Regular User so the agent
-      // continues with reduced context rather than failing the entire request.
+      // Fail-open — a temporary DB outage defaults to Regular User
     }
   }
+  
   const systemContent = SYSTEM_PROMPT_TEMPLATE
     .replace('{{BOT_NAME}}', nickname || 'Cat-Bot')
     .replace('{{USER_NAME}}', userName || 'User')
@@ -118,7 +122,7 @@ export async function runAgent(userInput: string, ctx: AppCtx, nickname?: string
     .replace('{{USER_ROLE}}', userRoleLabel);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const messages: any[] = [
+  const messages: any[] =[
     {
       role: 'system',
       content: systemContent,
@@ -126,7 +130,7 @@ export async function runAgent(userInput: string, ctx: AppCtx, nickname?: string
     { role: 'user', content: userInput },
   ];
 
-  let turns = 20; // Safety limit — prevents runaway tool-call loops on misbehaving LLM responses
+  let turns = 20; // Safety limit — prevents runaway tool-call loops
 
   while (turns-- > 0) {
     const response = await groq.chat.completions.create({
