@@ -13,9 +13,7 @@
  * TTL-based expiry (lruCache default) provides eventual consistency without
  * requiring explicit cross-repo coupling for every possible write path.
  */
-import {
-  getBotNickname as _getBotNickname,
-} from 'database';
+import { getBotNickname as _getBotNickname } from 'database';
 import { lruCache } from '@/engine/lib/lru-cache.lib.js';
 
 // ── Cache key builder ─────────────────────────────────────────────────────────

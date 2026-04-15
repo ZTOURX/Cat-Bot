@@ -14,15 +14,20 @@
 import { botRepo as _botRepo } from 'database';
 import { lruCache } from '@/engine/lib/lru-cache.lib.js';
 import { SESSIONS_ALL_KEY } from '@/engine/repos/credentials.repo.js';
-import type { CreateBotRequestDto, CreateBotResponseDto, GetBotListResponseDto, GetBotDetailResponseDto, UpdateBotRequestDto } from '@/server/dtos/bot.dto.js';
+import type {
+  CreateBotRequestDto,
+  CreateBotResponseDto,
+  GetBotListResponseDto,
+  GetBotDetailResponseDto,
+  UpdateBotRequestDto,
+} from '@/server/dtos/bot.dto.js';
 
 // ── Cache key builders ────────────────────────────────────────────────────────
 
 const botDetailKey = (userId: string, sessionId: string): string =>
   `bot:detail:${userId}:${sessionId}`;
 
-const botListKey = (userId: string): string =>
-  `bot:list:${userId}`;
+const botListKey = (userId: string): string => `bot:list:${userId}`;
 
 const botPlatformIdKey = (userId: string, sessionId: string): string =>
   `bot:platformId:${userId}:${sessionId}`;
@@ -30,7 +35,11 @@ const botPlatformIdKey = (userId: string, sessionId: string): string =>
 // ── Wrapped botRepo — structurally compatible with the original BotRepo instance ──
 
 export const botRepo = {
-  async create(userId: string, sessionId: string, dto: CreateBotRequestDto): Promise<CreateBotResponseDto> {
+  async create(
+    userId: string,
+    sessionId: string,
+    dto: CreateBotRequestDto,
+  ): Promise<CreateBotResponseDto> {
     const result = await _botRepo.create(userId, sessionId, dto);
     // A new bot changes what the list endpoint returns for this owner.
     // sessions:all is also stale since session-loader reads it on next boot.
@@ -39,7 +48,10 @@ export const botRepo = {
     return result as CreateBotResponseDto;
   },
 
-  async getById(userId: string, sessionId: string): Promise<GetBotDetailResponseDto | null> {
+  async getById(
+    userId: string,
+    sessionId: string,
+  ): Promise<GetBotDetailResponseDto | null> {
     const key = botDetailKey(userId, sessionId);
     const cached = lruCache.get<GetBotDetailResponseDto>(key);
     if (cached !== undefined) return cached;
@@ -49,7 +61,12 @@ export const botRepo = {
     return result as GetBotDetailResponseDto | null;
   },
 
-  async update(userId: string, sessionId: string, dto: UpdateBotRequestDto, isCredentialsModified = false): Promise<void> {
+  async update(
+    userId: string,
+    sessionId: string,
+    dto: UpdateBotRequestDto,
+    isCredentialsModified = false,
+  ): Promise<void> {
     await _botRepo.update(userId, sessionId, dto, isCredentialsModified);
     // Detail and list both embed mutable fields (nickname, prefix, admins, credentials).
     lruCache.del(botDetailKey(userId, sessionId));
@@ -72,7 +89,11 @@ export const botRepo = {
     return result as GetBotListResponseDto;
   },
 
-  async updateIsRunning(userId: string, sessionId: string, isRunning: boolean): Promise<void> {
+  async updateIsRunning(
+    userId: string,
+    sessionId: string,
+    isRunning: boolean,
+  ): Promise<void> {
     await _botRepo.updateIsRunning(userId, sessionId, isRunning);
     // isRunning is included in detail and list responses — clear both so the
     // dashboard immediately reflects the stopped/started state.
@@ -81,7 +102,10 @@ export const botRepo = {
     lruCache.del(SESSIONS_ALL_KEY);
   },
 
-  async getPlatformId(userId: string, sessionId: string): Promise<number | null> {
+  async getPlatformId(
+    userId: string,
+    sessionId: string,
+  ): Promise<number | null> {
     const key = botPlatformIdKey(userId, sessionId);
     const cached = lruCache.get<number | null>(key);
     if (cached !== undefined) return cached;

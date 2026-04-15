@@ -16,7 +16,10 @@ import { isThreadAdmin } from '@/engine/repos/threads.repo.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 // Read prompt from relocated agent directory (works symmetrically from src/ and dist/ contexts)
-const SYSTEM_PROMPT_TEMPLATE = fs.readFileSync(path.join(__dirname, '../../../agent/system_prompt.md'), 'utf-8');
+const SYSTEM_PROMPT_TEMPLATE = fs.readFileSync(
+  path.join(__dirname, '../../../agent/system_prompt.md'),
+  'utf-8',
+);
 
 // ============================================================================
 // MODULAR TOOL LOADER
@@ -32,11 +35,11 @@ let cachedTools: AgentTool[] | null = null;
 export async function loadAgentTools(): Promise<AgentTool[]> {
   if (cachedTools) return cachedTools;
 
-  const tools: AgentTool[] =[];
+  const tools: AgentTool[] = [];
   const dir = path.join(__dirname, 'tools');
 
   if (!fs.existsSync(dir)) {
-    cachedTools =[];
+    cachedTools = [];
     return cachedTools;
   }
 
@@ -50,7 +53,7 @@ export async function loadAgentTools(): Promise<AgentTool[]> {
       const mod = (await import(
         pathToFileURL(path.join(dir, file)).href
       )) as AgentTool;
-      
+
       // Ensure the loaded module implements the AgentTool interface properly
       if (mod.config && typeof mod.run === 'function') {
         tools.push(mod);
@@ -75,7 +78,7 @@ export async function runAgent(
   userInput: string,
   ctx: AppCtx,
   nickname?: string | null,
-  userName?: string | null
+  userName?: string | null,
 ): Promise<string> {
   const groqApiKey = process.env.GROQ_API_KEY;
   if (!groqApiKey) {
@@ -85,7 +88,7 @@ export async function runAgent(
   }
 
   const groq = new Groq({ apiKey: groqApiKey });
-  
+
   // Dynamically fetch modular tools instead of generating hard-coded ones
   const tools = await loadAgentTools();
 
@@ -99,11 +102,17 @@ export async function runAgent(
   }));
 
   // Inject dynamic context variables into the structured system prompt template.
-  const { senderID, threadID, sessionUserId, sessionId, platform } = resolveAgentContext(ctx);
+  const { senderID, threadID, sessionUserId, sessionId, platform } =
+    resolveAgentContext(ctx);
   let userRoleLabel = 'Regular User';
   if (senderID && sessionUserId && sessionId) {
     try {
-      const isAdmin = await isBotAdmin(sessionUserId, platform, sessionId, senderID);
+      const isAdmin = await isBotAdmin(
+        sessionUserId,
+        platform,
+        sessionId,
+        senderID,
+      );
       if (isAdmin) {
         userRoleLabel = 'Bot Administrator';
       } else if (threadID) {
@@ -114,15 +123,17 @@ export async function runAgent(
       // Fail-open — a temporary DB outage defaults to Regular User
     }
   }
-  
-  const systemContent = SYSTEM_PROMPT_TEMPLATE
-    .replace('{{BOT_NAME}}', nickname || 'Cat-Bot')
+
+  const systemContent = SYSTEM_PROMPT_TEMPLATE.replace(
+    '{{BOT_NAME}}',
+    nickname || 'Cat-Bot',
+  )
     .replace('{{USER_NAME}}', userName || 'User')
     .replace('{{COMMAND_PREFIX}}', ctx.prefix || '/')
     .replace('{{USER_ROLE}}', userRoleLabel);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const messages: any[] =[
+  const messages: any[] = [
     {
       role: 'system',
       content: systemContent,

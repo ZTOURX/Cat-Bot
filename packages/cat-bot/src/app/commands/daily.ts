@@ -90,7 +90,14 @@ export const button = {
   [BUTTON_ID.back]: {
     label: '⬅ Back',
     style: ButtonStyle.SECONDARY,
-    onClick: async ({ chat, event, db, native, button, prefix = '' }: AppCtx) => {
+    onClick: async ({
+      chat,
+      event,
+      db,
+      native,
+      button,
+      prefix = '',
+    }: AppCtx) => {
       const senderID = event['senderID'] as string | undefined;
       // Regenerate check_balance so the user can toggle back to balance from this view
       const balId = button.generateID({ id: BUTTON_ID.check_balance });

@@ -35,25 +35,39 @@ const threadExistsKey = (threadId: string): string =>
   `thread:exists:${threadId}`;
 
 const threadSessionExistsKey = (
-  userId: string, platform: string, sessionId: string, threadId: string,
-): string => `${userId}:${platform}:${sessionId}:thread:sessionExists:${threadId}`;
+  userId: string,
+  platform: string,
+  sessionId: string,
+  threadId: string,
+): string =>
+  `${userId}:${platform}:${sessionId}:thread:sessionExists:${threadId}`;
 
 const threadAdminKey = (threadId: string, userId: string): string =>
   `thread:admin:${threadId}:${userId}`;
 
-const threadNameKey = (threadId: string): string =>
-  `thread:name:${threadId}`;
+const threadNameKey = (threadId: string): string => `thread:name:${threadId}`;
 
 const threadSessionDataKey = (
-  userId: string, platform: string, sessionId: string, threadId: string,
-): string => `${userId}:${platform}:${sessionId}:thread:sessionData:${threadId}`;
+  userId: string,
+  platform: string,
+  sessionId: string,
+  threadId: string,
+): string =>
+  `${userId}:${platform}:${sessionId}:thread:sessionData:${threadId}`;
 
-const threadGroupsKey = (userId: string, platform: string, sessionId: string): string =>
-  `${userId}:${platform}:${sessionId}:thread:groups`;
+const threadGroupsKey = (
+  userId: string,
+  platform: string,
+  sessionId: string,
+): string => `${userId}:${platform}:${sessionId}:thread:groups`;
 
 const threadSessionUpdatedAtKey = (
-  userId: string, platform: string, sessionId: string, threadId: string,
-): string => `${userId}:${platform}:${sessionId}:thread:sessionUpdatedAt:${threadId}`;
+  userId: string,
+  platform: string,
+  sessionId: string,
+  threadId: string,
+): string =>
+  `${userId}:${platform}:${sessionId}:thread:sessionUpdatedAt:${threadId}`;
 
 // ── Wrappers ──────────────────────────────────────────────────────────────────
 
@@ -71,7 +85,10 @@ export async function upsertThread(
   lruCache.delByPrefix(`thread:admin:${data.id}:`);
 }
 
-export async function threadExists(platform: string, threadId: string): Promise<boolean> {
+export async function threadExists(
+  platform: string,
+  threadId: string,
+): Promise<boolean> {
   const key = threadExistsKey(threadId);
   const cached = lruCache.get<boolean>(key);
   if (cached !== undefined) return cached;
@@ -89,7 +106,12 @@ export async function threadSessionExists(
   const key = threadSessionExistsKey(userId, platform, sessionId, threadId);
   const cached = lruCache.get<boolean>(key);
   if (cached !== undefined) return cached;
-  const result = await _threadSessionExists(userId, platform, sessionId, threadId);
+  const result = await _threadSessionExists(
+    userId,
+    platform,
+    sessionId,
+    threadId,
+  );
   lruCache.set(key, result);
   return result;
 }
@@ -103,14 +125,23 @@ export async function upsertThreadSession(
   await _upsertThreadSession(userId, platform, sessionId, threadId);
   // Write the known post-upsert state directly — avoids a cold DB read on the very next
   // threadSessionExists or getThreadSessionUpdatedAt call that immediately follows in middleware.
-  lruCache.set(threadSessionExistsKey(userId, platform, sessionId, threadId), true);
-  lruCache.set(threadSessionUpdatedAtKey(userId, platform, sessionId, threadId), new Date());
+  lruCache.set(
+    threadSessionExistsKey(userId, platform, sessionId, threadId),
+    true,
+  );
+  lruCache.set(
+    threadSessionUpdatedAtKey(userId, platform, sessionId, threadId),
+    new Date(),
+  );
   // A newly tracked session-thread pair may belong to a group — evict the cached group ID
   // list so the next getAllGroupThreadIds returns the complete set including this thread.
   lruCache.del(threadGroupsKey(userId, platform, sessionId));
 }
 
-export async function isThreadAdmin(threadId: string, userId: string): Promise<boolean> {
+export async function isThreadAdmin(
+  threadId: string,
+  userId: string,
+): Promise<boolean> {
   const key = threadAdminKey(threadId, userId);
   const cached = lruCache.get<boolean>(key);
   if (cached !== undefined) return cached;
@@ -137,7 +168,12 @@ export async function getThreadSessionData(
   const key = threadSessionDataKey(userId, platform, sessionId, botThreadId);
   const cached = lruCache.get<Record<string, unknown>>(key);
   if (cached !== undefined) return cached;
-  const result = await _getThreadSessionData(userId, platform, sessionId, botThreadId);
+  const result = await _getThreadSessionData(
+    userId,
+    platform,
+    sessionId,
+    botThreadId,
+  );
   lruCache.set(key, result);
   return result;
 }
@@ -153,7 +189,9 @@ export async function setThreadSessionData(
   // Write the new data blob into cache immediately — reads after this call see the fresh
   // value without touching the DB. Shallow copy prevents external mutation of the
   // cached reference if the caller reuses the same object.
-  lruCache.set(threadSessionDataKey(userId, platform, sessionId, botThreadId), { ...data });
+  lruCache.set(threadSessionDataKey(userId, platform, sessionId, botThreadId), {
+    ...data,
+  });
 }
 
 export async function getAllGroupThreadIds(
@@ -180,7 +218,12 @@ export async function getThreadSessionUpdatedAt(
   // Explicitly check undefined: a cached null (no session row yet) is a valid result
   // that short-circuits the DB read and signals to middleware that a sync is required.
   if (cached !== undefined) return cached;
-  const result = await _getThreadSessionUpdatedAt(userId, platform, sessionId, threadId);
+  const result = await _getThreadSessionUpdatedAt(
+    userId,
+    platform,
+    sessionId,
+    threadId,
+  );
   lruCache.set(key, result);
   return result;
 }

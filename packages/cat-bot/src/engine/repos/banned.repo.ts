@@ -106,7 +106,12 @@ export async function isThreadBanned(
   const key = threadBanKey(userId, platform, sessionId, botThreadId);
   const cached = lruCache.get<boolean>(key);
   if (cached !== undefined) return cached;
-  const result = await _isThreadBanned(userId, platform, sessionId, botThreadId);
+  const result = await _isThreadBanned(
+    userId,
+    platform,
+    sessionId,
+    botThreadId,
+  );
   lruCache.set(key, result);
   return result;
 }

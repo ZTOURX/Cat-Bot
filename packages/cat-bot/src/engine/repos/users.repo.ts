@@ -28,26 +28,38 @@ import { lruCache } from '@/engine/lib/lru-cache.lib.js';
 
 // ── Cache key builders ────────────────────────────────────────────────────────
 
-const userExistsKey = (userId: string): string =>
-  `user:exists:${userId}`;
+const userExistsKey = (userId: string): string => `user:exists:${userId}`;
 
-const userNameKey = (userId: string): string =>
-  `user:name:${userId}`;
+const userNameKey = (userId: string): string => `user:name:${userId}`;
 
 const userSessionExistsKey = (
-  userId: string, platform: string, sessionId: string, botUserId: string,
-): string => `${userId}:${platform}:${sessionId}:user:sessionExists:${botUserId}`;
+  userId: string,
+  platform: string,
+  sessionId: string,
+  botUserId: string,
+): string =>
+  `${userId}:${platform}:${sessionId}:user:sessionExists:${botUserId}`;
 
 const userSessionDataKey = (
-  userId: string, platform: string, sessionId: string, botUserId: string,
+  userId: string,
+  platform: string,
+  sessionId: string,
+  botUserId: string,
 ): string => `${userId}:${platform}:${sessionId}:user:sessionData:${botUserId}`;
 
-const userSessionAllKey = (userId: string, platform: string, sessionId: string): string =>
-  `${userId}:${platform}:${sessionId}:user:sessionAll`;
+const userSessionAllKey = (
+  userId: string,
+  platform: string,
+  sessionId: string,
+): string => `${userId}:${platform}:${sessionId}:user:sessionAll`;
 
 const userSessionUpdatedAtKey = (
-  userId: string, platform: string, sessionId: string, botUserId: string,
-): string => `${userId}:${platform}:${sessionId}:user:sessionUpdatedAt:${botUserId}`;
+  userId: string,
+  platform: string,
+  sessionId: string,
+  botUserId: string,
+): string =>
+  `${userId}:${platform}:${sessionId}:user:sessionUpdatedAt:${botUserId}`;
 
 // ── Wrappers ──────────────────────────────────────────────────────────────────
 
@@ -62,7 +74,10 @@ export async function upsertUser(
   lruCache.set(userNameKey(data.id), data.name);
 }
 
-export async function userExists(platform: string, userId: string): Promise<boolean> {
+export async function userExists(
+  platform: string,
+  userId: string,
+): Promise<boolean> {
   const key = userExistsKey(userId);
   const cached = lruCache.get<boolean>(key);
   if (cached !== undefined) return cached;
@@ -80,7 +95,12 @@ export async function userSessionExists(
   const key = userSessionExistsKey(userId, platform, sessionId, botUserId);
   const cached = lruCache.get<boolean>(key);
   if (cached !== undefined) return cached;
-  const result = await _userSessionExists(userId, platform, sessionId, botUserId);
+  const result = await _userSessionExists(
+    userId,
+    platform,
+    sessionId,
+    botUserId,
+  );
   lruCache.set(key, result);
   return result;
 }
@@ -94,8 +114,14 @@ export async function upsertUserSession(
   await _upsertUserSession(userId, platform, sessionId, botUserId);
   // Write known post-upsert state so the immediately-following middleware calls
   // (userSessionExists, getUserSessionUpdatedAt) hit cache instead of DB.
-  lruCache.set(userSessionExistsKey(userId, platform, sessionId, botUserId), true);
-  lruCache.set(userSessionUpdatedAtKey(userId, platform, sessionId, botUserId), new Date());
+  lruCache.set(
+    userSessionExistsKey(userId, platform, sessionId, botUserId),
+    true,
+  );
+  lruCache.set(
+    userSessionUpdatedAtKey(userId, platform, sessionId, botUserId),
+    new Date(),
+  );
 }
 
 export async function getUserName(userId: string): Promise<string> {
@@ -116,7 +142,12 @@ export async function getUserSessionData(
   const key = userSessionDataKey(userId, platform, sessionId, botUserId);
   const cached = lruCache.get<Record<string, unknown>>(key);
   if (cached !== undefined) return cached;
-  const result = await _getUserSessionData(userId, platform, sessionId, botUserId);
+  const result = await _getUserSessionData(
+    userId,
+    platform,
+    sessionId,
+    botUserId,
+  );
   lruCache.set(key, result);
   return result;
 }
@@ -131,13 +162,17 @@ export async function setUserSessionData(
   await _setUserSessionData(userId, platform, sessionId, botUserId, data);
   // Replace the individual data entry with the fresh value so immediate reads
   // skip the DB. Shallow copy prevents caller mutation of the cached reference.
-  lruCache.set(userSessionDataKey(userId, platform, sessionId, botUserId), { ...data });
+  lruCache.set(userSessionDataKey(userId, platform, sessionId, botUserId), {
+    ...data,
+  });
   // Write-through: patch the matching slot in the aggregate cache rather than evicting
   // the whole list — rank leaderboard reads (getAllUserSessionData) on the next tick see
   // the fresh balance/XP without a full DB re-fetch of every user in the session.
   const allKey = userSessionAllKey(userId, platform, sessionId);
   const cachedAll =
-    lruCache.get<Array<{ botUserId: string; data: Record<string, unknown> }>>(allKey);
+    lruCache.get<Array<{ botUserId: string; data: Record<string, unknown> }>>(
+      allKey,
+    );
   if (cachedAll !== undefined) {
     const idx = cachedAll.findIndex((e) => e.botUserId === botUserId);
     if (idx !== -1) {
@@ -158,7 +193,10 @@ export async function getAllUserSessionData(
   sessionId: string,
 ): Promise<Array<{ botUserId: string; data: Record<string, unknown> }>> {
   const key = userSessionAllKey(userId, platform, sessionId);
-  const cached = lruCache.get<Array<{ botUserId: string; data: Record<string, unknown> }>>(key);
+  const cached =
+    lruCache.get<Array<{ botUserId: string; data: Record<string, unknown> }>>(
+      key,
+    );
   if (cached !== undefined) return cached;
   const result = await _getAllUserSessionData(userId, platform, sessionId);
   lruCache.set(key, result);
@@ -175,7 +213,12 @@ export async function getUserSessionUpdatedAt(
   const cached = lruCache.get<Date | null>(key);
   // null is a valid cached result (user not yet synced) — only undefined means cache miss.
   if (cached !== undefined) return cached;
-  const result = await _getUserSessionUpdatedAt(userId, platform, sessionId, botUserId);
+  const result = await _getUserSessionUpdatedAt(
+    userId,
+    platform,
+    sessionId,
+    botUserId,
+  );
   lruCache.set(key, result);
   return result;
 }

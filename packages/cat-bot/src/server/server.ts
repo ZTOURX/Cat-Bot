@@ -27,9 +27,7 @@ export function startServer(): void {
   // app.listen() internally does the same thing, but we need the handle before listen().
   const httpServer = createServer(app);
 
-  const corsOrigin = env.VITE_URL
-    ? [env.VITE_URL]
-    : (true as const);
+  const corsOrigin = env.VITE_URL ? [env.VITE_URL] : (true as const);
   const io = initSocketIO(httpServer, corsOrigin);
   registerValidationHandlers(io);
   registerBotMonitorHandlers(io);

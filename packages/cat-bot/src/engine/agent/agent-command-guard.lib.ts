@@ -96,11 +96,17 @@ export async function inspectCommandConstraints(
     // can tell the user they are banned without guessing from a void return.
     if (senderID && sessionUserId && sessionId) {
       try {
-        const banned = await isUserBanned(sessionUserId, platform, sessionId, senderID);
+        const banned = await isUserBanned(
+          sessionUserId,
+          platform,
+          sessionId,
+          senderID,
+        );
         if (banned) {
           return {
             allowed: false,
-            reason: 'You are currently banned from using bot commands in this session.',
+            reason:
+              'You are currently banned from using bot commands in this session.',
             details: { bannedEntity: 'user' },
           };
         }
@@ -112,7 +118,12 @@ export async function inspectCommandConstraints(
     // ── Thread ban check ─────────────────────────────────────────────────────
     if (threadID && sessionUserId && sessionId) {
       try {
-        const banned = await isThreadBanned(sessionUserId, platform, sessionId, threadID);
+        const banned = await isThreadBanned(
+          sessionUserId,
+          platform,
+          sessionId,
+          threadID,
+        );
         if (banned) {
           return {
             allowed: false,
@@ -137,14 +148,23 @@ export async function inspectCommandConstraints(
     let allowed = false;
     try {
       allowed = await isThreadAdmin(threadID, senderID);
-    } catch { /* fail-closed — deny on DB error */ }
+    } catch {
+      /* fail-closed — deny on DB error */
+    }
 
     // Bot admins implicitly inherit thread admin privileges across all threads —
     // mirrors the escalation logic in enforcePermission middleware.
     if (!allowed && sessionUserId && sessionId) {
       try {
-        allowed = await isBotAdmin(sessionUserId, platform, sessionId, senderID);
-      } catch { /* fail-closed */ }
+        allowed = await isBotAdmin(
+          sessionUserId,
+          platform,
+          sessionId,
+          senderID,
+        );
+      } catch {
+        /* fail-closed */
+      }
     }
 
     if (!allowed) {
@@ -158,8 +178,15 @@ export async function inspectCommandConstraints(
     let allowed = false;
     if (sessionUserId && sessionId) {
       try {
-        allowed = await isBotAdmin(sessionUserId, platform, sessionId, senderID);
-      } catch { /* fail-closed */ }
+        allowed = await isBotAdmin(
+          sessionUserId,
+          platform,
+          sessionId,
+          senderID,
+        );
+      } catch {
+        /* fail-closed */
+      }
     }
 
     if (!allowed) {

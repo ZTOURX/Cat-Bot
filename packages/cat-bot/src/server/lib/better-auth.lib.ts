@@ -13,36 +13,36 @@ import { prisma, mongoClient, getMongoDb, pool as neonPool } from 'database';
 // and bot tables coexist in a single file without cross-package coupling.
 import { jsonAdapter } from './better-auth-adapter.lib.js';
 
-const isJson  = env.DATABASE_TYPE === 'json';
+const isJson = env.DATABASE_TYPE === 'json';
 const isMongo = env.DATABASE_TYPE === 'mongodb';
 // NeonDB: better-auth natively accepts a pg.Pool via Kysely's PostgresDialect —
 // no custom adapter is needed; the pool is passed directly as the database option.
-const isNeon  = env.DATABASE_TYPE === 'neondb';
+const isNeon = env.DATABASE_TYPE === 'neondb';
 
 export const auth = betterAuth({
   database: isJson
     ? jsonAdapter()
-    // NeonDB — neonPool is a pg.Pool; better-auth uses KyselyDialect(PostgresDialect) under the hood.
-    // Neon is officially supported: https://better-auth.com/ (listed under Community databases).
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    : isNeon
-    ? (neonPool as unknown as any)
-    // MongoDB driver — mongodbAdapter() receives a Db instance; mongoClient is optional for
-    // transactions (disabled on Atlas M0 free tier which lacks replica-set support).
-    // getMongoDb/mongoClient are typed `any` in the database barrel so the cast is needed
-    // to satisfy strict-mode while keeping the dynamic adapter pattern.
-     
-    : isMongo
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ? mongodbAdapter((getMongoDb as unknown as () => any)(), { client: mongoClient })
-    : // SQLite driver — matches the adapter-better-sqlite3 configured in packages/database/client.ts
-      prismaAdapter(prisma, { provider: 'sqlite' }),
+    : // NeonDB — neonPool is a pg.Pool; better-auth uses KyselyDialect(PostgresDialect) under the hood.
+      // Neon is officially supported: https://better-auth.com/ (listed under Community databases).
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      isNeon
+      ? (neonPool as unknown as any)
+      : // MongoDB driver — mongodbAdapter() receives a Db instance; mongoClient is optional for
+        // transactions (disabled on Atlas M0 free tier which lacks replica-set support).
+        // getMongoDb/mongoClient are typed `any` in the database barrel so the cast is needed
+        // to satisfy strict-mode while keeping the dynamic adapter pattern.
+
+        isMongo
+        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          mongodbAdapter((getMongoDb as unknown as () => any)(), {
+            client: mongoClient,
+          })
+        : // SQLite driver — matches the adapter-better-sqlite3 configured in packages/database/client.ts
+          prismaAdapter(prisma, { provider: 'sqlite' }),
   emailAndPassword: {
     // Enables POST /api/auth/sign-up/email and POST /api/auth/sign-in/email out of the box
     enabled: true,
   },
   // Trust the dynamic dev server URL if provided. In production, same-origin is inherently trusted.
-  trustedOrigins: env.VITE_URL
-    ? [env.VITE_URL]
-    : undefined,
+  trustedOrigins: env.VITE_URL ? [env.VITE_URL] : undefined,
 });

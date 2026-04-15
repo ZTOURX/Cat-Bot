@@ -100,7 +100,7 @@ export async function editMessage(
       } as InputMedia;
     } else if (firstUrl) {
       // URL media: Download locally first to match replyMessage.ts behavior.
-      // Telegram server-side URL fetching sometimes converts mp4s to animations (GIFs) 
+      // Telegram server-side URL fetching sometimes converts mp4s to animations (GIFs)
       // or misidentifies media types. Multipart upload with explicit filename prevents this.
       const stream = await urlToStream(firstUrl.url, firstUrl.name);
       const buf = await streamToBuffer(stream as import('stream').Readable);

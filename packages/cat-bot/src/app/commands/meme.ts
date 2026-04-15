@@ -67,8 +67,15 @@ function extractImageUrl(post: Record<string, unknown>): string | null {
     post['media_metadata'] &&
     (post['gallery_data'] as { items?: unknown[] })?.items?.length
   ) {
-    const firstItem = (post['gallery_data'] as { items: { media_id: string }[] }).items[0];
-    const meta = (post['media_metadata'] as Record<string, { status: string; s?: { u?: string } }>)[firstItem!.media_id];
+    const firstItem = (
+      post['gallery_data'] as { items: { media_id: string }[] }
+    ).items[0];
+    const meta = (
+      post['media_metadata'] as Record<
+        string,
+        { status: string; s?: { u?: string } }
+      >
+    )[firstItem!.media_id];
     if (meta?.status === 'valid' && meta.s?.u) {
       // Reddit HTML-encodes ampersands in preview URLs; decode them for direct access
       return meta.s.u.replace(/&amp;/g, '&');
@@ -76,7 +83,8 @@ function extractImageUrl(post: Record<string, unknown>): string | null {
   }
 
   // Direct image post
-  const url = (post['url_overridden_by_dest'] as string) || (post['url'] as string) || '';
+  const url =
+    (post['url_overridden_by_dest'] as string) || (post['url'] as string) || '';
   if (url.match(/\.(jpg|jpeg|png|gif)(\?|$)/i)) return url;
 
   return null;
@@ -108,9 +116,12 @@ async function fetchMeme() {
       if (!res.data?.data?.children) continue;
 
       // Build a candidate pool from all posts that have extractable images
-       
+
       const candidates = res.data.data.children
-        .map(({ data }: { data: Record<string, unknown> }) => ({ data, url: extractImageUrl(data) }))
+        .map(({ data }: { data: Record<string, unknown> }) => ({
+          data,
+          url: extractImageUrl(data),
+        }))
         .filter(({ url }: { url: string | null }) => !!url);
 
       if (!candidates.length) continue;
@@ -127,7 +138,9 @@ async function fetchMeme() {
       };
     } catch (_err) {
       if (attempts >= MAX_ATTEMPTS) {
-        throw new Error('Could not load meme from Reddit after max attempts', { cause: _err });
+        throw new Error('Could not load meme from Reddit after max attempts', {
+          cause: _err,
+        });
       }
     }
   }

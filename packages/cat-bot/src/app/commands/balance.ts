@@ -65,7 +65,14 @@ export const button = {
   [BUTTON_ID.daily_status]: {
     label: '📅 Daily Status',
     style: ButtonStyle.SECONDARY,
-    onClick: async ({ chat, event, db, native, button, prefix = '' }: AppCtx) => {
+    onClick: async ({
+      chat,
+      event,
+      db,
+      native,
+      button,
+      prefix = '',
+    }: AppCtx) => {
       const senderID = event['senderID'] as string | undefined;
       // Back button stays visible after showing daily status so the user can return to balance
       const backId = button.generateID({ id: BUTTON_ID.back });

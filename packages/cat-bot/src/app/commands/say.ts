@@ -32,7 +32,6 @@ export const onCommand = async ({
   args,
   prefix = '',
 }: AppCtx): Promise<void> => {
-
   const messageReply = event['messageReply'] as
     | Record<string, unknown>
     | undefined;

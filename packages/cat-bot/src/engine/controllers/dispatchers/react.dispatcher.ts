@@ -85,7 +85,9 @@ export async function dispatchOnReact(
         state,
         button,
         args: [],
-        options: (await import('@/engine/modules/options/options-map.lib.js')).OptionsMap.empty(),
+        options: (
+          await import('@/engine/modules/options/options-map.lib.js')
+        ).OptionsMap.empty(),
         parsed: { name: stored.command, args: [] },
       }).catch((err: unknown) => {
         console.error(`❌ onReact "${stored.command}.${emoji}" failed`, err);

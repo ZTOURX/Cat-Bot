@@ -81,8 +81,8 @@ export const chatPassthrough: MiddlewareFn<OnChatCtx> = async function (
       // Null means the thread has never been synced; a timestamp older than SYNC_INTERVAL_MS means the
       // cached metadata (name, member count, admin list) may have drifted from the platform's state.
       const threadStale =
-          threadUpdatedAt === null ||
-          Date.now() - threadUpdatedAt.getTime() > SYNC_INTERVAL_MS;
+        threadUpdatedAt === null ||
+        Date.now() - threadUpdatedAt.getTime() > SYNC_INTERVAL_MS;
       if (threadStale) {
         // Log new vs update before the optimistic stamp so the event is always
         // recorded even if the subsequent upsertThreadSession call is skipped.

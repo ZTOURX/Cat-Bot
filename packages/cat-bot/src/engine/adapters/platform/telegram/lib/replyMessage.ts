@@ -145,13 +145,18 @@ export async function replyMessage(
     ['jpg', 'jpeg', 'png', 'webp', 'bmp'].includes(extOf(s)),
   );
   const gifs = allAttachments.filter((s) => extOf(s) === 'gif');
-  const audios = allAttachments.filter((s) =>['mp3', 'ogg', 'wav', 'aac', 'opus', 'm4a'].includes(extOf(s)),
+  const audios = allAttachments.filter((s) =>
+    ['mp3', 'ogg', 'wav', 'aac', 'opus', 'm4a'].includes(extOf(s)),
   );
   const videos = allAttachments.filter((s) =>
-['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(extOf(s)),
+    ['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(extOf(s)),
   );
   const others = allAttachments.filter(
-    (s) => !photos.includes(s) && !gifs.includes(s) && !audios.includes(s) && !videos.includes(s),
+    (s) =>
+      !photos.includes(s) &&
+      !gifs.includes(s) &&
+      !audios.includes(s) &&
+      !videos.includes(s),
   );
 
   // Single attachment + buttons: send methods natively support reply_markup. sendMediaGroup never
@@ -181,7 +186,10 @@ export async function replyMessage(
     } else if (gifs.length === 1) {
       sent = await ctx.telegram.sendAnimation(
         chatId,
-        Input.fromBuffer(await streamToBuffer(att), att.path || 'animation.gif'),
+        Input.fromBuffer(
+          await streamToBuffer(att),
+          att.path || 'animation.gif',
+        ),
         commonExtra,
       );
     } else if (audios.length === 1) {
@@ -242,7 +250,10 @@ export async function replyMessage(
     await ctx.telegram.sendAnimation(
       chatId,
       Input.fromBuffer(await streamToBuffer(gif), gif.path || 'animation.gif'),
-      gifs.indexOf(gif) === 0 && photos.length === 0 && videos.length === 0 && text
+      gifs.indexOf(gif) === 0 &&
+        photos.length === 0 &&
+        videos.length === 0 &&
+        text
         ? { caption: text, ...captionExtra }
         : captionExtra,
     );

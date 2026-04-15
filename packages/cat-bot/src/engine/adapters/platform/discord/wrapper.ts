@@ -156,7 +156,9 @@ class DiscordApi extends UnifiedApi {
           typeof msg === 'string'
             ? msg
             : (msg.message ?? (msg as unknown as { body?: string }).body ?? '');
-        const sent = await (crossCh as import('discord.js').TextChannel).send(text);
+        const sent = await (crossCh as import('discord.js').TextChannel).send(
+          text,
+        );
         return (sent as import('discord.js').Message).id;
       }
       return sendMessageLib(

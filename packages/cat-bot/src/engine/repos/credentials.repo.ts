@@ -44,8 +44,11 @@ const adminCheckKey = (
   adminId: string,
 ): string => `${userId}:${platform}:${sessionId}:admin:check:${adminId}`;
 
-const adminListKey = (userId: string, platform: string, sessionId: string): string =>
-  `${userId}:${platform}:${sessionId}:admin:list`;
+const adminListKey = (
+  userId: string,
+  platform: string,
+  sessionId: string,
+): string => `${userId}:${platform}:${sessionId}:admin:list`;
 
 // Singleton keys for aggregate credential/session lists that contain all rows.
 const DISCORD_ALL_KEY = 'cred:discord:all';
@@ -63,7 +66,8 @@ export async function findDiscordCredentialState(
   sessionId: string,
 ): Promise<{ isCommandRegister: boolean; commandHash: string | null } | null> {
   const key = discordStateKey(userId, sessionId);
-  const cached = lruCache.get<Awaited<ReturnType<typeof _findDiscordCredentialState>>>(key);
+  const cached =
+    lruCache.get<Awaited<ReturnType<typeof _findDiscordCredentialState>>>(key);
   if (cached !== undefined) return cached;
   const result = await _findDiscordCredentialState(userId, sessionId);
   lruCache.set(key, result);
@@ -85,7 +89,10 @@ export async function updateDiscordCredentialCommandHash(
 export async function findAllDiscordCredentials(): Promise<
   Awaited<ReturnType<typeof _findAllDiscordCredentials>>
 > {
-  const cached = lruCache.get<Awaited<ReturnType<typeof _findAllDiscordCredentials>>>(DISCORD_ALL_KEY);
+  const cached =
+    lruCache.get<Awaited<ReturnType<typeof _findAllDiscordCredentials>>>(
+      DISCORD_ALL_KEY,
+    );
   if (cached !== undefined) return cached;
   const result = await _findAllDiscordCredentials();
   lruCache.set(DISCORD_ALL_KEY, result);
@@ -99,7 +106,8 @@ export async function findTelegramCredentialState(
   sessionId: string,
 ): Promise<{ isCommandRegister: boolean; commandHash: string | null } | null> {
   const key = telegramStateKey(userId, sessionId);
-  const cached = lruCache.get<Awaited<ReturnType<typeof _findTelegramCredentialState>>>(key);
+  const cached =
+    lruCache.get<Awaited<ReturnType<typeof _findTelegramCredentialState>>>(key);
   if (cached !== undefined) return cached;
   const result = await _findTelegramCredentialState(userId, sessionId);
   lruCache.set(key, result);
@@ -119,7 +127,10 @@ export async function updateTelegramCredentialCommandHash(
 export async function findAllTelegramCredentials(): Promise<
   Awaited<ReturnType<typeof _findAllTelegramCredentials>>
 > {
-  const cached = lruCache.get<Awaited<ReturnType<typeof _findAllTelegramCredentials>>>(TELEGRAM_ALL_KEY);
+  const cached =
+    lruCache.get<Awaited<ReturnType<typeof _findAllTelegramCredentials>>>(
+      TELEGRAM_ALL_KEY,
+    );
   if (cached !== undefined) return cached;
   const result = await _findAllTelegramCredentials();
   lruCache.set(TELEGRAM_ALL_KEY, result);
@@ -131,7 +142,10 @@ export async function findAllTelegramCredentials(): Promise<
 export async function findAllFbPageCredentials(): Promise<
   Awaited<ReturnType<typeof _findAllFbPageCredentials>>
 > {
-  const cached = lruCache.get<Awaited<ReturnType<typeof _findAllFbPageCredentials>>>(FBPAGE_ALL_KEY);
+  const cached =
+    lruCache.get<Awaited<ReturnType<typeof _findAllFbPageCredentials>>>(
+      FBPAGE_ALL_KEY,
+    );
   if (cached !== undefined) return cached;
   const result = await _findAllFbPageCredentials();
   lruCache.set(FBPAGE_ALL_KEY, result);
@@ -143,7 +157,10 @@ export async function findAllFbPageCredentials(): Promise<
 export async function findAllFbMessengerCredentials(): Promise<
   Awaited<ReturnType<typeof _findAllFbMessengerCredentials>>
 > {
-  const cached = lruCache.get<Awaited<ReturnType<typeof _findAllFbMessengerCredentials>>>(FBMESSENGER_ALL_KEY);
+  const cached =
+    lruCache.get<Awaited<ReturnType<typeof _findAllFbMessengerCredentials>>>(
+      FBMESSENGER_ALL_KEY,
+    );
   if (cached !== undefined) return cached;
   const result = await _findAllFbMessengerCredentials();
   lruCache.set(FBMESSENGER_ALL_KEY, result);
@@ -155,7 +172,10 @@ export async function findAllFbMessengerCredentials(): Promise<
 export async function findAllBotSessions(): Promise<
   Awaited<ReturnType<typeof _findAllBotSessions>>
 > {
-  const cached = lruCache.get<Awaited<ReturnType<typeof _findAllBotSessions>>>(SESSIONS_ALL_KEY);
+  const cached =
+    lruCache.get<Awaited<ReturnType<typeof _findAllBotSessions>>>(
+      SESSIONS_ALL_KEY,
+    );
   if (cached !== undefined) return cached;
   const result = await _findAllBotSessions();
   lruCache.set(SESSIONS_ALL_KEY, result);
@@ -220,7 +240,10 @@ export async function removeBotAdmin(
   const listKey = adminListKey(userId, platform, sessionId);
   const cachedList = lruCache.get<string[]>(listKey);
   if (cachedList !== undefined) {
-    lruCache.set(listKey, cachedList.filter((id) => id !== adminId));
+    lruCache.set(
+      listKey,
+      cachedList.filter((id) => id !== adminId),
+    );
   }
   // Clear bot detail and list caches so the dashboard immediately reflects the removal.
   lruCache.del(`bot:detail:${userId}:${sessionId}`);

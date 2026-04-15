@@ -42,10 +42,17 @@ export const onCommand = async (ctx: AppCtx): Promise<void> => {
   // Resolve bot nickname and sender display name to inject into the agent's system prompt.
   // Both are passed as explicit params so runAgent owns context injection at the correct layer
   // (system prompt) rather than polluting the user message with prefix strings.
-  const senderID = (ctx.event['senderID'] ?? ctx.event['userID'] ?? '') as string;
-  const nickname = ctx.native.userId && ctx.native.sessionId
-    ? await getBotNickname(ctx.native.userId as string, ctx.native.platform, ctx.native.sessionId as string)
-    : null;
+  const senderID = (ctx.event['senderID'] ??
+    ctx.event['userID'] ??
+    '') as string;
+  const nickname =
+    ctx.native.userId && ctx.native.sessionId
+      ? await getBotNickname(
+          ctx.native.userId as string,
+          ctx.native.platform,
+          ctx.native.sessionId as string,
+        )
+      : null;
   const userName = senderID ? await ctx.user.getName(senderID) : null;
 
   try {
@@ -74,12 +81,19 @@ export const onChat = async (ctx: AppCtx): Promise<void> => {
   // Resolve the configured nickname once — used both in the trigger regex and agent prompt.
   // Fetched here rather than at module load time because the nickname can change at runtime
   // via the dashboard without restarting the process.
-  const nickname = ctx.native.userId && ctx.native.sessionId
-    ? await getBotNickname(ctx.native.userId as string, ctx.native.platform, ctx.native.sessionId as string)
-    : null;
+  const nickname =
+    ctx.native.userId && ctx.native.sessionId
+      ? await getBotNickname(
+          ctx.native.userId as string,
+          ctx.native.platform,
+          ctx.native.sessionId as string,
+        )
+      : null;
   // Resolve sender name for the agent system prompt — fetched outside the match block so
   // it is available for the full handler scope without redundant async calls per match.
-  const senderID = (ctx.event['senderID'] ?? ctx.event['userID'] ?? '') as string;
+  const senderID = (ctx.event['senderID'] ??
+    ctx.event['userID'] ??
+    '') as string;
   const userName = senderID ? await ctx.user.getName(senderID) : null;
 
   const targetName = nickname || 'Cat-Bot';

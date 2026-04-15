@@ -311,7 +311,6 @@ async function main(): Promise<void> {
     await dbReady;
   }
 
-
   // Load once — all platform listeners share the same Maps
   const [commands, eventModules] = await Promise.all([
     loadCommands(),

@@ -59,7 +59,11 @@ export async function dispatchOnReply(
       commands,
       event,
       ctx,
-      stored as { command: string; state: string; context: Record<string, unknown> },
+      stored as {
+        command: string;
+        state: string;
+        context: Record<string, unknown>;
+      },
       lookupKey,
     );
   }
@@ -94,7 +98,9 @@ export async function dispatchOnReply(
         state,
         button,
         args: [],
-        options: (await import('@/engine/modules/options/options-map.lib.js')).OptionsMap.empty(),
+        options: (
+          await import('@/engine/modules/options/options-map.lib.js')
+        ).OptionsMap.empty(),
         parsed: { name: stored.command, args: [] },
         emoji: '',
         messageID: (event['messageID'] as string) || '',

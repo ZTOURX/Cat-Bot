@@ -60,7 +60,9 @@ export function createThreadContext(
   function getThreadID(opts: unknown): string {
     if (typeof opts === 'object' && opts !== null) {
       const o = opts as Record<string, unknown>;
-      return (o.threadID as string) || (o.thread_id as string) || defaultThreadID;
+      return (
+        (o.threadID as string) || (o.thread_id as string) || defaultThreadID
+      );
     }
     return defaultThreadID;
   }
@@ -216,7 +218,9 @@ export function createChatContext(
   function getThreadID(opts: unknown): string {
     if (typeof opts === 'object' && opts !== null) {
       const o = opts as Record<string, unknown>;
-      return (o.threadID as string) || (o.thread_id as string) || defaultThreadID;
+      return (
+        (o.threadID as string) || (o.thread_id as string) || defaultThreadID
+      );
     }
     return defaultThreadID;
   }
@@ -453,7 +457,9 @@ export function createChatContext(
      */
     reactMessage: (options) => {
       const isObj = typeof options === 'object' && options !== null;
-      const emoji = isObj ? (options as unknown as Record<string, unknown>).emoji : options;
+      const emoji = isObj
+        ? (options as unknown as Record<string, unknown>).emoji
+        : options;
       const targetThreadID = getThreadID(isObj ? options : null);
       const targetMessageID = getMessageID(isObj ? options : null);
       logger.debug('[context.model] ChatContext.reactMessage called', {
@@ -504,17 +510,17 @@ export function createChatContext(
           options.message ?? '',
           options.button,
         );
-      registerButtonFallbackState(targetMessageID, options.button);
-    }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { message, button, ...restOpts } = options;
-    return api.editMessage(targetMessageID, {
-      ...restOpts,
-      threadID: targetThreadID,
-      ...(finalMessage !== undefined ? { message: finalMessage } : {}),
-      ...(button ? { button: resolveButtons(button) } : {}),
-    });
-  },
+        registerButtonFallbackState(targetMessageID, options.button);
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { message, button, ...restOpts } = options;
+      return api.editMessage(targetMessageID, {
+        ...restOpts,
+        threadID: targetThreadID,
+        ...(finalMessage !== undefined ? { message: finalMessage } : {}),
+        ...(button ? { button: resolveButtons(button) } : {}),
+      });
+    },
   };
 }
 

@@ -18,7 +18,10 @@ export async function getFbPageWebhookVerification(
   userId: string,
 ): Promise<Awaited<ReturnType<typeof _getFbPageWebhookVerification>>> {
   const key = webhookKey(userId);
-  const cached = lruCache.get<Awaited<ReturnType<typeof _getFbPageWebhookVerification>>>(key);
+  const cached =
+    lruCache.get<Awaited<ReturnType<typeof _getFbPageWebhookVerification>>>(
+      key,
+    );
   // null is a valid cached result (row does not exist yet) — only undefined is a cache miss.
   if (cached !== undefined) return cached;
   const result = await _getFbPageWebhookVerification(userId);
@@ -26,7 +29,9 @@ export async function getFbPageWebhookVerification(
   return result;
 }
 
-export async function upsertFbPageWebhookVerification(userId: string): Promise<void> {
+export async function upsertFbPageWebhookVerification(
+  userId: string,
+): Promise<void> {
   await _upsertFbPageWebhookVerification(userId);
   // The upsert always sets isVerified=true — write that directly into cache
   // so immediately-following getFbPageWebhookVerification reads don't go to DB.

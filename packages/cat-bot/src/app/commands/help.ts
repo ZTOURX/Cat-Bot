@@ -245,7 +245,9 @@ export const onCommand = async ({
   for (const mod of commands.values()) {
     const cfg = mod['config'] as Record<string, unknown> | undefined;
     const name = (cfg?.['name'] as string | undefined)?.toLowerCase();
-    const cmdRole = Number((cfg?.['role'] as number | undefined) ?? Role.ANYONE);
+    const cmdRole = Number(
+      (cfg?.['role'] as number | undefined) ?? Role.ANYONE,
+    );
     if (name && cmdRole > userMaxRole) {
       disabledNames.add(name);
     }
