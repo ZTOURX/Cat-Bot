@@ -1,10 +1,7 @@
-// Centralized mapping to ensure UI consistency across creation and editing views
-export const PLATFORM_LABELS: Record<string, string> = {
-  discord: 'Discord',
-  telegram: 'Telegram',
-  'facebook-page': 'Facebook Page',
-  'facebook-messenger': 'Facebook Messenger',
-}
+import { PLATFORM_LABELS } from '@/constants/platform.constants'
+
+// Local binding required before re-exporting so getPlatformLabel can read it below
+export { PLATFORM_LABELS }
 
 /**
  * Returns human-readable label for a given platform internal key.
