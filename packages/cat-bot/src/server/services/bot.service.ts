@@ -67,7 +67,8 @@ export class BotService {
     });
 
     // DTO platform types use underscores (e.g. facebook_page) while runtime uses hyphens
-    const platformStr = credentials.platform.replace('_', '-');
+    // credentials.platform is already hyphen-format (e.g. 'facebook-page') — no normalisation needed
+    const platformStr = credentials.platform;
 
     let sessionConfig: Parameters<typeof spawnDynamicSession>[1] | undefined;
     if (platformStr === Platforms.Discord && 'discordToken' in credentials) {
@@ -153,8 +154,8 @@ export class BotService {
     const isCredentialsModified = (() => {
       if (!botDetail) return true;
       if (
-        botDetail.credentials.platform === 'discord' &&
-        credentials.platform === 'discord'
+        botDetail.credentials.platform === Platforms.Discord &&
+        credentials.platform === Platforms.Discord
       ) {
         return (
           botDetail.credentials.discordToken !== credentials.discordToken ||
@@ -162,16 +163,16 @@ export class BotService {
         );
       }
       if (
-        botDetail.credentials.platform === 'telegram' &&
-        credentials.platform === 'telegram'
+        botDetail.credentials.platform === Platforms.Telegram &&
+        credentials.platform === Platforms.Telegram
       ) {
         return (
           botDetail.credentials.telegramToken !== credentials.telegramToken
         );
       }
       if (
-        botDetail.credentials.platform === 'facebook_page' &&
-        credentials.platform === 'facebook_page'
+        botDetail.credentials.platform === Platforms.FacebookPage &&
+        credentials.platform === Platforms.FacebookPage
       ) {
         return (
           botDetail.credentials.fbAccessToken !== credentials.fbAccessToken ||
@@ -179,8 +180,8 @@ export class BotService {
         );
       }
       if (
-        botDetail.credentials.platform === 'facebook_messenger' &&
-        credentials.platform === 'facebook_messenger'
+        botDetail.credentials.platform === Platforms.FacebookMessenger &&
+        credentials.platform === Platforms.FacebookMessenger
       ) {
         return botDetail.credentials.appstate !== credentials.appstate;
       }
@@ -194,7 +195,8 @@ export class BotService {
       isCredentialsModified,
     );
 
-    const platformStr = dto.credentials.platform.replace('_', '-');
+    // credentials.platform is already hyphen-format — no normalisation needed
+    const platformStr = dto.credentials.platform;
     prefixManager.setPrefix(userId, platformStr, sessionId, dto.botPrefix);
 
     // Only trigger live slash sync if credentials didn't change.
@@ -249,7 +251,7 @@ export class BotService {
     const { credentials, prefix } = botDetail;
     let sessionConfig: Parameters<typeof spawnDynamicSession>[1] | undefined;
 
-    if (credentials.platform === 'discord') {
+    if (credentials.platform === Platforms.Discord) {
       sessionConfig = {
         token: credentials.discordToken,
         clientId: credentials.discordClientId ?? '',
@@ -257,14 +259,14 @@ export class BotService {
         userId,
         sessionId,
       };
-    } else if (credentials.platform === 'telegram') {
+    } else if (credentials.platform === Platforms.Telegram) {
       sessionConfig = {
         botToken: credentials.telegramToken,
         prefix,
         userId,
         sessionId,
       };
-    } else if (credentials.platform === 'facebook_page') {
+    } else if (credentials.platform === Platforms.FacebookPage) {
       sessionConfig = {
         pageAccessToken: credentials.fbAccessToken,
         pageId: credentials.fbPageId,
@@ -273,7 +275,7 @@ export class BotService {
         sessionId,
       };
     } else {
-      // facebook_messenger — appstate is the serialised cookie blob
+      // facebook-messenger — appstate is the serialised cookie blob
       sessionConfig = {
         appstate: (credentials as { appstate: string }).appstate,
         prefix,
