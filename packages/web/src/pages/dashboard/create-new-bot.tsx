@@ -16,6 +16,7 @@ import { ROUTES } from '@/constants/routes.constants'
 import { useBotCreate } from '@/hooks/useBotCreate'
 import { useBotValidation } from '@/hooks/useBotValidation'
 import type { Platform, PlatformCredentials } from '@/dtos/bot.dto'
+import { Platforms } from '@/constants/platform.constants'
 import { getPlatformLabel, maskCredential } from '@/utils/bot.util'
 import {
   PlatformFieldInputs,
@@ -41,10 +42,10 @@ interface FormState {
 }
 
 const PLATFORM_OPTIONS: SelectOption[] = [
-  { value: 'discord', label: 'Discord' },
-  { value: 'telegram', label: 'Telegram' },
-  { value: 'facebook_page', label: 'Facebook Page' },
-  { value: 'facebook_messenger', label: 'Facebook Messenger' },
+  { value: Platforms.Discord, label: 'Discord' },
+  { value: Platforms.Telegram, label: 'Telegram' },
+  { value: Platforms.FacebookPage, label: 'Facebook Page' },
+  { value: Platforms.FacebookMessenger, label: 'Facebook Messenger' },
 ]
 
 const INITIAL_FORM: FormState = {
@@ -157,16 +158,16 @@ export default function NewBotPage() {
 
   const canVerify = (() => {
     switch (form.platform) {
-      case 'discord':
+      case Platforms.Discord:
         return !!form.platformFields.discordToken
-      case 'telegram':
+      case Platforms.Telegram:
         return !!form.platformFields.telegramToken
-      case 'facebook_page':
+      case Platforms.FacebookPage:
         return (
           !!form.platformFields.fbPageAccessToken &&
           !!form.platformFields.fbPageId
         )
-      case 'facebook_messenger':
+      case Platforms.FacebookMessenger:
         return !!form.platformFields.appstate.trim()
       default:
         return false
@@ -177,28 +178,28 @@ export default function NewBotPage() {
     if (!form.platform || !canVerify) return
     let credentials: PlatformCredentials
     switch (form.platform) {
-      case 'discord':
+      case Platforms.Discord:
         credentials = {
-          platform: 'discord',
+          platform: Platforms.Discord,
           discordToken: form.platformFields.discordToken,
         }
         break
-      case 'telegram':
+      case Platforms.Telegram:
         credentials = {
-          platform: 'telegram',
+          platform: Platforms.Telegram,
           telegramToken: form.platformFields.telegramToken,
         }
         break
-      case 'facebook_page':
+      case Platforms.FacebookPage:
         credentials = {
-          platform: 'facebook_page',
+          platform: Platforms.FacebookPage,
           fbAccessToken: form.platformFields.fbPageAccessToken,
           fbPageId: form.platformFields.fbPageId,
         }
         break
-      case 'facebook_messenger':
+      case Platforms.FacebookMessenger:
         credentials = {
-          platform: 'facebook_messenger',
+          platform: Platforms.FacebookMessenger,
           appstate: form.platformFields.appstate,
         }
         break
@@ -212,28 +213,28 @@ export default function NewBotPage() {
     if (!form.platform) return
     let credentials: PlatformCredentials
     switch (form.platform) {
-      case 'discord':
+      case Platforms.Discord:
         credentials = {
-          platform: 'discord',
+          platform: Platforms.Discord,
           discordToken: form.platformFields.discordToken,
         }
         break
-      case 'telegram':
+      case Platforms.Telegram:
         credentials = {
-          platform: 'telegram',
+          platform: Platforms.Telegram,
           telegramToken: form.platformFields.telegramToken,
         }
         break
-      case 'facebook_page':
+      case Platforms.FacebookPage:
         credentials = {
-          platform: 'facebook_page',
+          platform: Platforms.FacebookPage,
           fbAccessToken: form.platformFields.fbPageAccessToken,
           fbPageId: form.platformFields.fbPageId,
         }
         break
-      case 'facebook_messenger':
+      case Platforms.FacebookMessenger:
         credentials = {
-          platform: 'facebook_messenger',
+          platform: Platforms.FacebookMessenger,
           appstate: form.platformFields.appstate,
         }
         break
@@ -254,15 +255,15 @@ export default function NewBotPage() {
 
   const credentialSummary: { label: string; value: string }[] = (() => {
     switch (form.platform) {
-      case 'discord':
+      case Platforms.Discord:
         return [
           { label: 'Discord Token', value: form.platformFields.discordToken },
         ]
-      case 'telegram':
+      case Platforms.Telegram:
         return [
           { label: 'Telegram Token', value: form.platformFields.telegramToken },
         ]
-      case 'facebook_page':
+      case Platforms.FacebookPage:
         return [
           {
             label: 'FB Page Access Token',
@@ -270,7 +271,7 @@ export default function NewBotPage() {
           },
           { label: 'FB Page ID', value: form.platformFields.fbPageId },
         ]
-      case 'facebook_messenger':
+      case Platforms.FacebookMessenger:
         return [{ label: 'Appstate', value: form.platformFields.appstate }]
       default:
         return []
