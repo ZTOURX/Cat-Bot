@@ -33,6 +33,9 @@ import type { OnButtonClickCtx } from '@/engine/types/middleware.types.js';
 import { buttonContextLib } from '@/engine/lib/button-context.lib.js';
 import { OptionsMap } from '@/engine/modules/options/options-map.lib.js';
 import type { AppCtx } from '@/engine/types/controller.types.js';
+// Shared usage guide factory — injected into AppCtx so button onClick handlers
+// have the same ctx.usage() API available as onCommand handlers.
+import { createUsage } from '@/engine/utils/usage.util.js';
 
 /**
  * Button Dispatch — routes interactive button clicks and text-menu fallbacks
@@ -138,19 +141,22 @@ export async function dispatchButtonFallback(
   const storedContext =
     buttonContextLib.get(`${stored.command}:${fullLocalId}`) ?? {};
 
+  const fallbackChat = createChatContext(
+      ctx.api,
+      buttonEvent,
+      stored.command,
+      buttonDef as Parameters<typeof createChatContext>[3],
+    );
+
   // Re-bind ctx to the synthetic buttonEvent so chat.reply() targets the selection reply's
   // messageID rather than the original command trigger — ctx.prefix is forwarded unchanged.
   const buttonCtx: AppCtx = {
     ...buildBaseCtx(ctx.api, buttonEvent, ctx.commands, ctx.native, ctx.prefix),
     // Command-aware chat embeds "stored.command:buttonId" so handleButtonAction can reverse-route
-    chat: createChatContext(
-      ctx.api,
-      buttonEvent,
-      stored.command,
-      buttonDef as Parameters<typeof createChatContext>[3],
-    ),
+    chat: fallbackChat,
     state,
     button: btnCtx,
+    usage: createUsage(mod, fallbackChat, ctx.prefix ?? ''),
     session: { id: fullLocalId, context: storedContext },
     args: [],
     options: OptionsMap.empty(),
@@ -259,16 +265,19 @@ export async function handleButtonAction(
       await ack?.().catch(() => {});
       // Reuse the middleware ctx base but override chat with the command-aware variant so button
       // callbacks embed "commandName:buttonId" for routing without a global button ID registry.
-      const ctx: AppCtx = {
-        ...buttonClickCtx,
-        chat: createChatContext(
+      const actionChat = createChatContext(
           api,
           event,
           commandName,
           mod['button'] as Parameters<typeof createChatContext>[3],
-        ),
+        );
+
+      const ctx: AppCtx = {
+        ...buttonClickCtx,
+        chat: actionChat,
         state,
         button: btnCtx,
+        usage: createUsage(mod, actionChat, buttonClickCtx.prefix ?? ''),
         args: [],
         options: OptionsMap.empty(),
         parsed: { name: commandName, args: [] },

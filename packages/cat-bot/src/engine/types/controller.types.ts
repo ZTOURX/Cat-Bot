@@ -107,4 +107,16 @@ export interface AppCtx extends BaseCtx {
   emoji: string;
   /** The target message ID (available in onReact). */
   messageID: string;
+  /**
+   * Sends a formatted usage guide for the current command as a reply.
+   *
+   * Reads `config.guide` (array of arg patterns) or falls back to `config.usage`
+   * (legacy string) and `config.description`, then replies with a formatted block.
+   *
+   * Call inside `onCommand` when a required argument is missing or the user
+   * passes an invalid value:
+   *
+   *   if (!args[0]) return usage();
+   */
+  usage: () => Promise<void>;
 }

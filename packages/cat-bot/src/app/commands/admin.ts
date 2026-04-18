@@ -22,7 +22,6 @@ export const config = {
   usage: '<add|list|delete> [uid]',
   cooldown: 5,
   hasPrefix: true,
-  // Exclude Facebook Page since facebook page use PSID (Page-Scoped ID)
   platform: [
     Platforms.Discord,
     Platforms.Telegram,
@@ -48,16 +47,13 @@ export const onCommand = async ({
   chat,
   user,
   args,
+  event,
   native,
-  prefix = '',
+  usage,
 }: AppCtx): Promise<void> => {
   const { userId, platform, sessionId } = native;
+  const senderID = event['senderID'] as string | undefined;
 
-  // senderID is the platform user who issued the command — needed for isBotAdmin lookup
-  const senderID = native['senderID'] as string | undefined;
-
-  // Session identity is mandatory — all three repo functions need all three coordinates.
-  // This guard should never fire in normal operation; it exists for defensive correctness.
   if (!userId || !platform || !sessionId) {
     await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
@@ -69,11 +65,6 @@ export const onCommand = async ({
 
   const sub = args[0]?.toLowerCase();
 
-  // ── Privilege check for write operations ──────────────────────────────────
-  // /admin list is intentionally open to all users so anyone in a group can see
-  // who the bot admins are.  add and delete mutate the admin roster and are
-  // therefore gated to existing bot admins, equivalent to the old Role.BOT_ADMIN
-  // contract but enforced at the sub-command level instead of globally.
   if (sub === 'add' || sub === 'delete') {
     const callerIsBotAdmin = senderID
       ? await isBotAdmin(userId, platform, sessionId, senderID)
@@ -87,14 +78,10 @@ export const onCommand = async ({
     }
   }
 
-  // ── /admin add <uid> ───────────────────────────────────────────────────────
   if (sub === 'add') {
     const uid = args[1];
     if (!uid) {
-      await chat.replyMessage({
-        style: MessageStyle.MARKDOWN,
-        message: `❌ Usage: ${prefix}admin add <uid>`,
-      });
+      await usage();
       return;
     }
     await addBotAdmin(userId, platform, sessionId, uid);
@@ -106,7 +93,6 @@ export const onCommand = async ({
     return;
   }
 
-  // ── /admin list ────────────────────────────────────────────────────────────
   if (sub === 'list') {
     const admins = await listBotAdmins(userId, platform, sessionId);
     if (admins.length === 0) {
@@ -116,12 +102,9 @@ export const onCommand = async ({
       });
       return;
     }
-    // Resolve all admin display names in parallel — names[i] aligns with admins[i] by index;
-    // falls back to the raw ID (noUncheckedIndexedAccess guard) when the name is unavailable.
     const names = await Promise.all(
       admins.map((id: string) => user.getName(id)),
     );
-    // Append the raw platform ID so admins can be uniquely identified and copied for the 'delete' command
     const lines = admins
       .map((id: string, i: number) => `${i + 1}. **${names[i] ?? id}** (${id})`)
       .join('\n');
@@ -132,14 +115,10 @@ export const onCommand = async ({
     return;
   }
 
-  // ── /admin delete <uid> ────────────────────────────────────────────────────
   if (sub === 'delete') {
     const uid = args[1];
     if (!uid) {
-      await chat.replyMessage({
-        style: MessageStyle.MARKDOWN,
-        message: `❌ Usage: ${prefix}admin delete <uid>`,
-      });
+      await usage();
       return;
     }
     await removeBotAdmin(userId, platform, sessionId, uid);
@@ -151,14 +130,5 @@ export const onCommand = async ({
     return;
   }
 
-  // ── Unknown or missing sub-command ────────────────────────────────────────
-  await chat.replyMessage({
-    style: MessageStyle.MARKDOWN,
-    message: [
-      'Usage:',
-      `  ${prefix}admin add <uid>    — Grant bot admin rights`,
-      `  ${prefix}admin list         — List all bot admins`,
-      `  ${prefix}admin delete <uid> — Revoke bot admin rights`,
-    ].join('\n'),
-  });
+  await usage();
 };

@@ -24,6 +24,9 @@ import {
 import type { OnCommandCtx } from '@/engine/types/middleware.types.js';
 // Platform filter — enforces config.platform[] declared by each command module
 import { isPlatformAllowed } from '@/engine/modules/platform/platform-filter.util.js';
+// Shared usage guide factory — injected into AppCtx so onCommand handlers can
+// call ctx.usage() to display a formatted guide when arguments are invalid/missing.
+import { createUsage } from '@/engine/utils/usage.util.js';
 
 /**
  * Dispatches a parsed command to its registered module.
@@ -68,12 +71,16 @@ export async function dispatchCommand(
     >) ?? null,
   );
 
+  // Bind the usage guide to this command and the resolved chat context.
+  const usage = createUsage(mod, commandChat, _prefix);
+
   await (mod['onCommand'] as (ctx: unknown) => Promise<void>)({
     ...ctx,
     args: parsed.args,
     state,
     button,
     chat: commandChat,
+    usage,
     session: { id: '', context: {} },
     emoji: '',
     messageID: (ctx.event['messageID'] as string) || '',

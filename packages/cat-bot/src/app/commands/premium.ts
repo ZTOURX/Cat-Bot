@@ -23,8 +23,6 @@ export const config = {
   usage: '<add|list|delete> [uid]',
   cooldown: 5,
   hasPrefix: true,
-  // Exclude Facebook Page — PSIDs are page-scoped and not portable across contexts,
-  // making user lookups unreliable for premium management on that platform.
   platform: [
     Platforms.Discord,
     Platforms.Telegram,
@@ -50,15 +48,13 @@ export const onCommand = async ({
   chat,
   user,
   args,
+  event,
   native,
-  prefix = '',
+  usage,
 }: AppCtx): Promise<void> => {
   const { userId, platform, sessionId } = native;
+  const senderID = event['senderID'] as string | undefined;
 
-  // senderID is the platform user who issued the command — needed for isBotAdmin lookup.
-  const senderID = native['senderID'] as string | undefined;
-
-  // Session identity is mandatory — all three repo functions need all three coordinates.
   if (!userId || !platform || !sessionId) {
     await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
@@ -70,10 +66,6 @@ export const onCommand = async ({
 
   const sub = args[0]?.toLowerCase();
 
-  // ── Privilege check for write operations ──────────────────────────────────
-  // /premium list is intentionally open to all users so anyone in a group can see
-  // the premium roster. add and delete mutate the roster and are gated to bot admins
-  // only — premium users themselves cannot promote or demote others.
   if (sub === 'add' || sub === 'delete') {
     const callerIsBotAdmin = senderID
       ? await isBotAdmin(userId, platform, sessionId, senderID)
@@ -87,17 +79,12 @@ export const onCommand = async ({
     }
   }
 
-  // ── /premium add <uid> ─────────────────────────────────────────────────────
   if (sub === 'add') {
     const uid = args[1];
     if (!uid) {
-      await chat.replyMessage({
-        style: MessageStyle.MARKDOWN,
-        message: `❌ Usage: ${prefix}premium add <uid>`,
-      });
+      await usage();
       return;
     }
-    // Guard against duplicate promotion — a clear message is more helpful than a silent no-op.
     const alreadyPremium = await isBotPremium(userId, platform, sessionId, uid);
     if (alreadyPremium) {
       const userName = await user.getName(uid);
@@ -116,7 +103,6 @@ export const onCommand = async ({
     return;
   }
 
-  // ── /premium list ──────────────────────────────────────────────────────────
   if (sub === 'list') {
     const premiums = await listBotPremiums(userId, platform, sessionId);
     if (premiums.length === 0) {
@@ -126,11 +112,9 @@ export const onCommand = async ({
       });
       return;
     }
-    // Resolve all display names in parallel — falls back to the raw platform ID when unavailable.
     const names = await Promise.all(
       premiums.map((id: string) => user.getName(id)),
     );
-    // Append the raw ID so admins can copy it directly for the 'delete' sub-command.
     const lines = premiums
       .map((id: string, i: number) => `${i + 1}. **${names[i] ?? id}** (${id})`)
       .join('\n');
@@ -141,14 +125,10 @@ export const onCommand = async ({
     return;
   }
 
-  // ── /premium delete <uid> ──────────────────────────────────────────────────
   if (sub === 'delete') {
     const uid = args[1];
     if (!uid) {
-      await chat.replyMessage({
-        style: MessageStyle.MARKDOWN,
-        message: `❌ Usage: ${prefix}premium delete <uid>`,
-      });
+      await usage();
       return;
     }
     await removeBotPremium(userId, platform, sessionId, uid);
@@ -160,14 +140,5 @@ export const onCommand = async ({
     return;
   }
 
-  // ── Unknown or missing sub-command ────────────────────────────────────────
-  await chat.replyMessage({
-    style: MessageStyle.MARKDOWN,
-    message: [
-      'Usage:',
-      `  ${prefix}premium add <uid>    — Grant premium access`,
-      `  ${prefix}premium list         — List all premium users`,
-      `  ${prefix}premium delete <uid> — Revoke premium access`,
-    ].join('\n'),
-  });
+  await usage();
 };

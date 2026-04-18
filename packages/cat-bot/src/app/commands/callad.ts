@@ -76,6 +76,8 @@ export const onCommand = async ({
   args,
   event,
   native,
+  user,
+  thread,
   prefix = '',
 }: AppCtx): Promise<void> => {
   const { userId, platform, sessionId } = native;
@@ -114,14 +116,17 @@ export const onCommand = async ({
 
   // Forward to every registered admin and register an independent relay state
   // per message sent — each admin gets a full conversation slot
+  const senderName = await user.getName(senderID);
+  const threadName = await thread.getName();
+
   let forwarded = 0;
   for (const adminId of admins) {
     const botMsgId = await chat.reply({
       style: MessageStyle.MARKDOWN,
       message: [
         '📨 **CALL ADMIN**',
-        `**From:** \`${senderID}\``,
-        `**Thread:** \`${userThreadID}\``,
+        `**From:** ${senderName} (\`${senderID}\`)`,
+        `**Thread:** ${threadName} (\`${userThreadID}\`)`,
         '',
         userMessage,
         '',
@@ -139,6 +144,7 @@ export const onCommand = async ({
         context: {
           user: {
             threadID: userThreadID,
+            threadName,
             messageID: userMessageID,
             senderID,
           },
@@ -168,24 +174,29 @@ export const onReply = {
     session,
     event,
     state,
+    user,
   }: AppCtx): Promise<void> => {
     const adminMessage = (event['message'] as string | undefined) ?? '';
 
     // Cast through unknown — session.context is Record<string, unknown> under strict mode
     const ctx = session.context as {
-      user?: { threadID?: string; messageID?: string; senderID?: string };
+      user?: { threadID?: string; threadName?: string; messageID?: string; senderID?: string };
     };
     const userThreadID = ctx.user?.threadID ?? '';
+    const userThreadName = ctx.user?.threadName ?? userThreadID;
     const userMessageID = ctx.user?.messageID ?? '';
 
     const adminThreadID = (event['threadID'] as string | undefined) ?? '';
     const adminMessageID = (event['messageID'] as string | undefined) ?? '';
+    const adminSenderID = (event['senderID'] as string | undefined) ?? '';
+
+    const adminName = await user.getName(adminSenderID);
 
     // Relay to user's thread, thread-pinned to their original message for clarity
     const botMsgId = await chat.reply({
       style: MessageStyle.MARKDOWN,
       message: [
-        '📩 **Reply from admin:**',
+        `📩 **Reply from admin** ${adminName}:`,
         '',
         adminMessage,
         '',
@@ -208,6 +219,11 @@ export const onReply = {
           admin: {
             threadID: adminThreadID,
             messageID: adminMessageID,
+            senderID: adminSenderID,
+          },
+          user: {
+            threadID: userThreadID,
+            threadName: userThreadName,
           },
         },
       });
@@ -224,11 +240,13 @@ export const onReply = {
     session,
     event,
     state,
+    user,
   }: AppCtx): Promise<void> => {
     const userMessage = (event['message'] as string | undefined) ?? '';
 
     const ctx = session.context as {
       admin?: { threadID?: string; messageID?: string; senderID?: string };
+      user?: { threadID?: string; threadName?: string };
     };
     const adminThreadID = ctx.admin?.threadID ?? '';
     const adminMessageID = ctx.admin?.messageID ?? '';
@@ -238,11 +256,17 @@ export const onReply = {
     const userMessageID = (event['messageID'] as string | undefined) ?? '';
     const senderID = (event['senderID'] as string | undefined) ?? '';
 
+    // Carry the thread name forward from context — avoids a redundant API call
+    const userThreadName = ctx.user?.threadName ?? userThreadID;
+
+    const senderName = await user.getName(senderID);
+
     // Relay user's reply to admin, thread-pinned to the admin's last message
     const botMsgId = await chat.reply({
       style: MessageStyle.MARKDOWN,
       message: [
-        `📨 **Reply from user** (\`${senderID}\`):`,
+        `📨 **Reply from user** ${senderName} (\`${senderID}\`):`,
+        `**Thread:** ${userThreadName} (\`${userThreadID}\`)`,
         '',
         userMessage,
         '',
@@ -255,8 +279,6 @@ export const onReply = {
     state.delete(session.id);
 
     if (botMsgId) {
-      // Re-register awaiting_admin_reply — the conversation chain is symmetrical
-      // and continues indefinitely until either party stops replying
       // Re-register composite key scoped to the admin — the conversation chain
       // is symmetrical and continues indefinitely until either party stops
       state.create({
@@ -265,6 +287,7 @@ export const onReply = {
         context: {
           user: {
             threadID: userThreadID,
+            threadName: userThreadName,
             messageID: userMessageID,
             senderID,
           },
