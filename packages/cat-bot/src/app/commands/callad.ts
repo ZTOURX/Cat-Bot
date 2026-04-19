@@ -116,46 +116,56 @@ export const onCommand = async ({
 
   // Forward to every registered admin and register an independent relay state
   // per message sent — each admin gets a full conversation slot
-  const senderName = await user.getName(senderID);
-  const threadName = await thread.getName();
+    const senderName = await user.getName(senderID);
+    const threadName = await thread.getName();
 
-  let forwarded = 0;
-  for (const adminId of admins) {
-    const botMsgId = await chat.reply({
-      style: MessageStyle.MARKDOWN,
-      message: [
-        '📨 **CALL ADMIN**',
+    // Fire all admin relays concurrently — allSettled ensures a single failing
+    // DM (e.g. blocked PSID, invalid thread, network hiccup) never silently
+    // drops the remaining admins the way a sequential await-in-for-loop would.
+    const adminResults = await Promise.allSettled(
+      admins.map(async (adminId) => {
+        const botMsgId = await chat.reply({
+          style: MessageStyle.MARKDOWN,
+          message: [
+            '📨 **CALL ADMIN**',
         `**From:** ${senderName} (\`${senderID}\`)`,
         `**Thread:** ${threadName} (\`${userThreadID}\`)`,
         '',
         userMessage,
         '',
-        '_Reply to this message to respond to the user_',
-      ].join('\n'),
-      thread_id: adminId,
-    });
+            '_Reply to this message to respond to the user_',
+          ].join('\n'),
+          thread_id: adminId,
+        });
 
-    if (botMsgId) {
-      // Composite private key: scoping to the expected respondent's ID ensures
-      // only the designated admin can trigger the next step in the flow.
-      state.create({
-        id: `${botMsgId}:${adminId}`,
-        state: STATE.awaiting_admin_reply,
-        context: {
-          user: {
-            threadID: userThreadID,
-            threadName,
-            messageID: userMessageID,
-            senderID,
-          },
-        },
-      });
-      forwarded++;
-    }
-  }
+        if (botMsgId) {
+          // Composite private key: scoping to the expected respondent's ID ensures
+          // only the designated admin can trigger the next step in the flow.
+          state.create({
+            id: `${botMsgId}:${adminId}`,
+            state: STATE.awaiting_admin_reply,
+            context: {
+              user: {
+                threadID: userThreadID,
+                threadName,
+                messageID: userMessageID,
+                senderID,
+              },
+            },
+          });
+        }
 
-  await chat.replyMessage({
-    style: MessageStyle.MARKDOWN,
+        return botMsgId;
+      }),
+    );
+
+    // fulfilled + truthy value means the DM was sent and state was registered
+    const forwarded = adminResults.filter(
+      (r) => r.status === 'fulfilled' && r.value,
+    ).length;
+
+    await chat.replyMessage({
+      style: MessageStyle.MARKDOWN,
     message:
       forwarded > 0
         ? `✅ Your message has been forwarded to ${forwarded} admin(s).\nYou will be notified when they reply.`
