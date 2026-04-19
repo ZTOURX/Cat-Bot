@@ -60,7 +60,7 @@ function getResult(
 // ── Game logic (shared between onCommand and play_again button) ───────────────
 
 async function startGame(ctx: AppCtx): Promise<void> {
-  const { chat, button, native, event, session } = ctx;
+  const { chat, button, native, event } = ctx;
 
   if (!hasNativeButtons(native.platform)) {
     await chat.replyMessage({
@@ -72,11 +72,7 @@ async function startGame(ctx: AppCtx): Promise<void> {
     return;
   }
 
-  const rockId =
-    event['type'] === 'button_action'
-      ? button.generateID({ id: BUTTON_ID.rock, public: false })
-      : button.generateID({ id: BUTTON_ID.rock, public: false });
-
+  const rockId = button.generateID({ id: BUTTON_ID.rock, public: false });
   const paperId = button.generateID({ id: BUTTON_ID.paper, public: false });
   const scissorsId = button.generateID({ id: BUTTON_ID.scissors, public: false });
 
@@ -97,7 +93,7 @@ async function startGame(ctx: AppCtx): Promise<void> {
 }
 
 async function playMove(ctx: AppCtx, playerChoice: Choice): Promise<void> {
-  const { chat, event, button, session } = ctx;
+  const { chat, event, button } = ctx;
 
   const botChoice = CHOICES[Math.floor(Math.random() * CHOICES.length)]!;
   const result = getResult(playerChoice, botChoice);
@@ -107,13 +103,15 @@ async function playMove(ctx: AppCtx, playerChoice: Choice): Promise<void> {
     `👤 You: **${playerChoice.toUpperCase()}** ${EMOJIS[playerChoice]}\n` +
     `🤖 Bot: **${botChoice.toUpperCase()}** ${EMOJIS[botChoice]}`;
 
-  const playAgainId = session.id;
+  // Generate a fresh play_again button ID so clicking "Try Again" correctly
+  // routes to the playAgain handler (startGame) and not the choice that was just clicked.
+  const tryAgainId = button.generateID({ id: BUTTON_ID.playAgain, public: false });
 
   await chat.editMessage({
     style: MessageStyle.MARKDOWN,
     message_id_to_edit: event['messageID'] as string,
     message: resultMessage,
-    button: [playAgainId],
+    button: [tryAgainId],
   });
 }
 
@@ -139,7 +137,7 @@ export const button = {
   },
 
   [BUTTON_ID.playAgain]: {
-    label: '🔄 Play Again',
+    label: '🔁 Try Again',
     style: ButtonStyle.PRIMARY,
     onClick: async (ctx: AppCtx) => startGame(ctx),
   },
