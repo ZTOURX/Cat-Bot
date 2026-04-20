@@ -30,7 +30,11 @@ const CHARSETS = {
 } as const;
 
 const MODIFICATIONS: Record<string, string> = {
-  a: '@', e: '3', i: '!', o: '0', s: '$',
+  a: '@',
+  e: '3',
+  i: '!',
+  o: '0',
+  s: '$',
 };
 
 /** Modifies a character randomly based on common leetspeak. */
@@ -76,7 +80,12 @@ function createPassword(base = '', length = 12): string {
 
 // ── Command ───────────────────────────────────────────────────────────────────
 
-export const onCommand = async ({ args, chat, usage, prefix = '/' }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  args,
+  chat,
+  usage,
+  prefix = '/',
+}: AppCtx): Promise<void> => {
   const baseWord = args.join(' ').trim();
 
   if (!baseWord) {

@@ -22,7 +22,9 @@ async function fetchAnimeme(): Promise<{ url: string; title: string } | null> {
       'https://meme-api.com/gimme/animemes',
       { timeout: 10000 },
     );
-    return (data?.url && data?.title) ? { url: data.url, title: data.title } : null;
+    return data?.url && data?.title
+      ? { url: data.url, title: data.title }
+      : null;
   } catch {
     return null;
   }

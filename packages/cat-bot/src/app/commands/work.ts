@@ -67,7 +67,7 @@ const JOBS: Job[] = [
     ],
     mishaps: [
       "You accidentally deleted the production database. It's recoverable, but the mood is not.",
-      "You spent 2 hours debugging only to find it was a missing semicolon.",
+      'You spent 2 hours debugging only to find it was a missing semicolon.',
     ],
   },
   {
@@ -187,7 +187,7 @@ const JOBS: Job[] = [
     ],
     mishaps: [
       'A student cancelled last-minute without notice — unpaid gap in your schedule.',
-      "The school piano is badly out of tune. You spent half the lesson explaining why it sounds wrong.",
+      'The school piano is badly out of tune. You spent half the lesson explaining why it sounds wrong.',
     ],
   },
   {
@@ -298,8 +298,10 @@ export const onCommand = async ({
   const narrative = hasMishap ? pick(job.mishaps) : pick(job.actions);
 
   // ── Persist state ─────────────────────────────────────────────────────────
-  const prevTotal = ((await workData.get('totalEarned')) as number | undefined) ?? 0;
-  const prevCount = ((await workData.get('jobCount')) as number | undefined) ?? 0;
+  const prevTotal =
+    ((await workData.get('totalEarned')) as number | undefined) ?? 0;
+  const prevCount =
+    ((await workData.get('jobCount')) as number | undefined) ?? 0;
 
   await workData.set('lastWork', now);
   await workData.set('totalEarned', prevTotal + earned);
@@ -311,7 +313,10 @@ export const onCommand = async ({
     ? `\n⚠️ _Mishap! You only earned a fraction of your usual pay._`
     : '';
 
-  const balanceButtonId = btn.generateID({ id: BUTTON_ID.balance, public: false });
+  const balanceButtonId = btn.generateID({
+    id: BUTTON_ID.balance,
+    public: false,
+  });
 
   await chat.replyMessage({
     style: MessageStyle.MARKDOWN,

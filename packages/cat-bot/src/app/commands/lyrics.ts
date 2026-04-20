@@ -20,7 +20,8 @@ export const config = {
   version: '1.0.0',
   role: Role.ANYONE,
   author: 'AjiroDesu',
-  description: 'Search for song lyrics and get the full plain lyrics of the best match.',
+  description:
+    'Search for song lyrics and get the full plain lyrics of the best match.',
   category: 'Music',
   usage: '<song title or artist>',
   cooldown: 5,

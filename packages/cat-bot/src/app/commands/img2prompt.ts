@@ -38,7 +38,12 @@ interface TopPromptResponse {
 
 export const config = {
   name: 'image2prompt',
-  aliases: ['imagetoprompt', 'img2prompt', 'imgtoprompt', 'toprompt'] as string[],
+  aliases: [
+    'imagetoprompt',
+    'img2prompt',
+    'imgtoprompt',
+    'toprompt',
+  ] as string[],
   version: '1.0.0',
   role: Role.ANYONE,
   author: 'AjiroDesu',
@@ -67,17 +72,21 @@ function resolveImageUrl(event: Record<string, unknown>): string | null {
     (event['attachments'] as NormalizedAttachment[] | undefined) ?? [];
 
   const fromOwn = ownAttachments.find(
-    (a) => a.type === AttachmentType.PHOTO && typeof a.url === 'string' && a.url,
+    (a) =>
+      a.type === AttachmentType.PHOTO && typeof a.url === 'string' && a.url,
   );
   if (fromOwn?.url) return fromOwn.url as string;
 
   // 2. Attachments on the quoted / replied-to message
-  const messageReply = event['messageReply'] as Record<string, unknown> | undefined;
+  const messageReply = event['messageReply'] as
+    | Record<string, unknown>
+    | undefined;
   const replyAttachments =
     (messageReply?.['attachments'] as NormalizedAttachment[] | undefined) ?? [];
 
   const fromReply = replyAttachments.find(
-    (a) => a.type === AttachmentType.PHOTO && typeof a.url === 'string' && a.url,
+    (a) =>
+      a.type === AttachmentType.PHOTO && typeof a.url === 'string' && a.url,
   );
   if (fromReply?.url) return fromReply.url as string;
 
@@ -86,7 +95,12 @@ function resolveImageUrl(event: Record<string, unknown>): string | null {
 
 // ── Command Entry Point ───────────────────────────────────────────────────────
 
-export const onCommand = async ({ args: _args, event, chat, usage }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  args: _args,
+  event,
+  chat,
+  usage,
+}: AppCtx): Promise<void> => {
   // Resolve image URL from own message or quoted message
   const imageUrl = resolveImageUrl(event);
 
@@ -111,7 +125,9 @@ export const onCommand = async ({ args: _args, event, chat, usage }: AppCtx): Pr
     const apiUrl = createUrl('deline', '/ai/toprompt', { url: imageUrl });
     if (!apiUrl) throw new Error('Failed to build API URL.');
 
-    const { data } = await axios.get<TopPromptResponse>(apiUrl, { timeout: 60000 });
+    const { data } = await axios.get<TopPromptResponse>(apiUrl, {
+      timeout: 60000,
+    });
     const prompt = data?.result?.original;
     if (!prompt) throw new Error('No prompt returned from API.');
 
@@ -121,9 +137,7 @@ export const onCommand = async ({ args: _args, event, chat, usage }: AppCtx): Pr
 
     await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
-      message:
-        `🖼️ **Image → Prompt Result**\n\n` +
-        `${prompt}`,
+      message: `🖼️ **Image → Prompt Result**\n\n` + `${prompt}`,
     });
   } catch (err) {
     const error = err as { message?: string };
@@ -134,8 +148,7 @@ export const onCommand = async ({ args: _args, event, chat, usage }: AppCtx): Pr
 
     await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
-      message:
-        `❌ **Failed to analyse image.**\n\`${error.message ?? 'Unknown error'}\``,
+      message: `❌ **Failed to analyse image.**\n\`${error.message ?? 'Unknown error'}\``,
     });
   }
 };

@@ -153,12 +153,14 @@ class SessionManager extends EventEmitter {
     for (const [key, session] of this.#sessions.entries()) {
       if (key.startsWith(`${userId}:`)) {
         promises.push(
-          session.stop(signal).catch((err) =>
-            console.error(
-              `[session-manager] Failed to stop ${key} on user ban:`,
-              err,
+          session
+            .stop(signal)
+            .catch((err) =>
+              console.error(
+                `[session-manager] Failed to stop ${key} on user ban:`,
+                err,
+              ),
             ),
-          ),
         );
       }
     }

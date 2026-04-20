@@ -73,7 +73,8 @@ export const onCommand = async ({
   let movie: OmdbMovie;
   try {
     const response = await fetch(url);
-    if (!response.ok) throw new Error(`OMDB API responded with status ${response.status}`);
+    if (!response.ok)
+      throw new Error(`OMDB API responded with status ${response.status}`);
     movie = (await response.json()) as OmdbMovie;
   } catch (err) {
     const error = err as { message?: string };

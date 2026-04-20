@@ -22,7 +22,8 @@ export const config = {
   version: '1.0.0',
   role: Role.ANYONE,
   author: 'AjiroDesu',
-  description: 'Generate a Brat-style image with your custom text (lime green on black).',
+  description:
+    'Generate a Brat-style image with your custom text (lime green on black).',
   category: 'Image',
   usage: '<text>',
   cooldown: 5,
@@ -67,9 +68,7 @@ export const onCommand = async ({
   }
 
   // Clean filename (max 30 chars to keep it readable)
-  const safeText = text
-    .replace(/[/\\?%*:|"<>]/g, '-')
-    .substring(0, 30);
+  const safeText = text.replace(/[/\\?%*:|"<>]/g, '-').substring(0, 30);
   const fileName = `brat-${safeText || 'image'}.png`;
 
   // Send the image with a nice caption

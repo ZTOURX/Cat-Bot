@@ -73,7 +73,11 @@ export const onCommand = async ({ chat }: AppCtx): Promise<void> => {
 
 // ── onChat — passive keyword scanner ─────────────────────────────────────────
 
-export const onChat = async ({ event, chat, native }: AppCtx): Promise<void> => {
+export const onChat = async ({
+  event,
+  chat,
+  native,
+}: AppCtx): Promise<void> => {
   const message = event['message'] as string | undefined;
   if (!message) return;
 
@@ -96,7 +100,9 @@ export const onChat = async ({ event, chat, native }: AppCtx): Promise<void> => 
   const senderID = event['senderID'] as string;
   const messageID = event['messageID'] as string | undefined;
 
-  const chatLabel = isGroup ? `Group \`${threadID}\`` : `Private Chat \`${threadID}\``;
+  const chatLabel = isGroup
+    ? `Group \`${threadID}\``
+    : `Private Chat \`${threadID}\``;
   const keywords = detected.map((k) => `\`${k}\``).join(', ');
   const safeBody = escapeMd(message);
 
@@ -116,7 +122,9 @@ export const onChat = async ({ event, chat, native }: AppCtx): Promise<void> => 
 
   // Guard: session identity required to look up admins
   if (!userId || !platform || !sessionId) {
-    console.error('[detect] Missing session identity — cannot resolve admin list.');
+    console.error(
+      '[detect] Missing session identity — cannot resolve admin list.',
+    );
     return;
   }
 
@@ -125,7 +133,10 @@ export const onChat = async ({ event, chat, native }: AppCtx): Promise<void> => 
   try {
     adminIds = await listBotAdmins(userId, platform, sessionId);
   } catch (err) {
-    console.error('[detect] Failed to fetch admin list:', (err as Error).message);
+    console.error(
+      '[detect] Failed to fetch admin list:',
+      (err as Error).message,
+    );
     return;
   }
 

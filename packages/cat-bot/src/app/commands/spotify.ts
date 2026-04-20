@@ -117,7 +117,10 @@ export const onCommand = async ({
       });
     } catch {
       // Fall back to text-only when the attachment fails (e.g. expired CDN URL)
-      await chat.replyMessage({ style: MessageStyle.MARKDOWN, message: caption });
+      await chat.replyMessage({
+        style: MessageStyle.MARKDOWN,
+        message: caption,
+      });
     }
   } else {
     await chat.replyMessage({ style: MessageStyle.MARKDOWN, message: caption });

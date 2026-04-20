@@ -4,14 +4,14 @@ import crypto from 'crypto';
 
 // ── Edit these before running ────────────────────────────────────────────────
 const ADMIN_EMAIL = 'admin@example.com';
-const ADMIN_NAME  = 'Admin';
+const ADMIN_NAME = 'Admin';
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Generate a secure random password
 function generatePassword(length = 16) {
   return crypto
     .randomBytes(length)
-    .toString('base64')      // convert to readable format
+    .toString('base64') // convert to readable format
     .replace(/[^a-zA-Z0-9]/g, '') // remove special chars for simplicity
     .slice(0, length);
 }

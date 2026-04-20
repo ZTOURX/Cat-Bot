@@ -22,10 +22,13 @@ import { hasNativeButtons } from '@/engine/utils/ui-capabilities.util.js';
 
 async function fetchDog(): Promise<string | null> {
   try {
-    const { data } = await axios.get('https://dog.ceo/api/breeds/image/random', {
-      headers: { Accept: 'application/json' },
-      timeout: 10000,
-    });
+    const { data } = await axios.get(
+      'https://dog.ceo/api/breeds/image/random',
+      {
+        headers: { Accept: 'application/json' },
+        timeout: 10000,
+      },
+    );
     return (data?.message as string) || null;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -75,7 +78,10 @@ export const onCommand = async (ctx: AppCtx): Promise<void> => {
         message: '⚠️ **Error:** Could not retrieve a dog image.',
       };
       if (event['type'] === 'button_action') {
-        await chat.editMessage({ ...errPayload, message_id_to_edit: event['messageID'] as string });
+        await chat.editMessage({
+          ...errPayload,
+          message_id_to_edit: event['messageID'] as string,
+        });
       } else {
         await chat.replyMessage(errPayload);
       }
@@ -110,10 +116,14 @@ export const onCommand = async (ctx: AppCtx): Promise<void> => {
   } catch {
     const errPayload = {
       style: MessageStyle.MARKDOWN,
-      message: '⚠️ **System Error:** Failed to fetch a dog image. Please try again later.',
+      message:
+        '⚠️ **System Error:** Failed to fetch a dog image. Please try again later.',
     };
     if (event['type'] === 'button_action') {
-      await chat.editMessage({ ...errPayload, message_id_to_edit: event['messageID'] as string });
+      await chat.editMessage({
+        ...errPayload,
+        message_id_to_edit: event['messageID'] as string,
+      });
     } else {
       await chat.replyMessage(errPayload);
     }

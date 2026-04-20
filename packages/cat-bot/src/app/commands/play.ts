@@ -17,7 +17,8 @@ export const config = {
   version: '1.1.0',
   role: Role.ANYONE,
   author: 'AjiroDesu',
-  description: 'Search for a song and play the audio (tries NexRay first, then Kuroneko fallback).',
+  description:
+    'Search for a song and play the audio (tries NexRay first, then Kuroneko fallback).',
   category: 'Music',
   usage: '<song title or artist>',
   cooldown: 8,
@@ -90,7 +91,8 @@ async function tryKuroneko(query: string): Promise<ResolvedTrack | null> {
     return {
       audioUrl: data.result.url,
       title,
-      filename: data.result.filename || `${title.replace(/[/\\?%*:|"<>]/g, '-')}.mp3`,
+      filename:
+        data.result.filename || `${title.replace(/[/\\?%*:|"<>]/g, '-')}.mp3`,
     };
   } catch {
     return null;
@@ -99,7 +101,11 @@ async function tryKuroneko(query: string): Promise<ResolvedTrack | null> {
 
 // ── Command ───────────────────────────────────────────────────────────────────
 
-export const onCommand = async ({ args, chat, usage }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  args,
+  chat,
+  usage,
+}: AppCtx): Promise<void> => {
   if (!args.length) return usage();
 
   const query = args.join(' ');
@@ -125,7 +131,8 @@ export const onCommand = async ({ args, chat, usage }: AppCtx): Promise<void> =>
   let audioBuffer: Buffer;
   try {
     const audioRes = await fetch(track.audioUrl);
-    if (!audioRes.ok) throw new Error(`Audio download failed (${audioRes.status})`);
+    if (!audioRes.ok)
+      throw new Error(`Audio download failed (${audioRes.status})`);
     audioBuffer = Buffer.from(await audioRes.arrayBuffer());
   } catch (err) {
     const error = err as { message?: string };

@@ -79,7 +79,11 @@ export const config = {
 
 // ── Command Entry Point ───────────────────────────────────────────────────────
 
-export const onCommand = async ({ args, chat, usage }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  args,
+  chat,
+  usage,
+}: AppCtx): Promise<void> => {
   const rawUrl = args[0];
 
   if (!rawUrl) {
@@ -97,7 +101,8 @@ export const onCommand = async ({ args, chat, usage }: AppCtx): Promise<void> =>
   if (!isValidUrl(rawUrl)) {
     await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
-      message: '❌ **Invalid URL.** Please provide a valid Facebook video link.',
+      message:
+        '❌ **Invalid URL.** Please provide a valid Facebook video link.',
     });
     return;
   }
@@ -113,11 +118,14 @@ export const onCommand = async ({ args, chat, usage }: AppCtx): Promise<void> =>
 
   const loadingId = (await chat.replyMessage({
     style: MessageStyle.MARKDOWN,
-    message: '⬇️ **Downloading video...**\nFetching the best available quality.',
+    message:
+      '⬇️ **Downloading video...**\nFetching the best available quality.',
   })) as string | undefined;
 
   try {
-    const apiUrl = createUrl('kuroneko', '/api/download/facebook', { url: rawUrl });
+    const apiUrl = createUrl('kuroneko', '/api/download/facebook', {
+      url: rawUrl,
+    });
     if (!apiUrl) throw new Error('Failed to build API URL.');
 
     const { data: res } = await axios.get<FacebookDlResponse>(apiUrl, {
@@ -125,7 +133,10 @@ export const onCommand = async ({ args, chat, usage }: AppCtx): Promise<void> =>
     });
 
     const videoUrl = res?.data?.hd || res?.data?.sd;
-    if (!videoUrl) throw new Error('No downloadable video URL found. The video may be private or unsupported.');
+    if (!videoUrl)
+      throw new Error(
+        'No downloadable video URL found. The video may be private or unsupported.',
+      );
 
     const quality = res.data.hd ? 'HD' : 'SD';
     const title = res.data.title ?? 'Facebook Video';
@@ -154,7 +165,9 @@ export const onCommand = async ({ args, chat, usage }: AppCtx): Promise<void> =>
         `📝 **Title:** ${title}\n` +
         `🎞 **Quality:** ${quality}\n` +
         `🔗 **URL:** ${rawUrl}`,
-      attachment: [{ name: `${safeTitle || 'facebook-video'}.mp4`, stream: videoBuffer }],
+      attachment: [
+        { name: `${safeTitle || 'facebook-video'}.mp4`, stream: videoBuffer },
+      ],
     });
   } catch (err) {
     const error = err as { message?: string };

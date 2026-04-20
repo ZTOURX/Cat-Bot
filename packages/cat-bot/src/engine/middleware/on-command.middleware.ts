@@ -193,7 +193,10 @@ export const enforcePermission: MiddlewareFn<OnCommandCtx> = async function (
   // only reached when the sender is NOT a system admin.
   if (senderID) {
     const isSysAdmin = await isSystemAdmin(senderID);
-    if (isSysAdmin) { await next(); return; }
+    if (isSysAdmin) {
+      await next();
+      return;
+    }
   }
 
   if (role === Role.SYSTEM_ADMIN) {

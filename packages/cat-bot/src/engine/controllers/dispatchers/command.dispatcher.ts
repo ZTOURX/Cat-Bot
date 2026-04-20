@@ -85,7 +85,11 @@ export async function dispatchCommand(
     session: { id: '', context: {} },
     emoji: '',
     messageID: (ctx.event['messageID'] as string) || '',
-    currencies: createCurrenciesContext(ctx.native.userId ?? '', ctx.native.platform, ctx.native.sessionId ?? ''),
+    currencies: createCurrenciesContext(
+      ctx.native.userId ?? '',
+      ctx.native.platform,
+      ctx.native.sessionId ?? '',
+    ),
   }).catch((err: unknown) => {
     console.error(`❌ Command "${parsed.name}" failed`, err);
   });

@@ -20,7 +20,8 @@ export const config = {
   version: '1.0.0',
   role: Role.ANYONE,
   author: 'AjiroDesu',
-  description: 'Chat with Perplexity AI using the free NexRay API (real-time search + reasoning).',
+  description:
+    'Chat with Perplexity AI using the free NexRay API (real-time search + reasoning).',
   category: 'AI Chat',
   usage: '<your message>',
   cooldown: 5,

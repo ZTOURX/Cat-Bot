@@ -21,7 +21,8 @@ export const config = {
   version: '1.0.2',
   role: Role.ANYONE,
   author: 'AjiroDesu',
-  description: 'Chat with GitHub Copilot AI using the free NexRay API (with Deline fallback).',
+  description:
+    'Chat with GitHub Copilot AI using the free NexRay API (with Deline fallback).',
   category: 'AI Chat',
   usage: '<your message>',
   cooldown: 5,
@@ -51,7 +52,8 @@ export const onCommand = async ({
   if (!primaryUrl) {
     await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
-      message: '❌ Failed to build the primary (NexRay) Copilot API request URL.',
+      message:
+        '❌ Failed to build the primary (NexRay) Copilot API request URL.',
     });
     return;
   }
@@ -62,7 +64,8 @@ export const onCommand = async ({
   // === Try Primary (NexRay) ===
   try {
     const res = await fetch(primaryUrl);
-    if (!res.ok) throw new Error(`Primary API responded with status ${res.status}`);
+    if (!res.ok)
+      throw new Error(`Primary API responded with status ${res.status}`);
 
     const primaryData = (await res.json()) as CopilotResponse;
     if (primaryData?.status === true && primaryData?.result?.trim()) {
@@ -84,7 +87,8 @@ export const onCommand = async ({
     } else {
       try {
         const res = await fetch(fallbackUrl);
-        if (!res.ok) throw new Error(`Fallback API responded with status ${res.status}`);
+        if (!res.ok)
+          throw new Error(`Fallback API responded with status ${res.status}`);
 
         const fallbackData = (await res.json()) as CopilotResponse;
         if (fallbackData?.status === true && fallbackData?.result?.trim()) {

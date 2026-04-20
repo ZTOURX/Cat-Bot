@@ -60,18 +60,18 @@ interface CatchEntry {
  *   legendary   7%
  */
 const RARITY_THRESHOLDS: [Rarity, number][] = [
-  ['trash',     0.25],
-  ['common',    0.57],
-  ['uncommon',  0.79],
-  ['rare',      0.93],
-  ['legendary', 1.00],
+  ['trash', 0.25],
+  ['common', 0.57],
+  ['uncommon', 0.79],
+  ['rare', 0.93],
+  ['legendary', 1.0],
 ];
 
 const RARITY_LABELS: Record<Rarity, string> = {
-  trash:     '🗑️ Trash',
-  common:    '🟢 Common',
-  uncommon:  '🔵 Uncommon',
-  rare:      '🟣 Rare',
+  trash: '🗑️ Trash',
+  common: '🟢 Common',
+  uncommon: '🔵 Uncommon',
+  rare: '🟣 Rare',
   legendary: '🌟 Legendary',
 };
 
@@ -110,7 +110,8 @@ const CATCH_TABLE: CatchEntry[] = [
     emoji: '🛍️',
     rarity: 'trash',
     value: [-5, 0],
-    flavour: "You did the environment a favour by pulling this out. Doesn't pay well though.",
+    flavour:
+      "You did the environment a favour by pulling this out. Doesn't pay well though.",
   },
 
   // ── Common ────────────────────────────────────────────────────────────────
@@ -119,7 +120,8 @@ const CATCH_TABLE: CatchEntry[] = [
     emoji: '🐟',
     rarity: 'common',
     value: [20, 55],
-    flavour: 'Small but plentiful. The fishmonger will take them off your hands.',
+    flavour:
+      'Small but plentiful. The fishmonger will take them off your hands.',
   },
   {
     name: 'Carp',
@@ -133,7 +135,7 @@ const CATCH_TABLE: CatchEntry[] = [
     emoji: '🐡',
     rarity: 'common',
     value: [30, 70],
-    flavour: "Whiskers and all — this one put up a brief fight. You won.",
+    flavour: 'Whiskers and all — this one put up a brief fight. You won.',
   },
   {
     name: 'Perch',
@@ -193,7 +195,8 @@ const CATCH_TABLE: CatchEntry[] = [
     emoji: '🐋',
     rarity: 'rare',
     value: [200, 380],
-    flavour: 'A market delicacy. The auction house will open its doors for this.',
+    flavour:
+      'A market delicacy. The auction house will open its doors for this.',
   },
   {
     name: 'Atlantic Salmon',
@@ -214,14 +217,16 @@ const CATCH_TABLE: CatchEntry[] = [
     emoji: '🦑',
     rarity: 'rare',
     value: [190, 360],
-    flavour: "The tentacles nearly pulled you in. Nearly. You're richer for it.",
+    flavour:
+      "The tentacles nearly pulled you in. Nearly. You're richer for it.",
   },
   {
     name: 'Electric Eel',
     emoji: '⚡',
     rarity: 'rare',
     value: [210, 390],
-    flavour: 'You took a small shock, but the research institute paid generously.',
+    flavour:
+      'You took a small shock, but the research institute paid generously.',
   },
 
   // ── Legendary ─────────────────────────────────────────────────────────────
@@ -230,35 +235,40 @@ const CATCH_TABLE: CatchEntry[] = [
     emoji: '✨',
     rarity: 'legendary',
     value: [500, 900],
-    flavour: 'A mythical fish said to bring fortune to whoever catches it. Today that is you.',
+    flavour:
+      'A mythical fish said to bring fortune to whoever catches it. Today that is you.',
   },
   {
     name: "Mermaid's Pearl",
     emoji: '🪨',
     rarity: 'legendary',
     value: [600, 1000],
-    flavour: 'Not a fish — but a flawless pearl tangled in your line. Worth a small fortune.',
+    flavour:
+      'Not a fish — but a flawless pearl tangled in your line. Worth a small fortune.',
   },
   {
     name: 'Kraken Tentacle',
     emoji: '🦑',
     rarity: 'legendary',
     value: [550, 950],
-    flavour: "You reeled in something the deep preferred to keep. Marine biologists are calling.",
+    flavour:
+      'You reeled in something the deep preferred to keep. Marine biologists are calling.',
   },
   {
     name: 'Oarfish',
     emoji: '🐍',
     rarity: 'legendary',
     value: [480, 880],
-    flavour: 'The sea serpent of legend — 8 metres of silver scales. Museums are bidding.',
+    flavour:
+      'The sea serpent of legend — 8 metres of silver scales. Museums are bidding.',
   },
   {
     name: 'Ghost Carp',
     emoji: '👻',
     rarity: 'legendary',
     value: [520, 920],
-    flavour: 'Completely white, with eyes like polished glass. Collectors pay absurd sums.',
+    flavour:
+      'Completely white, with eyes like polished glass. Collectors pay absurd sums.',
   },
 ];
 
@@ -284,7 +294,10 @@ function rollCatch(): CatchEntry {
   const roll = Math.random();
   let rarity: Rarity = 'legendary';
   for (const [tier, threshold] of RARITY_THRESHOLDS) {
-    if (roll < threshold) { rarity = tier; break; }
+    if (roll < threshold) {
+      rarity = tier;
+      break;
+    }
   }
   const pool = CATCH_TABLE.filter((c) => c.rarity === rarity);
   return pool[Math.floor(Math.random() * pool.length)]!;
@@ -294,7 +307,7 @@ function rollCatch(): CatchEntry {
 
 const BUTTON_ID = {
   balance: 'balance',
-  back:    'back',
+  back: 'back',
 } as const;
 
 export const button = {
@@ -302,7 +315,13 @@ export const button = {
   [BUTTON_ID.balance]: {
     label: '💰 My Balance',
     style: ButtonStyle.SECONDARY,
-    onClick: async ({ chat, event, native, button: btn, currencies }: AppCtx) => {
+    onClick: async ({
+      chat,
+      event,
+      native,
+      button: btn,
+      currencies,
+    }: AppCtx) => {
       const senderID = event['senderID'] as string | undefined;
       if (!senderID) return;
 
@@ -353,10 +372,13 @@ export const button = {
 
       const fishData = await userColl.getCollection('fish');
 
-      const lastFish   = (await fishData.get('lastFish'))    as number | undefined;
-      const totalCaught = (await fishData.get('totalCaught')) as number | undefined ?? 0;
-      const totalEarned = (await fishData.get('totalEarned')) as number | undefined ?? 0;
-      const castCount   = (await fishData.get('castCount'))   as number | undefined ?? 0;
+      const lastFish = (await fishData.get('lastFish')) as number | undefined;
+      const totalCaught =
+        ((await fishData.get('totalCaught')) as number | undefined) ?? 0;
+      const totalEarned =
+        ((await fishData.get('totalEarned')) as number | undefined) ?? 0;
+      const castCount =
+        ((await fishData.get('castCount')) as number | undefined) ?? 0;
 
       // Determine next-cast availability
       const now = Date.now();
@@ -431,9 +453,12 @@ export const onCommand = async ({
   const isTrash = caught.rarity === 'trash';
   const value = randInt(caught.value[0], caught.value[1]);
 
-  const prevCaught = ((await fishData.get('totalCaught')) as number | undefined) ?? 0;
-  const prevEarned = ((await fishData.get('totalEarned')) as number | undefined) ?? 0;
-  const prevCasts  = ((await fishData.get('castCount'))   as number | undefined) ?? 0;
+  const prevCaught =
+    ((await fishData.get('totalCaught')) as number | undefined) ?? 0;
+  const prevEarned =
+    ((await fishData.get('totalEarned')) as number | undefined) ?? 0;
+  const prevCasts =
+    ((await fishData.get('castCount')) as number | undefined) ?? 0;
 
   await fishData.set('lastFish', now);
   await fishData.set('castCount', prevCasts + 1);
@@ -442,10 +467,14 @@ export const onCommand = async ({
 
   if (isTrash) {
     if (value < 0) {
-      await currencies.decreaseMoney({ user_id: senderID, money: Math.abs(value) });
+      await currencies.decreaseMoney({
+        user_id: senderID,
+        money: Math.abs(value),
+      });
       coinLine = `💸 Disposal fee: **${value.toLocaleString()} coins**`;
     } else {
-      if (value > 0) await currencies.increaseMoney({ user_id: senderID, money: value });
+      if (value > 0)
+        await currencies.increaseMoney({ user_id: senderID, money: value });
       coinLine = `💰 Scrap value: **+${value.toLocaleString()} coins**`;
     }
   } else {
@@ -463,7 +492,10 @@ export const onCommand = async ({
     ? `📊 Total Casts: **${(prevCasts + 1).toLocaleString()}**`
     : `📊 Catches: **${(prevCaught + 1).toLocaleString()}** | Lifetime: **${(prevEarned + value).toLocaleString()} coins**`;
 
-  const balanceButtonId = btn.generateID({ id: BUTTON_ID.balance, public: false });
+  const balanceButtonId = btn.generateID({
+    id: BUTTON_ID.balance,
+    public: false,
+  });
 
   await chat.replyMessage({
     style: MessageStyle.MARKDOWN,

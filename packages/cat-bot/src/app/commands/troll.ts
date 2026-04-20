@@ -29,7 +29,7 @@ const winTexts = [
   "You made Gordon Ramsay's favorite dish perfectly and earned <amount> coins.",
   'You impressed Jeff Bezos with your business idea and received <amount> coins in funding.',
   'You taught Taylor Swift a new dance move and she paid you <amount> coins for the lesson.',
-  "You challenged Cristiano Ronaldo to a soccer match and scored the winning goal, earning <amount> coins.",
+  'You challenged Cristiano Ronaldo to a soccer match and scored the winning goal, earning <amount> coins.',
   'You guessed the correct answer on a game show hosted by Ellen DeGeneres, winning <amount> coins.',
   'You gave a fashion tip to Lady Gaga and she gifted you <amount> coins worth of designer clothes.',
 ] as const;
@@ -78,7 +78,9 @@ function buildBalanceMessage(balance: number): string {
   return `💰 **Current Balance:** ${formatCoins(balance)} coins`;
 }
 
-function readTrollButtonContext(sessionContext: unknown): TrollButtonContext | undefined {
+function readTrollButtonContext(
+  sessionContext: unknown,
+): TrollButtonContext | undefined {
   const ctx = sessionContext as Partial<TrollButtonContext> | undefined;
   if (!ctx?.trollMessage || !ctx.balanceId || !ctx.backId) return undefined;
 
@@ -107,7 +109,9 @@ export const button = {
         style: MessageStyle.MARKDOWN,
         message_id_to_edit: event['messageID'] as string,
         message: balanceMessage,
-        ...(hasNativeButtons(native.platform) ? { button: [context.backId] } : {}),
+        ...(hasNativeButtons(native.platform)
+          ? { button: [context.backId] }
+          : {}),
       });
     },
   },
@@ -123,7 +127,9 @@ export const button = {
         style: MessageStyle.MARKDOWN,
         message_id_to_edit: event['messageID'] as string,
         message: context.trollMessage,
-        ...(hasNativeButtons(native.platform) ? { button: [context.balanceId] } : {}),
+        ...(hasNativeButtons(native.platform)
+          ? { button: [context.balanceId] }
+          : {}),
       });
     },
   },

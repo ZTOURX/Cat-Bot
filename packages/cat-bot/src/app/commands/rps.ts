@@ -74,7 +74,10 @@ async function startGame(ctx: AppCtx): Promise<void> {
 
   const rockId = button.generateID({ id: BUTTON_ID.rock, public: false });
   const paperId = button.generateID({ id: BUTTON_ID.paper, public: false });
-  const scissorsId = button.generateID({ id: BUTTON_ID.scissors, public: false });
+  const scissorsId = button.generateID({
+    id: BUTTON_ID.scissors,
+    public: false,
+  });
 
   if (event['type'] === 'button_action') {
     await chat.editMessage({
@@ -105,7 +108,10 @@ async function playMove(ctx: AppCtx, playerChoice: Choice): Promise<void> {
 
   // Generate a fresh play_again button ID so clicking "Try Again" correctly
   // routes to the playAgain handler (startGame) and not the choice that was just clicked.
-  const tryAgainId = button.generateID({ id: BUTTON_ID.playAgain, public: false });
+  const tryAgainId = button.generateID({
+    id: BUTTON_ID.playAgain,
+    public: false,
+  });
 
   await chat.editMessage({
     style: MessageStyle.MARKDOWN,

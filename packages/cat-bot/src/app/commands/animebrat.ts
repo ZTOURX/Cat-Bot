@@ -20,7 +20,8 @@ export const config = {
   version: '1.0.0',
   role: Role.ANYONE,
   author: 'AjiroDesu',
-  description: 'Generate a Brat Anime style image with your custom text (anime version of the classic Brat meme).',
+  description:
+    'Generate a Brat Anime style image with your custom text (anime version of the classic Brat meme).',
   category: 'Image',
   usage: '<text>',
   cooldown: 5,
@@ -65,9 +66,7 @@ export const onCommand = async ({
   }
 
   // Clean filename
-  const safeText = text
-    .replace(/[/\\?%*:|"<>]/g, '-')
-    .substring(0, 30);
+  const safeText = text.replace(/[/\\?%*:|"<>]/g, '-').substring(0, 30);
   const fileName = `bratanime-${safeText || 'image'}.png`;
 
   // Send the image with a nice caption

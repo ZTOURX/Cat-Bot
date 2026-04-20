@@ -349,7 +349,10 @@ export async function removeBotPremium(
   const listKey = premiumListKey(userId, platform, sessionId);
   const cachedList = lruCache.get<string[]>(listKey);
   if (cachedList !== undefined) {
-    lruCache.set(listKey, cachedList.filter((id) => id !== premiumId));
+    lruCache.set(
+      listKey,
+      cachedList.filter((id) => id !== premiumId),
+    );
   }
   lruCache.del(`bot:detail:${userId}:${sessionId}`);
   lruCache.del(`bot:list:${userId}`);

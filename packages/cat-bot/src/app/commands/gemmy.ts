@@ -44,11 +44,13 @@ export const button = {
     label: '🔁 Generate Again',
     style: ButtonStyle.PRIMARY,
     onClick: async (ctx: AppCtx) => {
-      const prompt = (ctx.session.context['prompt'] as string | undefined) ?? '';
+      const prompt =
+        (ctx.session.context['prompt'] as string | undefined) ?? '';
       if (!prompt) {
         await ctx.chat.replyMessage({
           style: MessageStyle.MARKDOWN,
-          message: '⚠️ Could not recover the original prompt. Please re-run the command.',
+          message:
+            '⚠️ Could not recover the original prompt. Please re-run the command.',
         });
         return;
       }
@@ -103,7 +105,10 @@ async function generateAndSend(ctx: AppCtx, prompt: string): Promise<void> {
     };
 
     if (isButtonAction) {
-      await chat.editMessage({ ...payload, message_id_to_edit: event['messageID'] as string });
+      await chat.editMessage({
+        ...payload,
+        message_id_to_edit: event['messageID'] as string,
+      });
     } else {
       await chat.replyMessage(payload);
     }
@@ -117,7 +122,10 @@ async function generateAndSend(ctx: AppCtx, prompt: string): Promise<void> {
     if (loadingId) await chat.unsendMessage(loadingId).catch(() => {});
 
     if (isButtonAction) {
-      await chat.editMessage({ ...errPayload, message_id_to_edit: event['messageID'] as string });
+      await chat.editMessage({
+        ...errPayload,
+        message_id_to_edit: event['messageID'] as string,
+      });
     } else {
       await chat.replyMessage(errPayload);
     }

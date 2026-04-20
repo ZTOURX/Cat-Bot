@@ -27,7 +27,11 @@ const TIMEOUT = 20000;
 const DEFAULT_WIDTH = 1920;
 const DEFAULT_HEIGHT = 1080;
 
-function parseArgs(args: string[]): { query: string; width: number; height: number } {
+function parseArgs(args: string[]): {
+  query: string;
+  width: number;
+  height: number;
+} {
   let width = DEFAULT_WIDTH;
   let height = DEFAULT_HEIGHT;
   const parts = [...args];
@@ -61,10 +65,10 @@ const BUTTON_ID = {
 const PRESETS = {
   [BUTTON_ID.random]: { label: '🎲 Random', query: '' },
   [BUTTON_ID.nature]: { label: '🌿 Nature', query: 'nature' },
-  [BUTTON_ID.space]:  { label: '🌌 Space',  query: 'space' },
-  [BUTTON_ID.city]:   { label: '🏙️ City',   query: 'city' },
+  [BUTTON_ID.space]: { label: '🌌 Space', query: 'space' },
+  [BUTTON_ID.city]: { label: '🏙️ City', query: 'city' },
   [BUTTON_ID.sunset]: { label: '🌅 Sunset', query: 'sunset' },
-  [BUTTON_ID.anime]:  { label: '✨ Anime',  query: 'anime' },
+  [BUTTON_ID.anime]: { label: '✨ Anime', query: 'anime' },
 } as const;
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -100,13 +104,13 @@ function buildButtonGrid(btn: AppCtx['button']): string[][] {
     [
       btn.generateID({ id: BUTTON_ID.random, public: true }),
       btn.generateID({ id: BUTTON_ID.nature, public: true }),
-      btn.generateID({ id: BUTTON_ID.space,  public: true }),
+      btn.generateID({ id: BUTTON_ID.space, public: true }),
     ],
     // ── Row 2 ────────────────────────────────────────────────────────────────
     [
-      btn.generateID({ id: BUTTON_ID.city,   public: true }),
+      btn.generateID({ id: BUTTON_ID.city, public: true }),
       btn.generateID({ id: BUTTON_ID.sunset, public: true }),
-      btn.generateID({ id: BUTTON_ID.anime,  public: true }),
+      btn.generateID({ id: BUTTON_ID.anime, public: true }),
     ],
   ];
 }
@@ -174,7 +178,9 @@ async function renderWallpaper(
     const wallpaperPayload = {
       style: MessageStyle.MARKDOWN,
       message: caption,
-      attachment: [{ name: `wallpaper_${width}x${height}.jpg`, stream: Buffer.from(data) }],
+      attachment: [
+        { name: `wallpaper_${width}x${height}.jpg`, stream: Buffer.from(data) },
+      ],
       ...(buttonGrid.length > 0 ? { button: buttonGrid } : {}),
     };
 
@@ -193,7 +199,6 @@ async function renderWallpaper(
     }
 
     await chat.replyMessage(wallpaperPayload);
-
   } catch (err) {
     // ── Error handling ──────────────────────────────────────────────────────
     const error = err as { message?: string; response?: { status?: number } };
@@ -239,42 +244,72 @@ export const button = {
     label: PRESETS[BUTTON_ID.random].label,
     style: ButtonStyle.PRIMARY,
     onClick: async (ctx: AppCtx) =>
-      renderWallpaper(ctx, PRESETS[BUTTON_ID.random].query, DEFAULT_WIDTH, DEFAULT_HEIGHT),
+      renderWallpaper(
+        ctx,
+        PRESETS[BUTTON_ID.random].query,
+        DEFAULT_WIDTH,
+        DEFAULT_HEIGHT,
+      ),
   },
 
   [BUTTON_ID.nature]: {
     label: PRESETS[BUTTON_ID.nature].label,
     style: ButtonStyle.SECONDARY,
     onClick: async (ctx: AppCtx) =>
-      renderWallpaper(ctx, PRESETS[BUTTON_ID.nature].query, DEFAULT_WIDTH, DEFAULT_HEIGHT),
+      renderWallpaper(
+        ctx,
+        PRESETS[BUTTON_ID.nature].query,
+        DEFAULT_WIDTH,
+        DEFAULT_HEIGHT,
+      ),
   },
 
   [BUTTON_ID.space]: {
     label: PRESETS[BUTTON_ID.space].label,
     style: ButtonStyle.SUCCESS,
     onClick: async (ctx: AppCtx) =>
-      renderWallpaper(ctx, PRESETS[BUTTON_ID.space].query, DEFAULT_WIDTH, DEFAULT_HEIGHT),
+      renderWallpaper(
+        ctx,
+        PRESETS[BUTTON_ID.space].query,
+        DEFAULT_WIDTH,
+        DEFAULT_HEIGHT,
+      ),
   },
 
   [BUTTON_ID.city]: {
     label: PRESETS[BUTTON_ID.city].label,
     style: ButtonStyle.DANGER,
     onClick: async (ctx: AppCtx) =>
-      renderWallpaper(ctx, PRESETS[BUTTON_ID.city].query, DEFAULT_WIDTH, DEFAULT_HEIGHT),
+      renderWallpaper(
+        ctx,
+        PRESETS[BUTTON_ID.city].query,
+        DEFAULT_WIDTH,
+        DEFAULT_HEIGHT,
+      ),
   },
 
   [BUTTON_ID.sunset]: {
     label: PRESETS[BUTTON_ID.sunset].label,
     style: ButtonStyle.PRIMARY,
     onClick: async (ctx: AppCtx) =>
-      renderWallpaper(ctx, PRESETS[BUTTON_ID.sunset].query, DEFAULT_WIDTH, DEFAULT_HEIGHT),
+      renderWallpaper(
+        ctx,
+        PRESETS[BUTTON_ID.sunset].query,
+        DEFAULT_WIDTH,
+        DEFAULT_HEIGHT,
+      ),
   },
 
   [BUTTON_ID.anime]: {
     label: PRESETS[BUTTON_ID.anime].label,
     style: ButtonStyle.SECONDARY,
     onClick: async (ctx: AppCtx) =>
-      renderWallpaper(ctx, PRESETS[BUTTON_ID.anime].query, DEFAULT_WIDTH, DEFAULT_HEIGHT),
+      renderWallpaper(
+        ctx,
+        PRESETS[BUTTON_ID.anime].query,
+        DEFAULT_WIDTH,
+        DEFAULT_HEIGHT,
+      ),
   },
 };
 

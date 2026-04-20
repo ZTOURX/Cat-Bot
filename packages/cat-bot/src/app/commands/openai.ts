@@ -19,7 +19,8 @@ export const config = {
   version: '1.0.0',
   role: Role.ANYONE,
   author: 'AjiroDesu',
-  description: 'Chat with a helpful AI assistant using the free Deline OpenAI API.',
+  description:
+    'Chat with a helpful AI assistant using the free Deline OpenAI API.',
   category: 'AI',
   usage: '<your message>',
   cooldown: 5,

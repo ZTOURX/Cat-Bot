@@ -76,7 +76,13 @@ function parseBetInput(raw: string, balance: number): number {
 
   const suffix = match[2]?.toLowerCase();
   const multiplier =
-    suffix === 'k' ? 1_000 : suffix === 'm' ? 1_000_000 : suffix === 'b' ? 1_000_000_000 : 1;
+    suffix === 'k'
+      ? 1_000
+      : suffix === 'm'
+        ? 1_000_000
+        : suffix === 'b'
+          ? 1_000_000_000
+          : 1;
 
   return Math.floor(amount * multiplier);
 }
@@ -135,7 +141,9 @@ function buildBalanceMessage(balance: number): string {
   return `💰 **Current Balance:** ${formatCoins(balance)} coins`;
 }
 
-function readSlotButtonContext(sessionContext: unknown): SlotButtonContext | undefined {
+function readSlotButtonContext(
+  sessionContext: unknown,
+): SlotButtonContext | undefined {
   const ctx = sessionContext as Partial<SlotButtonContext> | undefined;
   if (!ctx?.slotMessage || !ctx.balanceId || !ctx.backId) return undefined;
 
@@ -164,7 +172,9 @@ export const button = {
         style: MessageStyle.MARKDOWN,
         message_id_to_edit: event['messageID'] as string,
         message: balanceMessage,
-        ...(hasNativeButtons(native.platform) ? { button: [context.backId] } : {}),
+        ...(hasNativeButtons(native.platform)
+          ? { button: [context.backId] }
+          : {}),
       });
     },
   },
@@ -180,7 +190,9 @@ export const button = {
         style: MessageStyle.MARKDOWN,
         message_id_to_edit: event['messageID'] as string,
         message: context.slotMessage,
-        ...(hasNativeButtons(native.platform) ? { button: [context.balanceId] } : {}),
+        ...(hasNativeButtons(native.platform)
+          ? { button: [context.balanceId] }
+          : {}),
       });
     },
   },

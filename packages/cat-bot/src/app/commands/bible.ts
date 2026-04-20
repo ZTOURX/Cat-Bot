@@ -70,7 +70,9 @@ interface RandomVerse {
 
 async function fetchRandomReference(): Promise<string | null> {
   try {
-    const { data } = await axios.get<RandomVerse[]>(API.RANDOM, { timeout: 8000 });
+    const { data } = await axios.get<RandomVerse[]>(API.RANDOM, {
+      timeout: 8000,
+    });
     if (Array.isArray(data) && data[0]) {
       const { bookname, chapter, verse } = data[0];
       return `${bookname} ${chapter}:${verse}`;
@@ -108,7 +110,9 @@ async function fetchPassage(
   if (data.text) {
     passageText = data.text.trim();
   } else if (data.verses) {
-    passageText = data.verses.map((v) => `${v.verse}. ${v.text.trim()}`).join('\n');
+    passageText = data.verses
+      .map((v) => `${v.verse}. ${v.text.trim()}`)
+      .join('\n');
   } else {
     passageText = 'No text found.';
   }
@@ -138,10 +142,11 @@ export const button = {
       const version = context.altVersion ?? 'WEB';
 
       try {
-        const { reference: ref, translationName, passageText } = await fetchPassage(
-          reference,
-          version,
-        );
+        const {
+          reference: ref,
+          translationName,
+          passageText,
+        } = await fetchPassage(reference, version);
 
         // Flip to the other version for the next toggle
         const nextAlt = version.toUpperCase() === 'KJV' ? 'WEB' : 'KJV';
@@ -163,7 +168,9 @@ export const button = {
             newMessage.length > 3800
               ? newMessage.substring(0, 3795) + '...'
               : newMessage,
-          ...(hasNativeButtons(native.platform) ? { button: [session.id] } : {}),
+          ...(hasNativeButtons(native.platform)
+            ? { button: [session.id] }
+            : {}),
         });
       } catch {
         // If switch fails, silently do nothing — button stays visible for retry
@@ -214,7 +221,10 @@ export const onCommand = async ({
   });
 
   try {
-    const { reference, translationName, passageText } = await fetchPassage(text, version);
+    const { reference, translationName, passageText } = await fetchPassage(
+      text,
+      version,
+    );
 
     const header = isRandom ? '🎯 **Random Verse**' : '📜 **Scripture**';
     const message =
@@ -224,20 +234,28 @@ export const onCommand = async ({
 
     // If passage is too long, send as a file
     if (message.length > 3800) {
-      const buf = Buffer.from(`${reference} (${translationName})\n\n${passageText}`, 'utf-8');
+      const buf = Buffer.from(
+        `${reference} (${translationName})\n\n${passageText}`,
+        'utf-8',
+      );
       if (loadingId) {
         await chat.unsendMessage(loadingId as string).catch(() => {});
       }
       await chat.reply({
         style: MessageStyle.MARKDOWN,
         message: `📄 **Passage too long** — here is **${reference}** as a file.`,
-        attachment: [{ name: `${reference.replace(/\s/g, '_')}.txt`, stream: buf }],
+        attachment: [
+          { name: `${reference.replace(/\s/g, '_')}.txt`, stream: buf },
+        ],
       });
       return;
     }
 
     // Register context so the switch-translation button knows what to fetch
-    const buttonId = btn.generateID({ id: BUTTON_ID.switchVersion, public: false });
+    const buttonId = btn.generateID({
+      id: BUTTON_ID.switchVersion,
+      public: false,
+    });
     const altVersion = version.toUpperCase() === 'KJV' ? 'WEB' : 'KJV';
     btn.update({ id: buttonId, label: `🔄 Switch to ${altVersion}` });
     btn.createContext({ id: buttonId, context: { reference, altVersion } });
@@ -251,8 +269,12 @@ export const onCommand = async ({
       });
     }
   } catch (err) {
-    const error = err as { response?: { data?: { error?: string } }; message?: string };
-    const errorText = error.response?.data?.error ?? error.message ?? 'Unknown error';
+    const error = err as {
+      response?: { data?: { error?: string } };
+      message?: string;
+    };
+    const errorText =
+      error.response?.data?.error ?? error.message ?? 'Unknown error';
 
     if (loadingId) {
       await chat.editMessage({

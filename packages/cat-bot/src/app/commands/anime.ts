@@ -62,7 +62,8 @@ interface JikanResponse {
 async function fetchAnimeData(query: string): Promise<AnimeEntry[]> {
   const url = `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(query)}&limit=20`;
   const response = await fetch(url);
-  if (!response.ok) throw new Error(`Jikan API responded with status ${response.status}`);
+  if (!response.ok)
+    throw new Error(`Jikan API responded with status ${response.status}`);
   const data = (await response.json()) as JikanResponse;
   return data.data ?? [];
 }

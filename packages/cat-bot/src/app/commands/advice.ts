@@ -75,7 +75,10 @@ export const onCommand = async (ctx: AppCtx): Promise<void> => {
         message: '⚠️ **No advice returned.** Please try again later.',
       };
       if (event['type'] === 'button_action') {
-        await chat.editMessage({ ...errPayload, message_id_to_edit: event['messageID'] as string });
+        await chat.editMessage({
+          ...errPayload,
+          message_id_to_edit: event['messageID'] as string,
+        });
       } else {
         await chat.replyMessage(errPayload);
       }
@@ -109,7 +112,10 @@ export const onCommand = async (ctx: AppCtx): Promise<void> => {
       message: '⚠️ **Error:** Failed to fetch advice. Please try again later.',
     };
     if (event['type'] === 'button_action') {
-      await chat.editMessage({ ...errPayload, message_id_to_edit: event['messageID'] as string });
+      await chat.editMessage({
+        ...errPayload,
+        message_id_to_edit: event['messageID'] as string,
+      });
     } else {
       await chat.replyMessage(errPayload);
     }

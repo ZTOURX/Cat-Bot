@@ -280,7 +280,9 @@ export function createChatContext(
       row.map((id) => {
         const bKey = baseKey(id);
         // Overlay check — allows dynamic buttons to override static defaults cleanly per-instance or globally
-        const overrideFull = buttonContextLib.getOverride(`${commandName}:${id}`);
+        const overrideFull = buttonContextLib.getOverride(
+          `${commandName}:${id}`,
+        );
         const overrideBase = buttonContextLib.getOverride(
           `${commandName}:${bKey}`,
         );
@@ -296,7 +298,7 @@ export function createChatContext(
             buttonDef?.[bKey]?.style ??
             ButtonStyle.SECONDARY) as ButtonStyleValue,
         };
-      })
+      }),
     );
   }
 
@@ -320,7 +322,10 @@ export function createChatContext(
       : (buttonIds as string[]);
   }
 
-  function buildButtonFallbackText(msg: string, buttonIds: string[] | string[][]): string {
+  function buildButtonFallbackText(
+    msg: string,
+    buttonIds: string[] | string[][],
+  ): string {
     logger.debug('[context.model] buildButtonFallbackText called');
     const flat = flattenButtonIds(buttonIds);
     const lines = flat.map((id, idx) => {
@@ -595,7 +600,9 @@ export function createUserContext(
       return api.getUserName(userID);
     },
     getAvatarUrl: (userID) => {
-      logger.debug('[context.model] UserContext.getAvatarUrl called', { userID });
+      logger.debug('[context.model] UserContext.getAvatarUrl called', {
+        userID,
+      });
       return api.getAvatarUrl(userID);
     },
   };

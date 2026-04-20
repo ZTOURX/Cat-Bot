@@ -68,7 +68,13 @@ function scheduleReminder(
 
 // ── onCommand ─────────────────────────────────────────────────────────────────
 
-export const onCommand = async ({ args, chat, event, usage, prefix = '/' }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  args,
+  chat,
+  event,
+  usage,
+  prefix = '/',
+}: AppCtx): Promise<void> => {
   if (args.length < 2) {
     await usage();
     return;

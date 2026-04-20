@@ -75,7 +75,10 @@ export const onCommand = async (ctx: AppCtx): Promise<void> => {
         message: '⚠️ **Error:** Could not retrieve a cat fact.',
       };
       if (event['type'] === 'button_action') {
-        await chat.editMessage({ ...errPayload, message_id_to_edit: event['messageID'] as string });
+        await chat.editMessage({
+          ...errPayload,
+          message_id_to_edit: event['messageID'] as string,
+        });
       } else {
         await chat.replyMessage(errPayload);
       }
@@ -106,10 +109,14 @@ export const onCommand = async (ctx: AppCtx): Promise<void> => {
   } catch {
     const errPayload = {
       style: MessageStyle.MARKDOWN,
-      message: '⚠️ **System Error:** Failed to fetch a cat fact. Please try again later.',
+      message:
+        '⚠️ **System Error:** Failed to fetch a cat fact. Please try again later.',
     };
     if (event['type'] === 'button_action') {
-      await chat.editMessage({ ...errPayload, message_id_to_edit: event['messageID'] as string });
+      await chat.editMessage({
+        ...errPayload,
+        message_id_to_edit: event['messageID'] as string,
+      });
     } else {
       await chat.replyMessage(errPayload);
     }

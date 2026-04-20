@@ -21,7 +21,12 @@ export const config = {
   hasPrefix: true,
 };
 
-export const onCommand = async ({ args, prefix, usage, chat }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  args,
+  prefix,
+  usage,
+  chat,
+}: AppCtx): Promise<void> => {
   if (!args.length) {
     await usage();
     return;

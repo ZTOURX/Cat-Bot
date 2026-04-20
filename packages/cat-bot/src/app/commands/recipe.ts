@@ -42,7 +42,9 @@ interface MealDbResponse {
 
 async function fetchRecipe(): Promise<MealDbMeal | null> {
   try {
-    const { data } = await axios.get<MealDbResponse>(API_URL, { timeout: TIMEOUT });
+    const { data } = await axios.get<MealDbResponse>(API_URL, {
+      timeout: TIMEOUT,
+    });
     return data?.meals?.[0] ?? null;
   } catch {
     return null;
@@ -81,7 +83,8 @@ async function fetchAndSendRecipe(ctx: AppCtx): Promise<void> {
 
   try {
     const meal = await fetchRecipe();
-    if (!meal) throw new Error('Could not fetch a recipe. The kitchen is closed.');
+    if (!meal)
+      throw new Error('Could not fetch a recipe. The kitchen is closed.');
 
     const caption = formatRecipe(meal);
 

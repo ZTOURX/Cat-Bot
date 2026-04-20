@@ -143,11 +143,11 @@ export async function dispatchButtonFallback(
     buttonContextLib.get(`${stored.command}:${fullLocalId}`) ?? {};
 
   const fallbackChat = createChatContext(
-      ctx.api,
-      buttonEvent,
-      stored.command,
-      buttonDef as Parameters<typeof createChatContext>[3],
-    );
+    ctx.api,
+    buttonEvent,
+    stored.command,
+    buttonDef as Parameters<typeof createChatContext>[3],
+  );
 
   // Re-bind ctx to the synthetic buttonEvent so chat.reply() targets the selection reply's
   // messageID rather than the original command trigger — ctx.prefix is forwarded unchanged.
@@ -164,7 +164,11 @@ export async function dispatchButtonFallback(
     parsed: { name: stored.command, args: [] },
     emoji: '',
     messageID: (buttonEvent['messageID'] as string) || '',
-    currencies: createCurrenciesContext(ctx.native.userId ?? '', ctx.native.platform, ctx.native.sessionId ?? ''),
+    currencies: createCurrenciesContext(
+      ctx.native.userId ?? '',
+      ctx.native.platform,
+      ctx.native.sessionId ?? '',
+    ),
   };
 
   // State is intentionally NOT deleted — the numbered menu remains persistently re-selectable,
@@ -268,11 +272,11 @@ export async function handleButtonAction(
       // Reuse the middleware ctx base but override chat with the command-aware variant so button
       // callbacks embed "commandName:buttonId" for routing without a global button ID registry.
       const actionChat = createChatContext(
-          api,
-          event,
-          commandName,
-          mod['button'] as Parameters<typeof createChatContext>[3],
-        );
+        api,
+        event,
+        commandName,
+        mod['button'] as Parameters<typeof createChatContext>[3],
+      );
 
       const ctx: AppCtx = {
         ...buttonClickCtx,
@@ -285,7 +289,11 @@ export async function handleButtonAction(
         parsed: { name: commandName, args: [] },
         emoji: '',
         messageID: (event['messageID'] as string) || '',
-        currencies: createCurrenciesContext(native.userId ?? '', native.platform, native.sessionId ?? ''),
+        currencies: createCurrenciesContext(
+          native.userId ?? '',
+          native.platform,
+          native.sessionId ?? '',
+        ),
       };
 
       await Promise.resolve(handler.onClick(ctx)).catch((err: unknown) => {

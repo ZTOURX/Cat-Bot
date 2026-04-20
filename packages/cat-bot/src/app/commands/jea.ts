@@ -21,7 +21,8 @@ export const config = {
   version: '1.0.0',
   role: Role.ANYONE,
   author: 'AjiroDesu',
-  description: 'Chat with Jea, your sweet AI girlfriend (Taglish + open-minded roleplay).',
+  description:
+    'Chat with Jea, your sweet AI girlfriend (Taglish + open-minded roleplay).',
   category: 'AI Chat',
   usage: '<your message>',
   cooldown: 5,

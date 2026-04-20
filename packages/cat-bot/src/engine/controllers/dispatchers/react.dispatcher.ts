@@ -90,7 +90,11 @@ export async function dispatchOnReact(
           await import('@/engine/modules/options/options-map.lib.js')
         ).OptionsMap.empty(),
         parsed: { name: stored.command, args: [] },
-        currencies: createCurrenciesContext(ctx.native.userId ?? '', ctx.native.platform, ctx.native.sessionId ?? ''),
+        currencies: createCurrenciesContext(
+          ctx.native.userId ?? '',
+          ctx.native.platform,
+          ctx.native.sessionId ?? '',
+        ),
       }).catch((err: unknown) => {
         console.error(`❌ onReact "${stored.command}.${emoji}" failed`, err);
       });

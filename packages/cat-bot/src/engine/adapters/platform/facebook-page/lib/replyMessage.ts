@@ -59,12 +59,15 @@ export async function replyMessage(
   // API reference: developers.facebook.com/docs/messenger-platform/send-messages/template/button
   if (button.length > 0) {
     // Flatten 2D array of rows into a 1D array to extract ButtonItem properties
-    const fbButtons = button.flat().slice(0, 3).map((btn) => ({
-      type: 'postback',
-      // Facebook limits button titles to 20 characters — silently truncate to avoid API errors
-      title: btn.label.slice(0, 20),
-      payload: btn.id,
-    }));
+    const fbButtons = button
+      .flat()
+      .slice(0, 3)
+      .map((btn) => ({
+        type: 'postback',
+        // Facebook limits button titles to 20 characters — silently truncate to avoid API errors
+        title: btn.label.slice(0, 20),
+        payload: btn.id,
+      }));
     // Send URL attachments first — image appears above the button template row in chat
     for (const { url, name } of attachment_url) {
       await pageApi.sendUrlAttachment(url, threadID, name);

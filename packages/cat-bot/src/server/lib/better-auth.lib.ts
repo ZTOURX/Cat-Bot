@@ -78,7 +78,8 @@ export const auth = betterAuth({
           // (the admin plugin clears the ban flag automatically on next login).
           if (!banExpires || banExpires > new Date()) {
             const reason =
-              (u['banReason'] as string | null | undefined) ?? 'No reason provided.';
+              (u['banReason'] as string | null | undefined) ??
+              'No reason provided.';
             throw new APIError('FORBIDDEN', {
               message: `Your account has been banned. Reason: ${reason}`,
             });
@@ -104,12 +105,14 @@ export const adminAuth = betterAuth({
   database: isJson
     ? jsonAdapter()
     : isNeon
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ? (neonPool as unknown as any)
-    : isMongo
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ? mongodbAdapter((getMongoDb as unknown as () => any)(), { client: mongoClient })
-    : prismaAdapter(prisma, { provider: 'sqlite' }),
+      ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (neonPool as unknown as any)
+      : isMongo
+        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          mongodbAdapter((getMongoDb as unknown as () => any)(), {
+            client: mongoClient,
+          })
+        : prismaAdapter(prisma, { provider: 'sqlite' }),
   emailAndPassword: { enabled: true },
   trustedOrigins: env.VITE_URL ? [env.VITE_URL] : undefined,
   advanced: {
@@ -145,7 +148,8 @@ export const adminAuth = betterAuth({
           const banExpires = u['banExpires'] as Date | null | undefined;
           if (!banExpires || banExpires > new Date()) {
             const reason =
-              (u['banReason'] as string | null | undefined) ?? 'No reason provided.';
+              (u['banReason'] as string | null | undefined) ??
+              'No reason provided.';
             throw new APIError('FORBIDDEN', {
               message: `Your account has been banned. Reason: ${reason}`,
             });
@@ -156,9 +160,15 @@ export const adminAuth = betterAuth({
       // User exists but lacks admin role → reject before password verification.
       // Unknown user → fall through so the main handler returns "invalid credentials"
       // (avoids leaking which emails are registered vs which are non-admin).
-      if (user !== null && (user as Record<string, unknown>)['role'] !== 'admin') {
+      if (
+        user !== null &&
+        (user as Record<string, unknown>)['role'] !== 'admin'
+      ) {
         return ctx.json(
-          { message: 'Admin access required. Only admin-role users may sign in here.' },
+          {
+            message:
+              'Admin access required. Only admin-role users may sign in here.',
+          },
           { status: 403 },
         );
       }

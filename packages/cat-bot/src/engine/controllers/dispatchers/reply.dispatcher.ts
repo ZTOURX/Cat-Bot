@@ -105,7 +105,11 @@ export async function dispatchOnReply(
         parsed: { name: stored.command, args: [] },
         emoji: '',
         messageID: (event['messageID'] as string) || '',
-        currencies: createCurrenciesContext(ctx.native.userId ?? '', ctx.native.platform, ctx.native.sessionId ?? ''),
+        currencies: createCurrenciesContext(
+          ctx.native.userId ?? '',
+          ctx.native.platform,
+          ctx.native.sessionId ?? '',
+        ),
       }).catch((err: unknown) => {
         console.error(
           `❌ onReply "${stored.command}.${stored.state}" failed`,

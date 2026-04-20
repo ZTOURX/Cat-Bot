@@ -59,7 +59,7 @@ export async function editMessage(
               row.map((btn) => ({
                 text: btn.label,
                 callback_data: btn.id.slice(0, 64),
-              }))
+              })),
             ),
           }
         : { inline_keyboard: [] };

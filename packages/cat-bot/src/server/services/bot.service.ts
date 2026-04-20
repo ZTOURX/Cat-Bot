@@ -359,7 +359,9 @@ export class BotService {
       try {
         await sessionManager.stop(key);
       } catch (e) {
-        logger.warn(`[bot.service] deleteBot: failed to stop ${key}`, { error: e });
+        logger.warn(`[bot.service] deleteBot: failed to stop ${key}`, {
+          error: e,
+        });
       }
     }
     sessionManager.unregister(key);
@@ -389,12 +391,14 @@ export class BotService {
     // Persist the stopped state so session-loader never boots these sessions while banned
     await Promise.all(
       bots.map((bot) =>
-        botRepo.updateIsRunning(userId, bot.sessionId, false).catch((err) =>
-          logger.error(
-            `[bot.service] Failed to set isRunning=false for ${bot.sessionId} on ban`,
-            { error: err },
+        botRepo
+          .updateIsRunning(userId, bot.sessionId, false)
+          .catch((err) =>
+            logger.error(
+              `[bot.service] Failed to set isRunning=false for ${bot.sessionId} on ban`,
+              { error: err },
+            ),
           ),
-        ),
       ),
     );
 
@@ -403,7 +407,9 @@ export class BotService {
     botRepo.clearUserCache(userId);
     prefixManager.clearAllByUserId(userId);
 
-    logger.info(`[bot.service] Stopped ${bots.length} session(s) for banned user ${userId}`);
+    logger.info(
+      `[bot.service] Stopped ${bots.length} session(s) for banned user ${userId}`,
+    );
   }
 
   /**
@@ -428,7 +434,9 @@ export class BotService {
       }),
     );
 
-    logger.info(`[bot.service] Started ${bots.length} session(s) for unbanned user ${userId}`);
+    logger.info(
+      `[bot.service] Started ${bots.length} session(s) for unbanned user ${userId}`,
+    );
   }
 }
 

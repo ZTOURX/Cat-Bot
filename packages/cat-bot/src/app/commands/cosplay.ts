@@ -127,7 +127,8 @@ export const onCommand = async (ctx: AppCtx): Promise<void> => {
   if (!senderID) {
     const noIdPayload = {
       style: MessageStyle.MARKDOWN,
-      message: '❌ **Error:** Could not identify your user account on this platform.',
+      message:
+        '❌ **Error:** Could not identify your user account on this platform.',
     };
     if (isButtonAction) {
       await chat.editMessage({
@@ -164,7 +165,9 @@ export const onCommand = async (ctx: AppCtx): Promise<void> => {
         await chat.editMessage({
           ...brokePayload,
           message_id_to_edit: event['messageID'] as string,
-          ...(hasNativeButtons(native.platform) ? { button: [session.id] } : {}),
+          ...(hasNativeButtons(native.platform)
+            ? { button: [session.id] }
+            : {}),
         });
       } else {
         await chat.replyMessage(brokePayload);
@@ -176,7 +179,10 @@ export const onCommand = async (ctx: AppCtx): Promise<void> => {
     // Deducting first prevents a race-condition where the same user fires
     // multiple simultaneous requests and drains more coins than intended
     // if we checked → fetched → deducted.
-    await currencies.decreaseMoney({ user_id: senderID, money: COST_PER_VIDEO });
+    await currencies.decreaseMoney({
+      user_id: senderID,
+      money: COST_PER_VIDEO,
+    });
     const newBalance = balance - COST_PER_VIDEO;
 
     // ── Fetch video ───────────────────────────────────────────────────────
@@ -185,7 +191,10 @@ export const onCommand = async (ctx: AppCtx): Promise<void> => {
     if (!videoUrl) {
       // Refund the coins when the archive is unavailable so the user isn't
       // charged for a video they never received.
-      await currencies.increaseMoney({ user_id: senderID, money: COST_PER_VIDEO });
+      await currencies.increaseMoney({
+        user_id: senderID,
+        money: COST_PER_VIDEO,
+      });
 
       const errPayload = {
         style: MessageStyle.MARKDOWN,
@@ -239,7 +248,8 @@ export const onCommand = async (ctx: AppCtx): Promise<void> => {
   } catch {
     const errPayload = {
       style: MessageStyle.MARKDOWN,
-      message: '⚠️ **Error:** Something went wrong while fetching a cosplay video. Please try again later.',
+      message:
+        '⚠️ **Error:** Something went wrong while fetching a cosplay video. Please try again later.',
     };
     if (isButtonAction) {
       await chat.editMessage({

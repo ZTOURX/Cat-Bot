@@ -32,7 +32,10 @@ async function fetchQuote(): Promise<QuoteData | null> {
       timeout: 8000,
     });
     if (!data?.quote) return null;
-    return { quote: data.quote as string, author: (data.author as string) || 'Unknown' };
+    return {
+      quote: data.quote as string,
+      author: (data.author as string) || 'Unknown',
+    };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[quote] fetchQuote error:', msg);
@@ -86,7 +89,8 @@ export const onCommand = async (ctx: AppCtx): Promise<void> => {
       if (event['type'] === 'button_action') {
         await chat.editMessage({
           style: MessageStyle.MARKDOWN,
-          message: '⚠️ **Network Error:** Could not fetch a quote. Please try again.',
+          message:
+            '⚠️ **Network Error:** Could not fetch a quote. Please try again.',
           message_id_to_edit: event['messageID'] as string,
         });
       } else {
@@ -128,7 +132,10 @@ export const onCommand = async (ctx: AppCtx): Promise<void> => {
       message: '⚠️ **Error:** Failed to fetch a quote. Please try again later.',
     };
     if (event['type'] === 'button_action') {
-      await chat.editMessage({ ...errPayload, message_id_to_edit: event['messageID'] as string });
+      await chat.editMessage({
+        ...errPayload,
+        message_id_to_edit: event['messageID'] as string,
+      });
     } else {
       await chat.replyMessage(errPayload);
     }
