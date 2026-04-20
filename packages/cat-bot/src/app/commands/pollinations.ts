@@ -15,7 +15,7 @@ export const config = {
   role: Role.ANYONE,
   author: 'AjiroDesu',
   description: 'Generate an image using Pollinations AI.',
-  category: 'Media',
+  category: 'AI Generate',
   usage: '<prompt>',
   cooldown: 10,
   hasPrefix: true,

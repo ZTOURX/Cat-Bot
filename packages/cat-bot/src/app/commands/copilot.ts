@@ -1,8 +1,9 @@
 /**
- * Copilot AI Command (NexRay)
+ * Copilot AI Command (NexRay + Deline Fallback)
  *
- * Chat with GitHub Copilot AI using the free NexRay API.
- * Simple text-in → text-out, no extra prompt needed.
+ * Chat with GitHub Copilot AI using the free NexRay API as primary,
+ * with Deline API as fallback.
+ * Both APIs are resolved via the central createUrl registry.
  *
  * Usage:
  *   !copilot Hey, how are you?
@@ -17,20 +18,21 @@ import { createUrl } from '@/engine/utils/api.util.js';
 export const config = {
   name: 'copilot',
   aliases: ['copilotai', 'cp', 'githubcopilot'] as string[],
-  version: '1.0.0',
+  version: '1.0.2',
   role: Role.ANYONE,
   author: 'AjiroDesu',
-  description: 'Chat with GitHub Copilot AI using the free NexRay API.',
-  category: 'AI',
+  description: 'Chat with GitHub Copilot AI using the free NexRay API (with Deline fallback).',
+  category: 'AI Chat',
   usage: '<your message>',
   cooldown: 5,
   hasPrefix: true,
 };
 
-interface NexrayCopilotResponse {
+interface CopilotResponse {
   status: boolean;
-  author: string;
   result: string;
+  author?: string;
+  creator?: string;
   timestamp?: string;
   response_time?: string;
 }
@@ -44,40 +46,69 @@ export const onCommand = async ({
 
   const text = args.join(' ');
 
-  // Build the fully-resolved URL using the central api.util registry
-  // (nexray baseURL = https://api.nexray.web.id is already registered)
-  const url = createUrl('nexray', '/ai/copilot', { text });
-  if (!url) {
+  // Primary: NexRay API (via registered createUrl)
+  const primaryUrl = createUrl('nexray', '/ai/copilot', { text });
+  if (!primaryUrl) {
     await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
-      message: '❌ Failed to build the Copilot API request URL.',
+      message: '❌ Failed to build the primary (NexRay) Copilot API request URL.',
     });
     return;
   }
 
-  let data: NexrayCopilotResponse;
+  let data: CopilotResponse | null = null;
+  let errorLog = '';
+
+  // === Try Primary (NexRay) ===
   try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`API responded with status ${res.status}`);
-    data = (await res.json()) as NexrayCopilotResponse;
+    const res = await fetch(primaryUrl);
+    if (!res.ok) throw new Error(`Primary API responded with status ${res.status}`);
+
+    const primaryData = (await res.json()) as CopilotResponse;
+    if (primaryData?.status === true && primaryData?.result?.trim()) {
+      data = primaryData;
+    } else {
+      throw new Error('Primary API returned invalid or empty response');
+    }
   } catch (err) {
     const error = err as { message?: string };
+    errorLog = `Primary (NexRay): ${error.message ?? 'Unknown error'}`;
+  }
+
+  // === Fallback: Deline API (if primary failed) ===
+  if (!data) {
+    // Deline is already registered in the source code system (baseURL = https://api.deline.web.id)
+    const fallbackUrl = createUrl('deline', '/ai/copilot', { text });
+    if (!fallbackUrl) {
+      errorLog += `\nFallback (Deline): Failed to build request URL`;
+    } else {
+      try {
+        const res = await fetch(fallbackUrl);
+        if (!res.ok) throw new Error(`Fallback API responded with status ${res.status}`);
+
+        const fallbackData = (await res.json()) as CopilotResponse;
+        if (fallbackData?.status === true && fallbackData?.result?.trim()) {
+          data = fallbackData;
+        } else {
+          throw new Error('Fallback API returned invalid or empty response');
+        }
+      } catch (err) {
+        const error = err as { message?: string };
+        errorLog += `\nFallback (Deline): ${error.message ?? 'Unknown error'}`;
+      }
+    }
+  }
+
+  // === Final result ===
+  if (!data) {
     await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
-      message: `❌ Failed to reach the Copilot API.\n\`${error.message ?? 'Unknown error'}\``,
+      message: `❌ Failed to reach any Copilot API.\n\`${errorLog}\``,
     });
     return;
   }
 
-  if (!data?.status || !data?.result) {
-    await chat.replyMessage({
-      style: MessageStyle.MARKDOWN,
-      message: '❌ The Copilot API returned an invalid or empty response.',
-    });
-    return;
-  }
-
-  // Copilot's response is ready to send directly
+  // Both APIs return the answer in the "result" field
   await chat.replyMessage({
     style: MessageStyle.MARKDOWN,
     message: data.result,

@@ -12,7 +12,7 @@ export const config = {
   author: 'System',
   description:
     'Interact with the AI assistant. It can chat and execute commands on your behalf.',
-  category: 'Utility',
+  category: 'AI Chat',
   usage: '<prompt>',
   cooldown: 5,
   hasPrefix: true,
