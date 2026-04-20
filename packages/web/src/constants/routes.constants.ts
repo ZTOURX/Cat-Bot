@@ -21,6 +21,13 @@ export const ROUTES = {
     BOT: '/dashboard/bot',
     BOT_SETTINGS: '/dashboard/bot/settings',
   },
+  ADMIN: {
+    ROOT: '/admin',
+    DASHBOARD: '/admin/dashboard',
+    USERS: '/admin/dashboard/users',
+    BOTS: '/admin/dashboard/bots',
+    SETTINGS: '/admin/dashboard/settings',
+  },
 } as const
 
 /**
@@ -36,4 +43,10 @@ export const ROUTE_SEGMENTS = {
   SETTINGS: 'settings',
   CREATE_NEW_BOT: 'create-new-bot',
   BOT: 'bot',
+  ADMIN: 'admin',
+  ADMIN_LOGIN: 'login',
+  ADMIN_DASHBOARD: 'dashboard',
+  ADMIN_USERS: 'users',
+  ADMIN_BOTS: 'bots',
+  ADMIN_SETTINGS: 'settings',
 } as const

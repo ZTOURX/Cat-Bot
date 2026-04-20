@@ -13,16 +13,16 @@ import DataList from '@/components/ui/data-display/DataList'
 import Steps from '@/components/ui/navigation/Steps'
 import Divider from '@/components/ui/layout/Divider'
 import { ROUTES } from '@/constants/routes.constants'
-import { useBotCreate } from '@/hooks/useBotCreate'
-import { useBotValidation } from '@/hooks/useBotValidation'
-import type { Platform, PlatformCredentials } from '@/dtos/bot.dto'
+import { useBotCreate } from '@/features/users/hooks/useBotCreate'
+import { useBotValidation } from '@/features/users/hooks/useBotValidation'
+import type { Platform, PlatformCredentials } from '@/features/users/dtos/bot.dto'
 import { Platforms } from '@/constants/platform.constants'
 import { getPlatformLabel, maskCredential } from '@/utils/bot.util'
 import {
   PlatformFieldInputs,
   type PlatformFields,
-} from '@/components/bot/PlatformFieldInputs'
-import { VerificationStatusDisplay } from '@/components/bot/VerificationStatusDisplay'
+} from '@/features/users/components/PlatformFieldInputs'
+import { VerificationStatusDisplay } from '@/features/users/components/VerificationStatusDisplay'
 
 const INITIAL_PLATFORM_FIELDS: PlatformFields = {
   discordToken: '',

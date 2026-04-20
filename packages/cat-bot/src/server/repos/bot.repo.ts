@@ -14,6 +14,7 @@
 import { botRepo as _botRepo } from 'database';
 import { lruCache } from '@/engine/lib/lru-cache.lib.js';
 import { SESSIONS_ALL_KEY } from '@/engine/repos/credentials.repo.js';
+import type { GetAdminBotListResponseDto } from '@/server/dtos/admin.dto.js';
 import type {
   CreateBotRequestDto,
   CreateBotResponseDto,
@@ -130,5 +131,13 @@ export const botRepo = {
     if (detail) {
       lruCache.delByPrefix(`${userId}:${detail.platform}:${sessionId}:`);
     }
+  },
+
+  // Admin-only: list all bot sessions regardless of owner.
+  // Bypasses LRU cache entirely — admin views are low-frequency and require fresh
+  // user names/emails which can change outside the bot repo's control (e.g. auth updates).
+  async listAll(): Promise<GetAdminBotListResponseDto> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
+    return await (_botRepo as any).listAll() as GetAdminBotListResponseDto;
   },
 };

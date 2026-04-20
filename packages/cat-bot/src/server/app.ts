@@ -10,7 +10,7 @@
 import express, { type Application } from 'express';
 import { env } from '@/engine/config/env.config.js';
 import { toNodeHandler } from 'better-auth/node';
-import { auth } from '@/server/lib/better-auth.lib.js';
+import { auth, adminAuth } from '@/server/lib/better-auth.lib.js';
 import cors from 'cors';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -56,6 +56,10 @@ export function createApp(): Application {
   // Better Auth must mount BEFORE express.json() — toNodeHandler reads the raw Node.js
   // IncomingMessage stream; json() would consume the body before better-auth can parse it.
   app.all('/api/auth/{*any}', toNodeHandler(auth));
+  // Admin auth instance — same stream-before-json constraint applies.
+  // Mounted at its own path so Express routes admin traffic to the independent betterAuth
+  // instance that sets the 'ba-admin.session_token' cookie (not 'better-auth.session_token').
+  app.all('/api/admin-auth/{*any}', toNodeHandler(adminAuth));
 
   // Telegram webhook — mounted BEFORE express.json() for the same reason as better-auth:
   // Telegraf's RequestListener reads the raw body stream itself. If express.json() ran first
