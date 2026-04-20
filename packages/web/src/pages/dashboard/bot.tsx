@@ -6,17 +6,17 @@ import Progress from '@/components/ui/feedback/Progress'
 import Button from '@/components/ui/buttons/Button'
 import { ROUTES } from '@/constants/routes.constants'
 
-import { useBotDetail } from '@/hooks/useBotDetail'
-import { useBotStatus } from '@/hooks/useBotStatus'
-import { useBotLogs } from '@/hooks/useBotLogs'
-import { useBotCommands } from '@/hooks/useBotCommands'
-import { useBotEvents } from '@/hooks/useBotEvents'
+import { useBotDetail } from '@/features/users/hooks/useBotDetail'
+import { useBotStatus } from '@/features/users/hooks/useBotStatus'
+import { useBotLogs } from '@/features/users/hooks/useBotLogs'
+import { useBotCommands } from '@/features/users/hooks/useBotCommands'
+import { useBotEvents } from '@/features/users/hooks/useBotEvents'
 
-import { ConsoleTab } from '@/components/bot/ConsoleTab'
-import { CommandsTab } from '@/components/bot/CommandsTab'
-import { EventsTab } from '@/components/bot/EventsTab'
-import { BotSettingsTab } from '@/components/bot/BotSettingsTab'
-import { botService } from '@/services/bot.service'
+import { ConsoleTab } from '@/features/users/components/ConsoleTab'
+import { CommandsTab } from '@/features/users/components/CommandsTab'
+import { EventsTab } from '@/features/users/components/EventsTab'
+import { BotSettingsTab } from '@/features/users/components/BotSettingsTab'
+import { botService } from '@/features/users/services/bot.service'
 
 /**
  * Bot detail page — reached via /dashboard/bot?id=<id>

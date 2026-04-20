@@ -13,7 +13,7 @@ import Status from '@/components/ui/data-display/Status'
 import DataList from '@/components/ui/data-display/DataList'
 import { useTheme } from '@/contexts/ThemeContext'
 import { toggleTheme } from '@/utils/theme.util'
-import { useFbWebhook } from '@/hooks/useFbWebhook'
+import { useFbWebhook } from '@/features/users/hooks/useFbWebhook'
 // better-auth exposes updateUser and changePassword as built-in client functions —
 // no custom server endpoints needed; toNodeHandler(auth) in server/app.ts already
 // mounts /api/auth/update-user and /api/auth/change-password automatically.
