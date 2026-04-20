@@ -80,7 +80,7 @@ export default function AdminSettingsPage() {
 
   // ── System Admins — real API ───────────────────────────────────────────────
   const [systemAdmins, setSystemAdmins] = useState<SystemAdminDto[]>([])
-  const [newAdminId, setNewAdminId] = useState('')
+  const [adminIds, setAdminIds] = useState<string[]>([''])
   const [adminLoading, setAdminLoading] = useState(true)
   const [adminError, setAdminError] = useState<string | null>(null)
   const [adminSaving, setAdminSaving] = useState(false)
@@ -92,6 +92,7 @@ export default function AdminSettingsPage() {
       try {
         const result = await adminService.getSystemAdmins()
         setSystemAdmins(result.admins)
+        setAdminIds(result.admins.length > 0 ? result.admins.map((a) => a.adminId) : [''])
       } catch (err) {
         setAdminError(err instanceof Error ? err.message : 'Failed to load system admins')
       } finally {
@@ -101,32 +102,52 @@ export default function AdminSettingsPage() {
     void load()
   }, [])
 
-  const handleAddAdmin = async (): Promise<void> => {
-    if (!newAdminId.trim()) return
-    setAdminSaving(true); setAdminError(null); setAdminSuccess(false)
+  const handleAdminChange = (index: number, value: string) => {
+    setAdminIds((prev) => {
+      const ids = [...prev]
+      ids[index] = value
+      return ids
+    })
+    setAdminError(null)
+    setAdminSuccess(false)
+  }
+
+  const handleAddAdminRow = () => {
+    setAdminIds((prev) => [...prev, ''])
+  }
+
+  const handleRemoveAdminRow = (index: number) => {
+    setAdminIds((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev))
+  }
+
+  // Compute diff to determine if a save is needed and what to dispatch
+  const targetIds = Array.from(new Set(adminIds.map((id) => id.trim()).filter((id) => id !== '')))
+  const currentIds = systemAdmins.map((a) => a.adminId)
+  const isAdminsModified =
+    targetIds.length !== currentIds.length ||
+    targetIds.some((id) => !currentIds.includes(id)) ||
+    currentIds.some((id) => !targetIds.includes(id))
+
+  const handleSaveAdmins = async (): Promise<void> => {
+    setAdminSaving(true)
+    setAdminError(null)
+    setAdminSuccess(false)
     try {
-      const added = await adminService.addSystemAdmin(newAdminId.trim())
-      // Avoid duplicates in local list — server already deduplicates via @unique
-      setSystemAdmins((prev) =>
-        prev.some((a) => a.adminId === added.adminId) ? prev : [...prev, added],
-      )
-      setNewAdminId('')
+      const toAdd = targetIds.filter((id) => !currentIds.includes(id))
+      const toRemove = currentIds.filter((id) => !targetIds.includes(id))
+
+      // Execute operations iteratively to avoid DB lock issues with concurrent operations on the same table
+      for (const id of toRemove) await adminService.removeSystemAdmin(id)
+      for (const id of toAdd) await adminService.addSystemAdmin(id)
+
+      const result = await adminService.getSystemAdmins()
+      setSystemAdmins(result.admins)
+      setAdminIds(result.admins.length > 0 ? result.admins.map((a) => a.adminId) : [''])
+
       setAdminSuccess(true)
       setTimeout(() => setAdminSuccess(false), 3000)
     } catch (err) {
-      setAdminError(err instanceof Error ? err.message : 'Failed to add system admin')
-    } finally {
-      setAdminSaving(false)
-    }
-  }
-
-  const handleRemoveAdmin = async (adminId: string): Promise<void> => {
-    setAdminSaving(true); setAdminError(null)
-    try {
-      await adminService.removeSystemAdmin(adminId)
-      setSystemAdmins((prev) => prev.filter((a) => a.adminId !== adminId))
-    } catch (err) {
-      setAdminError(err instanceof Error ? err.message : 'Failed to remove system admin')
+      setAdminError(err instanceof Error ? err.message : 'Failed to update system admins')
     } finally {
       setAdminSaving(false)
     }
@@ -215,37 +236,27 @@ export default function AdminSettingsPage() {
       {/* ── System Administrators ── */}
       <Card.Root variant="elevated" shadowElevation={1} padding="md">
         <Card.Header>
-          <div>
-            <Card.Title as="h2">System Administrators</Card.Title>
-            <Card.Description>
-              The absolute highest authority role in Cat-Bot. System Administrators bypass all command role restrictions and ban checks.
-            </Card.Description>
-          </div>
-        </Card.Header>
-        <div className="flex flex-col gap-3">
-          {/* Add new system admin */}
-          <div className="flex items-start gap-2">
-            <div className="flex-1">
-              <Input
-                placeholder="System admin user ID"
-                value={newAdminId}
-                onChange={(e) => setNewAdminId(e.target.value)}
-                disabled={adminSaving}
-                aria-label="New system admin user ID"
-              />
+          <div className="flex items-start justify-between w-full">
+            <div>
+              <Card.Title as="h2">System Administrators</Card.Title>
+              <Card.Description>
+                The absolute highest authority role in Cat-Bot. System Administrators bypass all command role restrictions and ban checks.
+              </Card.Description>
             </div>
             <Button
-              variant="tonal" color="primary" size="md"
-              leftIcon={<Plus className="h-4 w-4" />}
-              onClick={() => { void handleAddAdmin() }}
-              disabled={adminSaving || !newAdminId.trim()}
-              isLoading={adminSaving}
+              variant="text"
+              color="primary"
+              size="sm"
+              leftIcon={<Plus className="h-3.5 w-3.5" />}
+              onClick={handleAddAdminRow}
+              disabled={adminSaving || adminLoading}
+              aria-label="Add another system admin user ID"
             >
               Add
             </Button>
           </div>
-
-          {/* Registered system admins list */}
+        </Card.Header>
+        <div className="flex flex-col gap-3">
           {adminLoading ? (
             <div className="flex flex-col gap-2">
               {[1, 2].map((i) => (
@@ -254,30 +265,48 @@ export default function AdminSettingsPage() {
             </div>
           ) : (
             <div className="flex flex-col gap-2">
-              {systemAdmins.map((admin) => (
-                <div key={admin.id} className="flex items-center gap-2">
-                  <div className="flex-1 px-3 py-2 rounded-xl bg-surface border border-outline-variant font-mono text-body-sm text-on-surface truncate">
-                    {admin.adminId}
+              {adminIds.map((adminId, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <Input
+                      placeholder={`System admin user ID ${index + 1}`}
+                      value={adminId}
+                      onChange={(e) => handleAdminChange(index, e.target.value)}
+                      disabled={adminSaving}
+                      aria-label={`System admin user ID ${index + 1}`}
+                    />
                   </div>
-                  <Button
-                    variant="text" color="error" iconOnly
-                    onClick={() => { void handleRemoveAdmin(admin.adminId) }}
-                    aria-label={`Remove system admin ${admin.adminId}`}
-                    leftIcon={<Trash2 className="h-4 w-4" />}
-                    disabled={adminSaving}
-                  />
+                  {adminIds.length > 1 && (
+                    <Button
+                      variant="text"
+                      color="error"
+                      iconOnly
+                      onClick={() => handleRemoveAdminRow(index)}
+                      aria-label={`Remove system admin ${index + 1}`}
+                      leftIcon={<Trash2 className="h-4 w-4" />}
+                      disabled={adminSaving}
+                    />
+                  )}
                 </div>
               ))}
-              {systemAdmins.length === 0 && (
-                <p className="text-body-sm text-on-surface-variant text-center py-4">
-                  No system admins registered yet.
-                </p>
-              )}
             </div>
           )}
 
           {adminError !== null && <Alert variant="tonal" color="error" title={adminError} size="sm" />}
-          {adminSuccess && <Alert variant="tonal" color="success" title="System admin added successfully." size="sm" />}
+          {adminSuccess && <Alert variant="tonal" color="success" title="System administrators updated successfully." size="sm" />}
+
+          <div className="flex justify-end pt-1">
+            <Button
+              variant="filled"
+              color="primary"
+              size="sm"
+              onClick={() => void handleSaveAdmins()}
+              disabled={adminSaving || !isAdminsModified || adminLoading}
+              isLoading={adminSaving}
+            >
+              Save changes
+            </Button>
+          </div>
         </div>
       </Card.Root>
 
