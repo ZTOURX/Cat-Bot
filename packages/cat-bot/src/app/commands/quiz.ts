@@ -15,7 +15,8 @@
  *        brand-new question (and fresh True/False buttons), preserving the
  *        same difficulty. (Matches the RPS command pattern for cleaner chat.)
  *     5. A setTimeout reveals the answer if no button is pressed within
- *        TIMEOUT_MS, editing the message and stripping all buttons.
+ *        TIMEOUT_MS, editing the message AND adding a 🔄 Play Again button
+ *        (new requirement).
  *
  *   Facebook Messenger & Facebook Page  → emoji reactions (original flow)
  *
@@ -36,7 +37,7 @@ import type { CommandConfig } from '@/engine/types/module-config.types.js';
 export const config: CommandConfig = {
   name: 'quiz',
   aliases: ['trivia'] as string[],
-  version: '1.3.1',
+  version: '1.3.2', // ← version bumped
   role: Role.ANYONE,
   author: 'John Lester',
   description:
@@ -221,11 +222,18 @@ async function runButtonQuiz(
   btn.createContext({ id: trueId, context: quizCtx });
   btn.createContext({ id: falseId, context: quizCtx });
 
-  // Timeout: reveal the answer and strip all buttons
+  // Timeout: reveal the answer + add Play Again button (NEW)
   const timeoutHandle = setTimeout(() => {
     if (pendingAnswers.get(msgIdStr) === true) return;
     pendingAnswers.delete(msgIdStr);
     timeouts.delete(msgIdStr);
+
+    // ── Generate Play Again button exactly like in showButtonResult ──
+    const playAgainId = btn.generateID({ id: BUTTON_ID.playAgain, public: true });
+    btn.createContext({
+      id: playAgainId,
+      context: { difficulty } satisfies Record<string, unknown>,
+    });
 
     void chat.editMessage({
       style: MessageStyle.MARKDOWN,
@@ -237,7 +245,7 @@ async function runButtonQuiz(
         ``,
         `⏰ **Time's up!** The correct answer was **${answer}**.`,
       ].join('\n'),
-      // Omitting `button` removes the inline keyboard on edit
+      button: [playAgainId], // ← Play Again button now appears on timeout
     });
   }, TIMEOUT_MS);
 
