@@ -8,6 +8,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc --noCheck && tsc-alias",
     "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
     "migrate:sqlite-to-json": "tsx scripts/migrate-sqlite-to-json.ts",
     "migrate:json-to-sqlite": "tsx scripts/migrate-json-to-sqlite.ts",
     "migrate:json-to-mongodb": "tsx scripts/migrate-json-to-mongodb.ts",
@@ -37,10 +38,11 @@
     "@types/node": "^25.5.2",
     "ts-node": "^10.9.2",
     "tsc-alias": "^1.8.16",
-    "typescript": "^6.0.2",
-    "tsx": "^4.21.0"
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.2"
   },
   "dependencies": {
-    "dotenv": "^17.4.1"
+    "dotenv": "^17.4.1",
+    "prettier": "^3.8.3"
   }
 }
