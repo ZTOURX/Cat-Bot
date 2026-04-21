@@ -42,8 +42,8 @@ const threadSessionExistsKey = (
 ): string =>
   `${userId}:${platform}:${sessionId}:thread:sessionExists:${threadId}`;
 
-const threadAdminKey = (threadId: string, userId: string): string =>
-  `thread:admin:${threadId}:${userId}`;
+const threadAdminsSetKey = (threadId: string): string =>
+  `thread:admins:set:${threadId}`;
 
 const threadNameKey = (threadId: string): string => `thread:name:${threadId}`;
 
@@ -76,13 +76,15 @@ export async function upsertThread(
   data: any,
 ): Promise<void> {
   await _upsertThread(data);
-  // Thread now definitively exists; mark it so threadExists callers don't hit DB next time.
   lruCache.set(threadExistsKey(data.id), true);
-  // Name may have changed — evict so next getThreadName re-fetches the authoritative value.
   lruCache.del(threadNameKey(data.id));
-  // Admin membership array was atomically replaced — all per-user admin checks for this
-  // thread are stale regardless of which user they reference.
-  lruCache.delByPrefix(`thread:admin:${data.id}:`);
+  // Cache admin IDs as a single Set — O(threads) entries instead of O(threads × participants).
+  // Every isThreadAdmin check for this thread resolves via Set.has() in memory without a new
+  // cache entry per (thread, sender) pair. Data is fresh from the just-completed upsert.
+  lruCache.set(
+    threadAdminsSetKey(data.id),
+    new Set<string>((data.adminIDs as string[] | undefined) ?? []),
+  );
 }
 
 export async function threadExists(
@@ -142,12 +144,13 @@ export async function isThreadAdmin(
   threadId: string,
   userId: string,
 ): Promise<boolean> {
-  const key = threadAdminKey(threadId, userId);
-  const cached = lruCache.get<boolean>(key);
-  if (cached !== undefined) return cached;
-  const result = await _isThreadAdmin(threadId, userId);
-  lruCache.set(key, result);
-  return result;
+  const set = lruCache.get<Set<string>>(threadAdminsSetKey(threadId));
+  if (set !== undefined) return set.has(userId);
+  // Cache miss: upsertThread hasn't synced this thread yet in this process lifetime.
+  // Fall through to DB without caching a per-user boolean — the next upsertThread
+  // call (triggered by chatPassthrough on the next message) populates the Set so
+  // all future checks become in-memory Set.has() lookups with zero new cache entries.
+  return _isThreadAdmin(threadId, userId);
 }
 
 export async function getThreadName(threadId: string): Promise<string> {
