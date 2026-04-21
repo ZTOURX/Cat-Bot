@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { dispatchEvent } from '@/controllers/dispatchers/event.dispatcher.js';
+import { dispatchEvent } from '@/engine/controllers/dispatchers/event.dispatcher.js';
 
 describe('Event Dispatcher', () => {
   it('should route events to registered handlers for matching event type', async () => {
