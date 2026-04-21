@@ -28,6 +28,11 @@ import type { OptionTypeValue } from '@/engine/modules/command/command-option.co
 import { isPlatformAllowed } from '@/engine/modules/platform/platform-filter.util.js';
 import { Platforms } from '@/engine/modules/platform/platform.constants.js';
 
+// Discord API v10 hard cap: a single PUT /applications/{id}/commands with more than 100
+// entries is rejected with 400. Named constant so both the guard and any future log messages
+// reference the same source of truth rather than a bare magic number.
+const DISCORD_SLASH_COMMAND_LIMIT = 100;
+
 // 🔧 Centralized safe truncation utility
 function truncate(value: string, max: number): string {
   if (!value) return '';
@@ -167,6 +172,30 @@ export async function registerSlashCommands(
     }
 
     const slashCommands = buildSlashCommandPayloads(commands, disabledNames);
+
+    // Discord global command limit: 100 slash commands per bot (API v10 hard cap).
+    // Attempting to PUT more than 100 entries returns HTTP 400 Bad Request — the entire
+    // registration fails and Discord leaves the menu in whatever stale state it was before.
+    // Pre-empt by clearing the menu (PUT []) and surfacing a loud warning so the developer
+    // knows to either reduce their command count or switch to a non-slash prefix.
+    if (slashCommands.length > DISCORD_SLASH_COMMAND_LIMIT) {
+      sessionLogger.warn(
+        `[discord] ⚠️  ${slashCommands.length} slash commands exceed the Discord global limit of ${DISCORD_SLASH_COMMAND_LIMIT} — clearing slash menu to prevent API errors. Reduce command count or switch to a non-'/' prefix.`,
+      );
+      try {
+        await rest.put(Routes.applicationCommands(clientId), { body: [] });
+        await updateDiscordCredentialCommandHash(userId, sessionId, {
+          isCommandRegister: false,
+          commandHash: currentHash,
+        });
+      } catch (clearErr) {
+        sessionLogger.warn(
+          '[discord] Failed to clear commands after limit exceeded (non-fatal)',
+          { error: clearErr },
+        );
+      }
+      return;
+    }
 
     try {
       const guildIds = [...client.guilds.cache.keys()];
