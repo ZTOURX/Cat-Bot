@@ -216,7 +216,8 @@ export const onCommand = async ({
   // but intentionally excludes BOT_ADMIN (2) — the levels are non-monotone. A Set is accurate
   // and automatically forward-safe when new roles are appended to Role in the future.
   const senderID = (event['senderID'] ?? event['userID'] ?? '') as string;
-  // and automatically forward-safe when new roles are appended to Role in the future.
+  // WHY: Extract threadID to check thread-level privileges, resolving TS2304 compiler error
+  const threadID = (event['threadID'] ?? '') as string;
   const accessibleRoles = new Set<number>([Role.ANYONE]);
   if (sessionUserId && sessionId && senderID) {
     try {
