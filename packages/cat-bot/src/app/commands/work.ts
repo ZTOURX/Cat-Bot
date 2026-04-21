@@ -226,24 +226,101 @@ function formatRemaining(ms: number): string {
 
 // ── Button Definitions ────────────────────────────────────────────────────────
 
-const BUTTON_ID = { balance: 'balance' } as const;
+const BUTTON_ID = { balance: 'balance', back: 'back' } as const;
 
+// Natural economy-loop UX (exactly like /daily):
+//   work result → "💰 My Balance" → balance view (with "⬅ Back")
+//   balance view → "⬅ Back" → work cooldown / ready status (with balance button)
 export const button = {
   [BUTTON_ID.balance]: {
     label: '💰 My Balance',
     style: ButtonStyle.SECONDARY,
-    onClick: async ({ chat, event, native, currencies }: AppCtx) => {
+    onClick: async ({ chat, event, native, button, currencies }: AppCtx) => {
       const senderID = event['senderID'] as string | undefined;
-      if (!senderID) return;
+      const backId = button.generateID({ id: BUTTON_ID.back });
+
+      if (!senderID) {
+        await chat.editMessage({
+          style: MessageStyle.MARKDOWN,
+          message_id_to_edit: event['messageID'] as string,
+          message: '❌ Could not identify your user ID on this platform.',
+          ...(hasNativeButtons(native.platform) ? { button: [backId] } : {}),
+        });
+        return;
+      }
+
       const coins = await currencies.getMoney(senderID);
+
       await chat.editMessage({
         style: MessageStyle.MARKDOWN,
         message_id_to_edit: event['messageID'] as string,
         message: `💰 **Current Balance:** ${coins.toLocaleString()} coins`,
-        ...(hasNativeButtons(native.platform)
-          ? { button: [event['buttonID'] as string] }
-          : {}),
+        ...(hasNativeButtons(native.platform) ? { button: [backId] } : {}),
       });
+    },
+  },
+
+  // Returns to the work cooldown / ready status view — creates a perfect
+  // balance ↔ work-status toggle loop, identical to the daily command pattern.
+  [BUTTON_ID.back]: {
+    label: '⬅ Back',
+    style: ButtonStyle.SECONDARY,
+    onClick: async ({
+      chat,
+      event,
+      db,
+      native,
+      button,
+      prefix = '',
+    }: AppCtx) => {
+      const senderID = event['senderID'] as string | undefined;
+      const balId = button.generateID({ id: BUTTON_ID.balance });
+
+      if (!senderID) {
+        await chat.editMessage({
+          style: MessageStyle.MARKDOWN,
+          message_id_to_edit: event['messageID'] as string,
+          message: '❌ Could not identify your user ID on this platform.',
+          ...(hasNativeButtons(native.platform) ? { button: [balId] } : {}),
+        });
+        return;
+      }
+
+      const userColl = db.users.collection(senderID);
+
+      if (!(await userColl.isCollectionExist('work'))) {
+        await chat.editMessage({
+          style: MessageStyle.MARKDOWN,
+          message_id_to_edit: event['messageID'] as string,
+          message: `⏰ You haven't worked yet — use \`${prefix}work\` to start earning coins!`,
+          ...(hasNativeButtons(native.platform) ? { button: [balId] } : {}),
+        });
+        return;
+      }
+
+      const workData = await userColl.getCollection('work');
+      const lastWork = (await workData.get('lastWork')) as number | undefined;
+      const now = Date.now();
+
+      if (lastWork === undefined || now - lastWork >= COOLDOWN_MS) {
+        await chat.editMessage({
+          style: MessageStyle.MARKDOWN,
+          message_id_to_edit: event['messageID'] as string,
+          message: `✅ You're ready to work again!\nUse \`${prefix}work\` to earn coins.`,
+          ...(hasNativeButtons(native.platform) ? { button: [balId] } : {}),
+        });
+      } else {
+        const remaining = COOLDOWN_MS - (now - lastWork);
+        await chat.editMessage({
+          style: MessageStyle.MARKDOWN,
+          message_id_to_edit: event['messageID'] as string,
+          message: [
+            "⏰ You're still tired from your last shift!",
+            `Rest up — you can work again in **${formatRemaining(remaining)}**`,
+          ].join('\n'),
+          ...(hasNativeButtons(native.platform) ? { button: [balId] } : {}),
+        });
+      }
     },
   },
 };
