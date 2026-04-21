@@ -64,7 +64,10 @@ function isYouTubeUrl(value: string): boolean {
 
 /** Sanitises a string to be safe as a filename. */
 function safeFilename(title: string, ext: string): string {
-  return `${title.replace(/[/\\?%*:|"<>]/g, '-').trim().substring(0, 80)}.${ext}`;
+  return `${title
+    .replace(/[/\\?%*:|"<>]/g, '-')
+    .trim()
+    .substring(0, 80)}.${ext}`;
 }
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -86,7 +89,11 @@ export const config: CommandConfig = {
 
 // ── Command Entry Point ───────────────────────────────────────────────────────
 
-export const onCommand = async ({ args, chat, usage }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  args,
+  chat,
+  usage,
+}: AppCtx): Promise<void> => {
   // ── Flag parsing ───────────────────────────────────────────────────────────
   // Scan args for -d / --document anywhere in the token list.
   // Remaining tokens (non-flag) form the URL.
@@ -126,7 +133,9 @@ export const onCommand = async ({ args, chat, usage }: AppCtx): Promise<void> =>
     const apiUrl = createUrl('nexray', '/downloader/ytmp3', { url: rawUrl });
     if (!apiUrl) throw new Error('Failed to build API URL.');
 
-    const { data } = await axios.get<YtMp3Response>(apiUrl, { timeout: 120000 });
+    const { data } = await axios.get<YtMp3Response>(apiUrl, {
+      timeout: 120000,
+    });
     const result = data?.result;
     if (!result?.url) throw new Error('No audio URL returned from API.');
 

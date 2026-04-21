@@ -80,20 +80,23 @@ function detectPlatform(value: string): SupportedPlatform | null {
       hostname.endsWith('.tiktok.com') ||
       hostname === 'vm.tiktok.com' ||
       hostname === 'vt.tiktok.com'
-    ) return 'tiktok';
+    )
+      return 'tiktok';
 
     if (
       hostname === 'facebook.com' ||
       hostname === 'www.facebook.com' ||
       hostname === 'm.facebook.com' ||
       hostname === 'fb.watch'
-    ) return 'facebook';
+    )
+      return 'facebook';
 
     if (
       hostname === 'pinterest.com' ||
       hostname.endsWith('.pinterest.com') ||
       hostname === 'pin.it'
-    ) return 'pinterest';
+    )
+      return 'pinterest';
 
     if (
       hostname === 'youtube.com' ||
@@ -101,7 +104,8 @@ function detectPlatform(value: string): SupportedPlatform | null {
       hostname === 'm.youtube.com' ||
       hostname === 'youtu.be' ||
       hostname === 'music.youtube.com'
-    ) return 'youtube';
+    )
+      return 'youtube';
 
     return null;
   } catch {
@@ -115,7 +119,10 @@ function extractUrl(message: string): string | null {
 }
 
 function safeFilename(title: string, ext: string): string {
-  return `${title.replace(/[/\\?%*:|"<>]/g, '-').trim().substring(0, 80)}.${ext}`;
+  return `${title
+    .replace(/[/\\?%*:|"<>]/g, '-')
+    .trim()
+    .substring(0, 80)}.${ext}`;
 }
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -149,7 +156,9 @@ async function downloadTikTok(rawUrl: string, ctx: AppCtx): Promise<void> {
     const apiUrl = createUrl('deline', '/downloader/tiktok', { url: rawUrl });
     if (!apiUrl) throw new Error('Failed to build API URL.');
 
-    const { data } = await axios.get<TikTokDlResponse>(apiUrl, { timeout: 30000 });
+    const { data } = await axios.get<TikTokDlResponse>(apiUrl, {
+      timeout: 30000,
+    });
     const result = data?.result;
     if (!result) throw new Error('No content returned from API.');
 
@@ -187,16 +196,24 @@ async function downloadFacebook(rawUrl: string, ctx: AppCtx): Promise<void> {
 
   const loadingId = (await chat.replyMessage({
     style: MessageStyle.MARKDOWN,
-    message: '⬇️ **Downloading Facebook video...**\nFetching the best available quality.',
+    message:
+      '⬇️ **Downloading Facebook video...**\nFetching the best available quality.',
   })) as string | undefined;
 
   try {
-    const apiUrl = createUrl('kuroneko', '/api/download/facebook', { url: rawUrl });
+    const apiUrl = createUrl('kuroneko', '/api/download/facebook', {
+      url: rawUrl,
+    });
     if (!apiUrl) throw new Error('Failed to build API URL.');
 
-    const { data: res } = await axios.get<FacebookDlResponse>(apiUrl, { timeout: 30000 });
+    const { data: res } = await axios.get<FacebookDlResponse>(apiUrl, {
+      timeout: 30000,
+    });
     const videoUrl = res?.data?.hd || res?.data?.sd;
-    if (!videoUrl) throw new Error('No downloadable video found. The video may be private or unsupported.');
+    if (!videoUrl)
+      throw new Error(
+        'No downloadable video found. The video may be private or unsupported.',
+      );
 
     const quality = res.data.hd ? 'HD' : 'SD';
     const title = res.data.title ?? 'Facebook Video';
@@ -233,10 +250,14 @@ async function downloadPinterest(rawUrl: string, ctx: AppCtx): Promise<void> {
   })) as string | undefined;
 
   try {
-    const apiUrl = createUrl('deline', '/downloader/pinterest', { url: rawUrl });
+    const apiUrl = createUrl('deline', '/downloader/pinterest', {
+      url: rawUrl,
+    });
     if (!apiUrl) throw new Error('Failed to build API URL.');
 
-    const { data } = await axios.get<PinterestDlResponse>(apiUrl, { timeout: 30000 });
+    const { data } = await axios.get<PinterestDlResponse>(apiUrl, {
+      timeout: 30000,
+    });
     const result = data?.result;
     if (!result) throw new Error('No content returned from API.');
 
@@ -274,7 +295,9 @@ async function downloadYouTube(rawUrl: string, ctx: AppCtx): Promise<void> {
     const apiUrl = createUrl('nexray', '/downloader/v1/ytmp4', { url: rawUrl });
     if (!apiUrl) throw new Error('Failed to build API URL.');
 
-    const { data } = await axios.get<YtMp4Response>(apiUrl, { timeout: 120000 });
+    const { data } = await axios.get<YtMp4Response>(apiUrl, {
+      timeout: 120000,
+    });
     const result = data?.result;
     if (!result?.url) throw new Error('No video URL returned from API.');
 
@@ -305,11 +328,20 @@ async function downloadYouTube(rawUrl: string, ctx: AppCtx): Promise<void> {
 async function route(rawUrl: string, ctx: AppCtx): Promise<boolean> {
   const platform = detectPlatform(rawUrl);
   switch (platform) {
-    case 'tiktok':    await downloadTikTok(rawUrl, ctx);    return true;
-    case 'facebook':  await downloadFacebook(rawUrl, ctx);  return true;
-    case 'pinterest': await downloadPinterest(rawUrl, ctx); return true;
-    case 'youtube':   await downloadYouTube(rawUrl, ctx);   return true;
-    default:          return false;
+    case 'tiktok':
+      await downloadTikTok(rawUrl, ctx);
+      return true;
+    case 'facebook':
+      await downloadFacebook(rawUrl, ctx);
+      return true;
+    case 'pinterest':
+      await downloadPinterest(rawUrl, ctx);
+      return true;
+    case 'youtube':
+      await downloadYouTube(rawUrl, ctx);
+      return true;
+    default:
+      return false;
   }
 }
 
@@ -358,10 +390,12 @@ export const onChat = async (ctx: AppCtx): Promise<void> => {
 
   // Use the exact same prefix that exists inside onCommand + config.name
   const { prefix = '!' } = ctx;
-  const commandName = config.name;                    // ← dynamic command name
+  const commandName = config.name; // ← dynamic command name
 
   // Skip any message that starts with <prefix><commandName> (case-insensitive)
-  if (trimmed.toLowerCase().startsWith(`${prefix}${commandName}`.toLowerCase())) {
+  if (
+    trimmed.toLowerCase().startsWith(`${prefix}${commandName}`.toLowerCase())
+  ) {
     return;
   }
 

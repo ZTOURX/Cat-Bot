@@ -37,9 +37,11 @@ interface NormalizedAttachment {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function resolveImageUrl(event: Record<string, unknown>): string | null {
-  const ownAtts = (event['attachments'] as NormalizedAttachment[] | undefined) ?? [];
+  const ownAtts =
+    (event['attachments'] as NormalizedAttachment[] | undefined) ?? [];
   const fromOwn = ownAtts.find(
-    (a) => a.type === AttachmentType.PHOTO && typeof a.url === 'string' && a.url,
+    (a) =>
+      a.type === AttachmentType.PHOTO && typeof a.url === 'string' && a.url,
   );
   if (fromOwn?.url) return fromOwn.url as string;
 
@@ -48,7 +50,8 @@ function resolveImageUrl(event: Record<string, unknown>): string | null {
       'attachments'
     ] as NormalizedAttachment[] | undefined) ?? [];
   const fromReply = replyAtts.find(
-    (a) => a.type === AttachmentType.PHOTO && typeof a.url === 'string' && a.url,
+    (a) =>
+      a.type === AttachmentType.PHOTO && typeof a.url === 'string' && a.url,
   );
   if (fromReply?.url) return fromReply.url as string;
 
@@ -63,16 +66,23 @@ export const config: CommandConfig = {
   version: '1.0.0',
   role: Role.ANYONE,
   author: 'AjiroDesu',
-  description: 'Add meme captions to an image. Send or reply to an image with the caption text.',
+  description:
+    'Add meme captions to an image. Send or reply to an image with the caption text.',
   category: 'Maker',
-  usage: '<bottom text> (send/reply image) or <top text>|<bottom text>  (send/reply image)',
+  usage:
+    '<bottom text> (send/reply image) or <top text>|<bottom text>  (send/reply image)',
   cooldown: 5,
   hasPrefix: true,
 };
 
 // ── Command Entry Point ───────────────────────────────────────────────────────
 
-export const onCommand = async ({ args, event, chat, usage }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  args,
+  event,
+  chat,
+  usage,
+}: AppCtx): Promise<void> => {
   const input = args.join(' ').trim();
 
   if (!input) return usage();
@@ -82,7 +92,8 @@ export const onCommand = async ({ args, event, chat, usage }: AppCtx): Promise<v
   if (!imageUrl) {
     await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
-      message: '📎 **No image found.** Send an image with this command as the caption, or reply to an image message.',
+      message:
+        '📎 **No image found.** Send an image with this command as the caption, or reply to an image message.',
     });
     return;
   }

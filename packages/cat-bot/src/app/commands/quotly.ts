@@ -48,10 +48,19 @@ export const config: CommandConfig = {
 
 // ── Command Entry Point ───────────────────────────────────────────────────────
 
-export const onCommand = async ({ args, event, chat, user, usage }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  args,
+  event,
+  chat,
+  user,
+  usage,
+}: AppCtx): Promise<void> => {
   const ownText = args.join(' ').trim();
-  const messageReply = event['messageReply'] as Record<string, unknown> | undefined;
-  const quotedText = (messageReply?.['message'] as string | undefined)?.trim() ?? '';
+  const messageReply = event['messageReply'] as
+    | Record<string, unknown>
+    | undefined;
+  const quotedText =
+    (messageReply?.['message'] as string | undefined)?.trim() ?? '';
   const text = ownText || quotedText;
 
   if (!text) return usage();
@@ -67,12 +76,17 @@ export const onCommand = async ({ args, event, chat, user, usage }: AppCtx): Pro
   // Attribute the card to the quoted sender when no own text was typed
   const isQuotedSource = !ownText && !!quotedText;
   const targetSenderID = isQuotedSource
-    ? ((messageReply?.['senderID'] as string | undefined) ?? (event['senderID'] as string | undefined))
+    ? ((messageReply?.['senderID'] as string | undefined) ??
+      (event['senderID'] as string | undefined))
     : (event['senderID'] as string | undefined);
 
   const [displayName, avatarUrl] = await Promise.all([
-    targetSenderID ? user.getName(targetSenderID).catch(() => 'Unknown') : Promise.resolve('Unknown'),
-    targetSenderID ? user.getAvatarUrl(targetSenderID).catch(() => null) : Promise.resolve(null),
+    targetSenderID
+      ? user.getName(targetSenderID).catch(() => 'Unknown')
+      : Promise.resolve('Unknown'),
+    targetSenderID
+      ? user.getAvatarUrl(targetSenderID).catch(() => null)
+      : Promise.resolve(null),
   ]);
 
   try {

@@ -62,44 +62,44 @@ const DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
 type Difficulty = (typeof DIFFICULTIES)[number];
 
 const REACT = {
-  TRUE:         '❤',
+  TRUE: '❤',
   TRUE_DISCORD: '❤️',
-  FALSE:        '😢',
+  FALSE: '😢',
 } as const;
 
 /** Local IDs for the answer + play-again buttons (Discord & Telegram only). */
 const BUTTON_ID = {
-  true:      'true',
-  false:     'false',
+  true: 'true',
+  false: 'false',
   playAgain: 'play_again',
 } as const;
 
 interface TriviaResult {
-  question:       string;
+  question: string;
   correct_answer: 'True' | 'False';
-  difficulty:     string;
-  category:       string;
+  difficulty: string;
+  category: string;
 }
 
 interface TriviaResponse {
   response_code: number;
-  results:       TriviaResult[];
+  results: TriviaResult[];
 }
 
 interface ButtonQuizContext extends Record<string, unknown> {
-  answer:     string;
-  question:   string;
-  messageID:  string;
+  answer: string;
+  question: string;
+  messageID: string;
   difficulty: Difficulty;
-  category:   string;
+  category: string;
 }
 
 interface ReactQuizContext extends Record<string, unknown> {
-  answer:     string;
-  question:   string;
-  messageID:  string;
+  answer: string;
+  question: string;
+  messageID: string;
   difficulty: string;
-  category:   string;
+  category: string;
 }
 
 // ── Module-level trackers ─────────────────────────────────────────────────────
@@ -133,17 +133,18 @@ async function runButtonQuiz(
     result = first;
   } catch {
     await chat.replyMessage({
-      style:   MessageStyle.MARKDOWN,
-      message: '❌ Could not fetch a trivia question — the server may be busy. Please try again!',
+      style: MessageStyle.MARKDOWN,
+      message:
+        '❌ Could not fetch a trivia question — the server may be busy. Please try again!',
     });
     return;
   }
 
   const question = decodeURIComponent(result.question);
   const category = decodeURIComponent(result.category);
-  const answer   = result.correct_answer;
+  const answer = result.correct_answer;
 
-  const trueId  = btn.generateID({ id: BUTTON_ID.true,  public: true });
+  const trueId = btn.generateID({ id: BUTTON_ID.true, public: true });
   const falseId = btn.generateID({ id: BUTTON_ID.false, public: true });
 
   const isFromButtonAction = event?.['type'] === 'button_action';
@@ -155,7 +156,7 @@ async function runButtonQuiz(
 
     if (typeof currentMsgID !== 'string' && typeof currentMsgID !== 'number') {
       await chat.replyMessage({
-        style:   MessageStyle.MARKDOWN,
+        style: MessageStyle.MARKDOWN,
         message: '❌ Could not restart quiz: missing message ID.',
       });
       return;
@@ -177,7 +178,7 @@ async function runButtonQuiz(
     });
   } else {
     // Initial command: send a brand-new message
-    messageID = await chat.replyMessage({
+    messageID = (await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
       message: [
         `🧠 **Trivia Quiz** — _${difficulty}_ · ${category}`,
@@ -187,13 +188,14 @@ async function runButtonQuiz(
         `_You have ${TIMEOUT_MS / 1000} seconds to answer!_`,
       ].join('\n'),
       button: [trueId, falseId],
-    }) as string | number | null;
+    })) as string | number | null;
   }
 
   if (!messageID) {
     await chat.replyMessage({
-      style:   MessageStyle.MARKDOWN,
-      message: '❌ Button quiz unavailable: this platform did not return a message ID.',
+      style: MessageStyle.MARKDOWN,
+      message:
+        '❌ Button quiz unavailable: this platform did not return a message ID.',
     });
     return;
   }
@@ -216,7 +218,7 @@ async function runButtonQuiz(
     difficulty,
     category,
   };
-  btn.createContext({ id: trueId,  context: quizCtx });
+  btn.createContext({ id: trueId, context: quizCtx });
   btn.createContext({ id: falseId, context: quizCtx });
 
   // Timeout: reveal the answer and strip all buttons
@@ -226,7 +228,7 @@ async function runButtonQuiz(
     timeouts.delete(msgIdStr);
 
     void chat.editMessage({
-      style:              MessageStyle.MARKDOWN,
+      style: MessageStyle.MARKDOWN,
       message_id_to_edit: msgIdStr,
       message: [
         `🧠 **Trivia Quiz** — _${difficulty}_ · ${category}`,
@@ -248,12 +250,12 @@ async function showButtonResult(
   userAnswer: 'True' | 'False',
 ): Promise<void> {
   const { chat, event, session, button: btn } = ctx;
-  const quizCtx    = session.context as Partial<ButtonQuizContext>;
-  const msgId      = quizCtx.messageID ?? (event['messageID'] as string);
-  const answer     = quizCtx.answer    ?? '';
+  const quizCtx = session.context as Partial<ButtonQuizContext>;
+  const msgId = quizCtx.messageID ?? (event['messageID'] as string);
+  const answer = quizCtx.answer ?? '';
   const difficulty = (quizCtx.difficulty ?? 'medium') as Difficulty;
-  const question   = quizCtx.question   ?? '';
-  const category   = quizCtx.category   ?? '';
+  const question = quizCtx.question ?? '';
+  const category = quizCtx.category ?? '';
 
   // Guard against double-resolution (stale click after timeout or another user)
   if (pendingAnswers.get(msgId) === true) return;
@@ -268,20 +270,20 @@ async function showButtonResult(
   // Clean up the answer button contexts — they are no longer needed
   btn.deleteContext(session.id);
 
-  const isCorrect   = userAnswer === answer;
-  const resultLine  = isCorrect
+  const isCorrect = userAnswer === answer;
+  const resultLine = isCorrect
     ? `✅ **Correct!** The answer was **${answer}**. Well done! 🎉`
     : `❌ **Wrong!** You answered **${userAnswer}**, but the correct answer was **${answer}**. 😔`;
 
   // Generate Play Again button and store the difficulty
   const playAgainId = btn.generateID({ id: BUTTON_ID.playAgain, public: true });
   btn.createContext({
-    id:      playAgainId,
+    id: playAgainId,
     context: { difficulty } satisfies Record<string, unknown>,
   });
 
   await chat.editMessage({
-    style:              MessageStyle.MARKDOWN,
+    style: MessageStyle.MARKDOWN,
     message_id_to_edit: msgId,
     message: [
       `🧠 **Trivia Quiz** — _${difficulty}_ · ${category}`,
@@ -317,11 +319,15 @@ export const button = {
     onClick: async (ctx: AppCtx) => {
       const { button: btn, session } = ctx;
 
-      const storedDifficulty = session.context['difficulty'] as Difficulty | undefined;
+      const storedDifficulty = session.context['difficulty'] as
+        | Difficulty
+        | undefined;
       const difficulty: Difficulty =
-        storedDifficulty && (DIFFICULTIES as readonly string[]).includes(storedDifficulty)
+        storedDifficulty &&
+        (DIFFICULTIES as readonly string[]).includes(storedDifficulty)
           ? storedDifficulty
-          : (DIFFICULTIES[Math.floor(Math.random() * DIFFICULTIES.length)] ?? 'medium');
+          : (DIFFICULTIES[Math.floor(Math.random() * DIFFICULTIES.length)] ??
+            'medium');
 
       // Clean up the Play Again button context
       btn.deleteContext(session.id);
@@ -341,16 +347,21 @@ export const onCommand = async ({
 }: AppCtx): Promise<void> => {
   // Resolve difficulty from arg or pick randomly
   const rawArg = (args[0] ?? '').toLowerCase();
-  const difficulty: Difficulty =
-    (DIFFICULTIES as readonly string[]).includes(rawArg)
-      ? (rawArg as Difficulty)
-      : (DIFFICULTIES[Math.floor(Math.random() * DIFFICULTIES.length)] ?? 'medium');
+  const difficulty: Difficulty = (DIFFICULTIES as readonly string[]).includes(
+    rawArg,
+  )
+    ? (rawArg as Difficulty)
+    : (DIFFICULTIES[Math.floor(Math.random() * DIFFICULTIES.length)] ??
+      'medium');
 
   // ════════════════════════════════════════════════════════════════════════════
   // BRANCH A — Discord & Telegram: native inline buttons
   // ════════════════════════════════════════════════════════════════════════════
   if (isButtonPlatform(native.platform)) {
-    await runButtonQuiz({ chat, state, native, button: btn } as AppCtx, difficulty);
+    await runButtonQuiz(
+      { chat, state, native, button: btn } as AppCtx,
+      difficulty,
+    );
     return;
   }
 
@@ -371,15 +382,16 @@ export const onCommand = async ({
     result = first;
   } catch {
     await chat.replyMessage({
-      style:   MessageStyle.MARKDOWN,
-      message: '❌ Could not fetch a trivia question — the server may be busy. Please try again!',
+      style: MessageStyle.MARKDOWN,
+      message:
+        '❌ Could not fetch a trivia question — the server may be busy. Please try again!',
     });
     return;
   }
 
   const question = decodeURIComponent(result.question);
   const category = decodeURIComponent(result.category);
-  const answer   = result.correct_answer;
+  const answer = result.correct_answer;
 
   const messageID = await chat.replyMessage({
     style: MessageStyle.MARKDOWN,
@@ -395,8 +407,9 @@ export const onCommand = async ({
 
   if (!messageID) {
     await chat.replyMessage({
-      style:   MessageStyle.MARKDOWN,
-      message: '❌ onReact unavailable: this platform did not return a message ID from chat.replyMessage().',
+      style: MessageStyle.MARKDOWN,
+      message:
+        '❌ onReact unavailable: this platform did not return a message ID from chat.replyMessage().',
     });
     return;
   }
@@ -405,7 +418,7 @@ export const onCommand = async ({
   pendingAnswers.set(msgIdStr, false);
 
   state.create({
-    id:    state.generateID({ id: msgIdStr }),
+    id: state.generateID({ id: msgIdStr }),
     state: [REACT.TRUE, REACT.TRUE_DISCORD, REACT.FALSE],
     context: {
       answer,
@@ -423,7 +436,7 @@ export const onCommand = async ({
 
     if (!alreadyAnswered) {
       void chat.replyMessage({
-        style:   MessageStyle.MARKDOWN,
+        style: MessageStyle.MARKDOWN,
         message: `⏰ **Time's up!** The correct answer was **${answer}**.`,
       });
     }
@@ -435,9 +448,9 @@ async function handleReact(
   { chat, session, state }: AppCtx,
   userAnswer: 'True' | 'False',
 ): Promise<void> {
-  const ctx           = session.context as Partial<ReactQuizContext>;
-  const msgId         = ctx.messageID  ?? '';
-  const correctAnswer = ctx.answer     ?? '';
+  const ctx = session.context as Partial<ReactQuizContext>;
+  const msgId = ctx.messageID ?? '';
+  const correctAnswer = ctx.answer ?? '';
 
   pendingAnswers.set(msgId, true);
   state.delete(session.id);
@@ -445,7 +458,7 @@ async function handleReact(
   const isCorrect = userAnswer === correctAnswer;
 
   await chat.reply({
-    style:   MessageStyle.MARKDOWN,
+    style: MessageStyle.MARKDOWN,
     message: isCorrect
       ? `✅ **Correct!** The answer was **${correctAnswer}**. Well done! 🎉`
       : `❌ **Wrong!** You answered **${userAnswer}**, but the correct answer was **${correctAnswer}**. 😔`,
@@ -455,9 +468,9 @@ async function handleReact(
 // ── Reaction handlers (FB Messenger & FB Page only) ───────────────────────────
 export const onReact = {
   /** ❤  (U+2764)       — "True" on FB Messenger & FB Page */
-  [REACT.TRUE]:         async (ctx: AppCtx) => handleReact(ctx, 'True'),
+  [REACT.TRUE]: async (ctx: AppCtx) => handleReact(ctx, 'True'),
   /** ❤️ (U+2764+FE0F)  — "True" on Discord (Variation Selector-16 appended) */
   [REACT.TRUE_DISCORD]: async (ctx: AppCtx) => handleReact(ctx, 'True'),
   /** 😢                — "False" on all platforms */
-  [REACT.FALSE]:        async (ctx: AppCtx) => handleReact(ctx, 'False'),
+  [REACT.FALSE]: async (ctx: AppCtx) => handleReact(ctx, 'False'),
 };

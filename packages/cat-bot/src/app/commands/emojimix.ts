@@ -36,7 +36,8 @@ export const config: CommandConfig = {
   version: '1.0.0',
   role: Role.ANYONE,
   author: 'AjiroDesu',
-  description: 'Combine two emojis into a blended image using Google Emoji Kitchen.',
+  description:
+    'Combine two emojis into a blended image using Google Emoji Kitchen.',
   category: 'Maker',
   usage: '<emoji1> <emoji2>',
   cooldown: 5,
@@ -45,9 +46,16 @@ export const config: CommandConfig = {
 
 // ── Command Entry Point ───────────────────────────────────────────────────────
 
-export const onCommand = async ({ args, chat, usage }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  args,
+  chat,
+  usage,
+}: AppCtx): Promise<void> => {
   const input = args.join(' ');
-  const [emoji1, emoji2] = Array.from(input.matchAll(/\p{Emoji}/gu), (m) => m[0]);
+  const [emoji1, emoji2] = Array.from(
+    input.matchAll(/\p{Emoji}/gu),
+    (m) => m[0],
+  );
 
   if (!emoji1 || !emoji2) return usage();
 
@@ -55,9 +63,14 @@ export const onCommand = async ({ args, chat, usage }: AppCtx): Promise<void> =>
     const apiUrl = createUrl('deline', '/maker/emojimix', { emoji1, emoji2 });
     if (!apiUrl) throw new Error('Failed to build API URL.');
 
-    const { data } = await axios.get<EmojiMixResponse>(apiUrl, { timeout: 30000 });
+    const { data } = await axios.get<EmojiMixResponse>(apiUrl, {
+      timeout: 30000,
+    });
     const pngUrl = data?.result?.png;
-    if (!pngUrl) throw new Error('No image returned. This emoji combination may not be supported.');
+    if (!pngUrl)
+      throw new Error(
+        'No image returned. This emoji combination may not be supported.',
+      );
 
     const { data: imgData } = await axios.get<ArrayBuffer>(pngUrl, {
       responseType: 'arraybuffer',

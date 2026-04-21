@@ -27,7 +27,8 @@ export const config: CommandConfig = {
   version: '1.0.0',
   role: Role.ANYONE,
   author: 'AjiroDesu',
-  description: 'Generate a Blue Archive-style logo. Split text with | for left (white) and right (cyan) portions.',
+  description:
+    'Generate a Blue Archive-style logo. Split text with | for left (white) and right (cyan) portions.',
   category: 'Maker',
   usage: '<left text>|<right text>',
   cooldown: 5,
@@ -36,14 +37,20 @@ export const config: CommandConfig = {
 
 // ── Command Entry Point ───────────────────────────────────────────────────────
 
-export const onCommand = async ({ args, chat, usage }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  args,
+  chat,
+  usage,
+}: AppCtx): Promise<void> => {
   const input = args.join(' ').trim();
 
   if (!input) return usage();
 
   const pipeIndex = input.indexOf('|');
-  const textL = pipeIndex !== -1 ? input.slice(0, pipeIndex).trim() || ' ' : input;
-  const textR = pipeIndex !== -1 ? input.slice(pipeIndex + 1).trim() || ' ' : ' ';
+  const textL =
+    pipeIndex !== -1 ? input.slice(0, pipeIndex).trim() || ' ' : input;
+  const textR =
+    pipeIndex !== -1 ? input.slice(pipeIndex + 1).trim() || ' ' : ' ';
 
   try {
     const imageUrl = createUrl('nekolabs', '/canvas/ba-logo', { textL, textR });

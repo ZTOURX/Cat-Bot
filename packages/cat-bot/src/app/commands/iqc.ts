@@ -44,10 +44,18 @@ export const config: CommandConfig = {
 
 // ── Command Entry Point ───────────────────────────────────────────────────────
 
-export const onCommand = async ({ args, event, chat, usage }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  args,
+  event,
+  chat,
+  usage,
+}: AppCtx): Promise<void> => {
   const ownText = args.join(' ').trim();
-  const messageReply = event['messageReply'] as Record<string, unknown> | undefined;
-  const quotedText = (messageReply?.['message'] as string | undefined)?.trim() ?? '';
+  const messageReply = event['messageReply'] as
+    | Record<string, unknown>
+    | undefined;
+  const quotedText =
+    (messageReply?.['message'] as string | undefined)?.trim() ?? '';
   const text = ownText || quotedText;
 
   if (!text) return usage();
@@ -62,10 +70,17 @@ export const onCommand = async ({ args, event, chat, usage }: AppCtx): Promise<v
 
   try {
     const now = moment.tz(TIMEZONE);
-    const chatTime = now.clone().subtract(Math.floor(Math.random() * 60) + 1, 'minutes').format('HH:mm');
+    const chatTime = now
+      .clone()
+      .subtract(Math.floor(Math.random() * 60) + 1, 'minutes')
+      .format('HH:mm');
     const statusBarTime = now.format('HH:mm');
 
-    const imageUrl = createUrl('deline', '/maker/iqc', { text, chatTime, statusBarTime });
+    const imageUrl = createUrl('deline', '/maker/iqc', {
+      text,
+      chatTime,
+      statusBarTime,
+    });
     if (!imageUrl) throw new Error('Failed to build API URL.');
 
     const { data: imageData } = await axios.get<ArrayBuffer>(imageUrl, {

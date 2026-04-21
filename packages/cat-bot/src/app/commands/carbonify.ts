@@ -25,7 +25,8 @@ export const config: CommandConfig = {
   version: '1.0.0',
   role: Role.ANYONE,
   author: 'AjiroDesu',
-  description: 'Generate a beautiful code snapshot image from your code. Type or reply to code.',
+  description:
+    'Generate a beautiful code snapshot image from your code. Type or reply to code.',
   category: 'Maker',
   usage: '<code | reply to code message>',
   cooldown: 5,
@@ -34,10 +35,18 @@ export const config: CommandConfig = {
 
 // ── Command Entry Point ───────────────────────────────────────────────────────
 
-export const onCommand = async ({ args, event, chat, usage }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  args,
+  event,
+  chat,
+  usage,
+}: AppCtx): Promise<void> => {
   const ownText = args.join(' ').trim();
-  const messageReply = event['messageReply'] as Record<string, unknown> | undefined;
-  const quotedText = (messageReply?.['message'] as string | undefined)?.trim() ?? '';
+  const messageReply = event['messageReply'] as
+    | Record<string, unknown>
+    | undefined;
+  const quotedText =
+    (messageReply?.['message'] as string | undefined)?.trim() ?? '';
   const code = ownText || quotedText;
 
   if (!code) return usage();
