@@ -339,7 +339,7 @@ export const button = {
       })
     },
   },
-  cancel: {
+  [BUTTON_ID.cancel]: {
     label: '❌ Cancel',
     style: ButtonStyle.DANGER,
     onClick: async ({ chat, event }: AppCtx) => {
@@ -354,8 +354,8 @@ export const button = {
 
 export const onCommand = async ({ chat, button: btn }: AppCtx) => {
   // Private scope by default — only the invoking user can click
-  const confirmId = btn.generateID({ id: 'confirm' })
-  const cancelId  = btn.generateID({ id: 'cancel' })
+  const confirmId = btn.generateID({ id: BUTTON_ID.confirm })
+  const cancelId  = btn.generateID({ id: BUTTON_ID.cancel })
 
   await chat.replyMessage({
     style: MessageStyle.MARKDOWN,
@@ -1195,8 +1195,10 @@ export const onEvent = async ({ event, chat }: AppCtx): Promise<void> => {
 Defined as methods inside `export const button`. Called when a user clicks (or text-selects on Messenger) the corresponding button.
 
 ```ts
+const BUTTON_ID = { refresh: 'refresh' }
+
 export const button = {
-  refresh: {
+  [BUTTON_ID.refresh]: {
     label: '🔄 Refresh',
     style: ButtonStyle.SECONDARY,
     onClick: async ({ chat, event, button: btn, session }: AppCtx) => {
@@ -1320,8 +1322,10 @@ Visual hint for button appearance. Only meaningful on Discord; Telegram and Face
 ```ts
 import { ButtonStyle } from '@/engine/constants/button-style.constants.js'
 
+const BUTTON_ID = { confirm: 'confirm' }
+
 export const button = {
-  confirm: {
+  [BUTTON_ID.confirm]: {
     label: '✅ Confirm',
     style: ButtonStyle.SUCCESS,
     onClick: async (ctx: AppCtx) => { /* ... */ },
