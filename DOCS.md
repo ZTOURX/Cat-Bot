@@ -324,9 +324,14 @@ app.post('/webhook', (req, res) => {
 **Cat-Bot — all four platforms:**
 
 ```ts
+const BUTTON_ID = {
+  confirm: 'confirm',
+  cancel: 'cancel'
+}
+
 // Button handlers and the command that sends them live in the same file
 export const button = {
-  confirm: {
+  [BUTTON_ID.confirm]: {
     label: '✅ Confirm',
     style: ButtonStyle.SUCCESS,
     // Called after the adapter has already handled the acknowledgment window
