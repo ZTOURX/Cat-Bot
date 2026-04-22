@@ -36,6 +36,9 @@ const APIs: Record<string, ApiEntry> = {
   betadash: {
     baseURL: 'https://betadash-api-swordslush-production.up.railway.app',
   },
+  chocomilk: {
+    baseURL: 'https://chocomilk.amira.us.kg'
+  },
   deline: {
     baseURL: 'https://api.deline.web.id',
   },

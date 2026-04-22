@@ -8,6 +8,9 @@
  *   • All previous optimizations (direct attachment_url, try/finally, efficiency, no interruption)
  *     are preserved.
  *   • Facebook downloader now uses the chocomilk API (ZTRdiamond - Zanixon Group).
+ *   • Fixed TS2345 + TS2339 errors: added missing `apiUrl` null-guard in downloadFacebook.
+ *   • Updated FacebookDlData interface to match real API response shape (caption, url, media.all).
+ *   • Facebook video resolution now falls back to media.all if media.videos is empty.
  */
 
 import axios from 'axios';
@@ -39,15 +42,19 @@ interface FacebookDlMediaItem {
   url: string;
 }
 interface FacebookDlData {
-  type: string;
+  type: string;        // e.g. "reel", "video"
+  url?: string;        // original Facebook URL echoed back
   title?: string;
+  caption?: string;    // short caption text
   cover?: string;
   media: {
+    all?: FacebookDlMediaItem[];     // all media items combined
     videos: FacebookDlMediaItem[];
     images: FacebookDlMediaItem[];
   };
 }
 interface FacebookDlResponse {
+  info?: string;       // e.g. "Developed by ZTRdiamond - Zanixon Group"
   code: number;
   success: boolean;
   data: FacebookDlData;
@@ -215,15 +222,23 @@ async function downloadFacebook(rawUrl: string, ctx: AppCtx): Promise<void> {
   })) as string | undefined;
 
   try {
-    const { data: res } = await axios.get<FacebookDlResponse>(
-      `https://chocomilk.amira.us.kg/v1/download/facebook?url=${encodeURIComponent(rawUrl)}`,
-      { timeout: 30000, headers: { Accept: 'application/json' } },
-    );
+    const apiUrl = createUrl('chocomilk', '/v1/download/facebook', { url: rawUrl });
+    if (!apiUrl) throw new Error('Failed to build API URL.');
+
+    const { data: res } = await axios.get<FacebookDlResponse>(apiUrl, {
+      timeout: 30000,
+      headers: { Accept: 'application/json' },
+    });
 
     if (!res?.success || !res?.data)
       throw new Error('API returned an unsuccessful response.');
 
-    const videos = res.data.media?.videos ?? [];
+    // Prefer media.videos; fall back to media.all filtered for video type
+    const videos =
+      res.data.media?.videos?.length
+        ? res.data.media.videos
+        : (res.data.media?.all ?? []).filter((m) => m.type === 'video');
+
     if (videos.length === 0)
       throw new Error(
         'No downloadable video found. The video may be private or unsupported.',
