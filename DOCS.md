@@ -10,7 +10,7 @@
 2. [Platform API Comparison: Native vs Unified](#platform-api-comparison-native-vs-unified)
 2. [Quick Start](#quick-start)
 3. [Module Structure](#module-structure)
-   4. [CommandConfig](#commandconfig)
+   - [CommandConfig](#commandconfig)
    - [EventConfig](#eventconfig)
 4. [The Context Object — `AppCtx`](#the-context-object--appctx)
 5. [Chat API](#chat-api)
