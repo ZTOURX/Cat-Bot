@@ -532,20 +532,13 @@ NODE_ENV=production
 LOG_LEVEL=warn
 ```
 
-3. Run the better-auth schema migration (required once, for auth tables):
-
-```bash
-cd packages/cat-bot
-npx @better-auth/cli migrate
-```
-
-4. Seed the admin account:
+3. Seed the admin account:
 
 ```bash
 npm run seed:admin -w packages/cat-bot
 ```
 
-5. Build and start:
+4. Build and start:
 
 ```bash
 npm run build:db      # compile the database package
