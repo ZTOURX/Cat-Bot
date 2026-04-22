@@ -7,7 +7,7 @@
 
 ## Table of Contents
 
-2. [Platform API Comparison: Native vs Unified](#platform-api-comparison-native-vs-unified)
+1. [Platform API Comparison: Native vs Unified](#platform-api-comparison-native-vs-unified)
 2. [Quick Start](#quick-start)
 3. [Module Structure](#module-structure)
    - [CommandConfig](#commandconfig)
