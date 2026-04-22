@@ -881,12 +881,12 @@ The key is `${messageID}:${threadID}`. Any member of the thread can reply or rea
 
 Registers a pending state against a key. The engine looks this up when a reply (`message_reply`) or reaction (`message_reaction`) event arrives.
 
+```ts
 const STATE = { awaiting_name: 'awaiting_name' }
 state.create({
   id: state.generateID({ id: String(messageID) }),
   state: STATE.awaiting_name,      // string label; becomes the handler key in onReply
   context: { step: 1 },            // arbitrary data carried into the handler via session.context
-})
 })
 ```
 
