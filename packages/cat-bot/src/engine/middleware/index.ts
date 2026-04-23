@@ -83,5 +83,8 @@ use.onButtonClick([
 use.onEvent([
   // Suppresses join.ts welcome for warn-banned rejoining members — checkwarn.ts owns the
   // kick notification for the same log:subscribe event; a simultaneous "Welcome!" contradicts it.
+  // Also suppresses leave.ts goodbye for bot-initiated warn-ban kicks on log:unsubscribe —
+  // checkwarn.ts already owns the full removal interaction; a simultaneous goodbye message
+  // directly contradicts the moderation flow. Voluntary self-leaves are never affected.
   enforceWarnBan,
 ]);
