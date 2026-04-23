@@ -259,58 +259,153 @@ Adding a new step is a new key. Modifying step 2 cannot break step 1. The same p
 
 ### One Button, One Object
 
-In classic frameworks, the code that sends a button and the code that handles its click are separated by hundreds of lines and connected only by an opaque type string:
+**discord.js v14** — Buttons require `ActionRowBuilder` and `ButtonBuilder`. The click handler is a global `interactionCreate` listener registered separately on the Client — the code that sends buttons and the code that handles clicks are structurally disconnected, linked only by a raw string ID embedded manually in `customId`. Every interaction must be acknowledged within 3 seconds or Discord shows "interaction failed":
 
 ```js
-// Mirai pattern — the send site and the handler site are structurally disconnected
-api.sendMessage("1. Confirm\n2. Cancel", threadID, (err, info) => {
-  global.client.handleReply.push({
-    type: "awaiting_confirm",
-    messageID: info.messageID,
-  });
-});
+// discord.js v14 — send and handle are two separate registration sites
+const row = new ActionRowBuilder().addComponents(
+  new ButtonBuilder()
+    .setCustomId('confirm:12345')  // embed userId manually for ownership check
+    .setLabel('✅ Confirm')
+    .setStyle(ButtonStyle.Success),
+  new ButtonBuilder()
+    .setCustomId('cancel:12345')
+    .setLabel('❌ Cancel')
+    .setStyle(ButtonStyle.Danger)
+)
+await message.channel.send({ content: 'Are you sure?', components: [row] })
 
-module.exports.handleReply = async ({ handleReply, event, api }) => {
-  if (handleReply.type === "awaiting_confirm") {
-    /* ... */
-  }
-};
+// Registered globally on the Client — completely separate from the send site
+client.on('interactionCreate', async interaction => {
+  if (!interaction.isButton()) return
+  await interaction.deferUpdate()  // MUST call within 3 seconds
+  const [action, userId] = interaction.customId.split(':')
+  if (interaction.user.id !== userId) return  // manual ownership check
+  if (action === 'confirm') await interaction.editReply({ content: '✅ Confirmed!', components: [] })
+})
 ```
 
-Reading the command that sends the buttons tells you nothing about what happens when they are clicked. You must track down the `handleReply` export, find the matching `type` string, and reason about global state — all before understanding a single user interaction.
+**Telegraf v4** — Inline keyboard buttons carry `callback_data` (max 64 bytes). Clicks arrive via `bot.on('callback_query')` registered separately from the command handler. `ctx.answerCbQuery()` must be called to dismiss the loading spinner:
 
-In Cat-Bot, every button is a self-contained object. Its `id`, `label`, `style`, and `onClick` live together in a single declaration:
+```js
+// Telegraf v4 — inline keyboard (send site and click handler are separate)
+await ctx.reply('Are you sure?', {
+  reply_markup: {
+    inline_keyboard: [[
+      { text: '✅ Confirm', callback_data: `confirm:${ctx.from.id}` },
+      { text: '❌ Cancel',  callback_data: `cancel:${ctx.from.id}` }
+    ]]
+  }
+})
+
+bot.on('callback_query', async ctx => {
+  await ctx.answerCbQuery()  // dismiss the loading spinner — must call explicitly
+  const [action, userId] = ctx.callbackQuery.data.split(':')
+  if (ctx.from.id.toString() !== userId) return
+  if (action === 'confirm') await ctx.editMessageText('✅ Confirmed!')
+})
+```
+
+**fca-unofficial** — No native button component exists on Messenger's MQTT protocol. Buttons must be emulated with numbered text menus. State is stored in a global mutable array shared across all concurrent commands, creating race conditions when two users invoke the same command simultaneously:
+
+```js
+// fca-unofficial — text menu + global handleReply array (no native buttons)
+api.sendMessage(
+  'Are you sure?\n1. ✅ Confirm\n2. ❌ Cancel',
+  threadID,
+  (err, info) => {
+    if (err) return
+    global.client.handleReply.push({
+      name: 'myCommand', messageID: info.messageID,
+      author: event.senderID, type: 'awaiting_confirm',
+    })
+  }
+)
+
+module.exports.handleReply = async ({ event, handleReply, api }) => {
+  if (handleReply.author !== event.senderID) return  // manual ownership check
+  const idx = global.client.handleReply.findIndex(r => r.messageID === handleReply.messageID)
+  global.client.handleReply.splice(idx, 1)  // manual cleanup — races with concurrent pushes
+  const choice = event.body.trim()
+  if (choice === '1') api.sendMessage('✅ Confirmed!', event.threadID, () => {})
+  else api.sendMessage('❌ Cancelled.', event.threadID, () => {})
+}
+```
+
+**Facebook Page Graph API** — The Button Template is the only interactive construct, limited to 3 buttons with titles capped at 20 characters. Clicks arrive as `postback` webhook events in a completely separate Express handler — there is no concept of collocating the send and the click handler:
+
+```js
+// Facebook Page — Button Template (max 3 buttons) + postback handler (separate file)
+await axios.post(`${GRAPH}?access_token=${TOKEN}`, {
+  recipient: { id: psid },
+  message: {
+    attachment: {
+      type: 'template',
+      payload: {
+        template_type: 'button', text: 'Are you sure?',
+        buttons: [
+          { type: 'postback', title: '✅ Confirm', payload: `CONFIRM_${psid}` },
+          { type: 'postback', title: '❌ Cancel',  payload: `CANCEL_${psid}` },
+        ]
+      }
+    }
+  }
+})
+
+app.post('/webhook', (req, res) => {
+  res.sendStatus(200)
+  req.body.entry.forEach(entry => entry.messaging.forEach(async event => {
+    if (!event.postback) return
+    const [action, userId] = event.postback.payload.split('_')
+    if (event.sender.id !== userId) return
+    if (action === 'CONFIRM') await axios.post(`${GRAPH}?access_token=${TOKEN}`,
+      { recipient: { id: event.sender.id }, message: { text: '✅ Confirmed!' } })
+  }))
+})
+```
+
+**Cat-Bot — all four platforms:**
 
 ```ts
+const BUTTON_ID = { confirm: 'confirm', cancel: 'cancel' }
+
 export const button = {
-  confirm: {
-    label: "✅ Confirm",
+  [BUTTON_ID.confirm]: {
+    label: '✅ Confirm',
     style: ButtonStyle.SUCCESS,
     onClick: async ({ chat, event }: AppCtx) => {
-      // Only responsibility: what happens when Confirm is clicked
       await chat.editMessage({
-        message_id_to_edit: event["messageID"] as string,
-        message: "✅ Done!",
+        message_id_to_edit: event['messageID'] as string,
+        message: '✅ Confirmed!',
         button: [],
-      });
+      })
     },
   },
-  cancel: {
-    label: "❌ Cancel",
+  [BUTTON_ID.cancel]: {
+    label: '❌ Cancel',
     style: ButtonStyle.DANGER,
     onClick: async ({ chat, event }: AppCtx) => {
-      // Only responsibility: what happens when Cancel is clicked
       await chat.editMessage({
-        message_id_to_edit: event["messageID"] as string,
-        message: "❌ Cancelled.",
+        message_id_to_edit: event['messageID'] as string,
+        message: '❌ Cancelled.',
         button: [],
-      });
+      })
     },
   },
-};
+}
+
+export const onCommand = async ({ chat, button: btn }: AppCtx) => {
+  const confirmId = btn.generateID({ id: BUTTON_ID.confirm })
+  const cancelId  = btn.generateID({ id: BUTTON_ID.cancel })
+  await chat.replyMessage({
+    style: MessageStyle.MARKDOWN,
+    message: '**Are you sure?**',
+    button: [confirmId, cancelId],
+  })
+}
 ```
 
-A developer reading this file sees the complete contract for each button — what it is called, how it looks, and what it does — without scrolling to a distant handler or decoding a type flag.
+Every button is a self-contained object — its `label`, `style`, and `onClick` live in the same file as `onCommand`. On Discord: an `ActionRowBuilder` with `deferUpdate()` called by the adapter before `onClick` fires. On Telegram: an `inline_keyboard` with `answerCbQuery()` handled transparently. On Messenger: a numbered text menu routed to the matching `onClick`. On Facebook Page: a Button Template. Your command code is identical for all four outcomes.
 
 ### Why This Matters
 
