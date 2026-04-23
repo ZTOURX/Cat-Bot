@@ -2184,6 +2184,7 @@ Raw GitHub source URLs for every command and event handler with available conten
 | `ping.ts` | https://raw.githubusercontent.com/johnlester-0369/Cat-Bot/refs/heads/main/packages/cat-bot/src/app/commands/ping.ts | `button.update()` label mutation before send, `button.createContext()`, `session.id` reuse, `session.context` read on click, `startTime` round-trip latency |
 | `callad.ts` | https://raw.githubusercontent.com/johnlester-0369/Cat-Bot/refs/heads/main/packages/cat-bot/src/app/commands/callad.ts | `onReply` bidirectional relay chain, composite bare-key `state.create({ id: \`${msgId}:${adminId}\` })`, `chat.reply({ thread_id })` cross-thread DM, `Promise.allSettled` multi-admin fan-out |
 | `prefix.ts` | https://raw.githubusercontent.com/johnlester-0369/Cat-Bot/refs/heads/main/packages/cat-bot/src/app/commands/prefix.ts | `onChat` lazy prefix-cache restoration after restart, `db.threads` collection (settings), `prefixManager` in-memory cache, `isBotAdmin` permission check, `updateBotSessionPrefix` DB persist |
+| `help.ts` | https://raw.githubusercontent.com/johnlester-0369/Cat-Bot/refs/heads/main/packages/cat-bot/src/app/commands/help.ts | `findSessionCommands` disabled-command snapshot, multi-repo role resolution chain (`isSystemAdmin` → `isBotAdmin` → `isBotPremium` → `isThreadAdmin`), `isPlatformAllowed` per-session platform guard, `getCanonicalMods` alias deduplication, `button.generateID` / `button.createContext` prev/next pagination, `hasNativeButtons`, `event['type'] === 'button_action'` edit-vs-reply guard |
 
 ---
 
@@ -2216,18 +2217,18 @@ Quick lookup: which source files best demonstrate each API pattern.
 |---|---|
 | `currencies.getMoney` | `balance.ts`, `rank.ts` |
 | Direct repo imports from command | `admin.ts` |
-| `isBotAdmin` / `addBotAdmin` / `removeBotAdmin` | `admin.ts` |
-| `isSystemAdmin` | `admin.ts` |
+| `isBotAdmin` / `addBotAdmin` / `removeBotAdmin` | `admin.ts`, `help.ts` |
+| `isSystemAdmin` | `admin.ts`, `help.ts` |
 | `currencies.increaseMoney / decreaseMoney` | `daily.ts` |
 | `currencies` balance guard before deduction | `daily.ts` |
 | `db.users.collection` — create / get / set | `daily.ts`, `rank.ts`, `rankup.ts` |
 | `db.threads.collection` — thread settings | `rankup.ts`, `prefix.ts` |
 | `db.users.getAll()` — leaderboard / full scan | `rank.ts` |
 | `db.users.getName()` | `rankup.ts` |
-| `button.generateID` (private, sender-scoped) | `ping.ts`, `daily.ts`, `balance.ts`, `rank.ts`, `rankup.ts` |
+| `button.generateID` (private, sender-scoped) | `ping.ts`, `daily.ts`, `balance.ts`, `rank.ts`, `rankup.ts`, `help.ts` |
 | `button.generateID({ public: true })` (thread-scoped) | `meme.ts`, `example_buttons.ts` |
 | `button.update()` — mutate label before send | `ping.ts` |
-| `button.createContext()` — store payload for onClick | `ping.ts`, `daily.ts`, `balance.ts`, `rank.ts` |
+| `button.createContext()` — store payload for onClick | `ping.ts`, `daily.ts`, `balance.ts`, `rank.ts`, `help.ts` |
 | `button.onClick` — edit-in-place handler | `ping.ts`, `meme.ts`, `example_buttons.ts` |
 | `session.id` reuse on repeated button click | `ping.ts`, `meme.ts` |
 | `session.context` read inside onClick / onReply | `ping.ts`, `callad.ts`, `example_reply.ts` |
@@ -2237,8 +2238,11 @@ Quick lookup: which source files best demonstrate each API pattern.
 | `onEvent` thread administrative events | `join.ts`, `leave.ts` |
 | `chat.reply({ thread_id })` — cross-thread DM | `callad.ts` |
 | `attachment_url` — file-from-URL attachment | `meme.ts` |
-| `hasNativeButtons` — platform capability guard | `ping.ts`, `meme.ts`, `daily.ts`, `balance.ts`, `rank.ts`, `rankup.ts` |
-| `event['type'] === 'button_action'` edit-vs-reply guard | `balance.ts`, `rank.ts`, `rankup.ts` |
+| `hasNativeButtons` — platform capability guard | `ping.ts`, `meme.ts`, `daily.ts`, `balance.ts`, `rank.ts`, `rankup.ts`, `help.ts` |
+| `event['type'] === 'button_action'` edit-vs-reply guard | `balance.ts`, `rank.ts`, `rankup.ts`, `help.ts` |
+| `findSessionCommands` disabled-command filtering | `help.ts` |
+| `isPlatformAllowed` per-session platform guard | `help.ts` |
+| multi-repo role resolution chain (`isSystemAdmin` → `isBotAdmin` → `isBotPremium` → `isThreadAdmin`) | `help.ts` |
 ## Migration Notes — From Global-Variable Bots
 
 ---
