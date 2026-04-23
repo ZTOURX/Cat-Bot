@@ -57,7 +57,7 @@ export const config = {
   description: 'Create/view/add/edit/move/delete group rules',
   cooldown:    5,
   hasPrefix:   true,
-  category:    'Admin',
+  category:    'thread',
   usage: [
     '— View all group rules (reply with # to zoom in)',
     '<n> — View rule #n directly',
@@ -66,6 +66,11 @@ export const config = {
     'move <n1> <n2> — Swap rules #n1 and #n2 (admin only)',
     'delete <n> — Delete rule #n (admin only)',
     'remove — Remove ALL rules with confirmation (admin only)',
+  ],
+  platform: [
+    Platforms.Discord,
+    Platforms.Telegram,
+    Platforms.FacebookMessenger,
   ],
 };
 

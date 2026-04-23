@@ -30,6 +30,7 @@
 
 import type { AppCtx } from '@/engine/types/controller.types.js'
 import { Role }         from '@/engine/constants/role.constants.js'
+import { Platforms } from '@/engine/modules/platform/platform.constants.js';
 import { MessageStyle } from '@/engine/constants/message-style.constants.js'
 import type { CommandConfig } from '@/engine/types/module-config.types.js'
 
@@ -56,7 +57,7 @@ export const config: CommandConfig = {
   description: 'Warn group members — 3 warnings results in a ban',
   cooldown:    5,
   hasPrefix:   true,
-  category:    'Admin',
+  category:    'thread',
   usage: [
     '@tag <reason> — Warn a member (admin only)',
     'list — List warned members',
@@ -68,7 +69,12 @@ export const config: CommandConfig = {
     '',
     '⚠️ Bot must be a group admin to auto-kick banned members.',
   ],
-}
+  platform: [
+    Platforms.Discord,
+    Platforms.Telegram,
+    Platforms.FacebookMessenger,
+  ],
+};
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
