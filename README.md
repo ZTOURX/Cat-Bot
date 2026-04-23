@@ -669,6 +669,95 @@ No nested callbacks. No wizard middleware to register. No global array to splice
 
 ---
 
+### Dynamically Updating Button Labels
+
+Updating the text on a button that is already rendered in a message forces each native SDK to
+rebuild the entire component tree — there is no in-place label mutation API in either discord.js
+or Telegraf.
+
+**discord.js v14** — components received from the API are frozen by design. The v14 migration
+guide documents [`ButtonBuilder.from()`](https://discordjs.guide/additional-info/changes-in-v14.html)
+as the canonical way to clone an existing component into a mutable builder, but you must still
+reconstruct a fresh `ActionRowBuilder` around the updated button and call `interaction.editReply()`.
+There is no "change label" method on a live button:
+
+```js
+// discord.js v14 — update a button label inside a button-click handler
+client.on('interactionCreate', async interaction => {
+  if (!interaction.isButton()) return
+  await interaction.deferUpdate()           // must acknowledge within 3 seconds
+
+  // API-received components are immutable — clone into a mutable builder first
+  const original = interaction.message.components[0].components[0]
+  const count = parseInt(original.label.match(/\d+/)?.[0] ?? '0') + 1
+
+  const updatedButton = ButtonBuilder.from(original).setLabel(`🔄 Refresh (${count})`)
+  const updatedRow    = new ActionRowBuilder().addComponents(updatedButton)
+
+  // Must rebuild the entire ActionRow — no direct label setter on a live button
+  await interaction.editReply({ components: [updatedRow] })
+})
+```
+
+**Telegraf v4** — there is no mutable button object. To change a label you call
+`ctx.editMessageText()` or `ctx.editMessageReplyMarkup()` and pass a completely reconstructed
+`inline_keyboard` array. Every button in every row must be redeclared, even when only one label
+is changing:
+
+```js
+// Telegraf v4 — update a button label inside a callback_query handler
+bot.action('refresh', async ctx => {
+  await ctx.answerCbQuery()                 // dismiss loading spinner — required
+
+  // No direct access to button state — must parse count from the rendered label string
+  const currentLabel = ctx.callbackQuery.message.reply_markup.inline_keyboard[0][0].text
+  const count = parseInt(currentLabel.match(/\d+/)?.[0] ?? '0') + 1
+
+  // Must redeclare the entire keyboard just to change one button label
+  await ctx.editMessageText(ctx.callbackQuery.message.text, {
+    reply_markup: {
+      inline_keyboard: [[
+        { text: `🔄 Refresh (${count})`, callback_data: 'refresh' }
+      ]]
+    }
+  })
+})
+```
+
+**Cat-Bot — all four platforms:**
+
+```ts
+const BUTTON_ID = { refresh: 'refresh' } as const
+
+export const button = {
+  [BUTTON_ID.refresh]: {
+    label: '🔄 Refresh (1)',
+    style: ButtonStyle.SECONDARY,
+    onClick: async ({ chat, startTime, event, button, session }: AppCtx) => {
+      const count = (session.context.count as number) + 1
+      // One call — the registry update is all that is needed; the platform adapter
+      // rebuilds the native component automatically on the next editMessage call.
+      button.update({ id: session.id, label: `🔄 Refresh (${count})` })
+      button.createContext({ id: session.id, context: { count } })
+      await chat.editMessage({
+        style: MessageStyle.MARKDOWN,
+        message_id_to_edit: event['messageID'] as string,
+        message: `🏓 Pong! Latency: \`${Date.now() - startTime}ms\``,
+        button: [session.id],
+      })
+    },
+  },
+}
+```
+
+No `ButtonBuilder.from()`. No `ActionRowBuilder` reconstruction. No `answerCbQuery()` call. No
+regex-parsing of the current label from a message payload. `button.update()` stores the new label
+in the button registry; `chat.editMessage()` tells the adapter to re-render — it reads the
+registry and builds the correct native component for Discord, Telegram, Messenger, or Facebook
+Page automatically.
+
+---
+
 ### What Cat-Bot Solves — Problem by Problem
 
 **The 3-Second Acknowledgment Window.** Discord's slash commands and button interactions must be acknowledged within 3 seconds or the user sees "interaction failed." Telegraf's callback queries must be answered within ~10 seconds to dismiss the loading spinner. In Cat-Bot, the platform adapter calls `deferReply()` or `deferUpdate()` immediately when the interaction arrives — before dispatching to your handler. Your `onCommand` and `button.onClick` functions receive control only after the acknowledgment has already been sent. You never race a timing window in your command code.

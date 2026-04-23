@@ -458,16 +458,63 @@ button.createContext({
 
 ### button.update / button.create
 
-Dynamically changes a button's label or style after it has been generated. Useful for counters like the ping refresh button.
+Mutates an already-generated button's label or style. Call `button.update()` before sending the
+message (to set the initial label) or inside an `onClick` handler (to reflect updated state after
+each re-render).
+
+**`button.update(options)`**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `id` | `string` | ✅ | The scoped button ID returned by `button.generateID()` |
+| `label` | `string` | — | New button label text; at least one of `label` or `style` must be provided |
+| `style` | `ButtonStyleValue` | — | New visual style (see [ButtonStyle](#buttonstyle)) |
 
 ```ts
-button.update({
-  id: btnId,
-  label: `🔄 Refresh (${count})`,
+const scopedId = button.generateID({ id: BUTTON_ID.refresh })
+// Set the initial label BEFORE sending — the platform adapter reads from
+// the registry when building the component payload for the first message.
+button.update({ id: scopedId, label: `🔄 Refresh (1)` })
+
+await chat.replyMessage({
+  style: MessageStyle.MARKDOWN,
+  message: `🏓 Pong! Latency: \`${Date.now() - startTime}ms\``,
+  button: [scopedId],
 })
 ```
 
-`button.create` adds a brand-new button definition at runtime (same signature as a static `export const button` entry).
+**Full counter lifecycle — the ping pattern** (from `ping.ts`):
+
+On every click the `onClick` handler reads the previous count from `session.context`, increments
+it, calls `button.update()` to mutate the registry entry, then calls `chat.editMessage()` to push
+the updated component to the platform:
+
+```ts
+onClick: async ({ chat, startTime, event, button, session }: AppCtx) => {
+  const count = (session.context.count as number) + 1
+  // Mutate the registry entry BEFORE editMessage — the adapter reads from the
+  // registry when constructing the platform-native component payload on re-render.
+  button.update({ id: session.id, label: `🔄 Refresh (${count})` })
+  button.createContext({ id: session.id, context: { count } })
+  await chat.editMessage({
+    style: MessageStyle.MARKDOWN,
+    message_id_to_edit: event['messageID'] as string,
+    message: `🏓 Pong! Latency: \`${Date.now() - startTime}ms\``,
+    button: [session.id],
+  })
+}
+```
+
+**`button.create(options)`** registers a brand-new button definition at runtime — use this when
+there is no corresponding static key in `export const button`. It accepts the same shape as a
+static entry (`label`, `style`, `onClick`).
+
+**When to use each:**
+
+| Scenario | Method |
+|---|---|
+| Change the label or style of an existing `export const button` key | `button.update()` |
+| Add a button at runtime with no static `export const button` key | `button.create()` |
 
 ### Connecting buttons to handlers
 
