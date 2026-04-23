@@ -47,6 +47,7 @@
 20. [Extending the Middleware Pipeline](#extending-the-middleware-pipeline)
 21. [Adapters Models Reference — Event & Data Structures](#adapters-models-reference--event--data-structures)
 22. [Repos Reference — Database Cache Layer](#repos-reference--database-cache-layer)
+23. [Multi-Instance Data Safety Rules](#multi-instance-data-safety-rules)
 
 ---
 
@@ -2424,4 +2425,89 @@ If you are familiar with GoatBot, Mirai, or similar `global.client.handleReply` 
 | `global.utils.randomString(10)` | `Math.random().toString(36).substring(2, 12)` |
 | `global.moduleData.shortcut = new Map()` | `db.threads.collection(threadID)` + collection API |
 
+
 **The single biggest difference:** Cat-Bot never puts state in `global`. Every pending state is scoped to a specific bot message ID and a specific user or thread. Two users running the same command at the same time get completely independent state entries with no interference.
+
+
+---
+
+## Multi-Instance Data Safety Rules
+
+Cat-Bot is designed to run multiple bot sessions concurrently — different dashboard users may each own separate sessions on the same platform, and one user may run multiple sessions across platforms. Any mutable state that is **not** correctly isolated to a specific `(userId, platform, sessionId)` triplet will produce silent data overwrites and race conditions between instances.
+
+---
+
+### ❌ Never use flat files for mutable bot state
+
+Writing to a plain file (e.g. `data/coins.json`, `tmp/quiz-state.json`) from a command or event handler is the most common source of data corruption in multi-instance deployments. All instances share the same filesystem path — concurrent reads and writes race each other with no locking:
+
+```ts
+// ❌ NEVER DO THIS — concurrent instances overwrite each other.
+// Last writer wins; the earlier write is silently discarded with no error.
+import { readFileSync, writeFileSync } from 'fs'
+const state = JSON.parse(readFileSync('./data/state.json', 'utf8'))
+state[userId] = (state[userId] ?? 0) + 100
+writeFileSync('./data/state.json', JSON.stringify(state))
+```
+
+**Use `ctx.db` collections instead.** Every read and write is automatically scoped to the `(sessionOwnerUserId, platform, sessionId)` triplet — concurrent instances never collide:
+
+```ts
+// ✅ CORRECT — db is pre-scoped per session; no collision possible between instances.
+export const onCommand = async ({ db, event }: AppCtx) => {
+  const senderID = event['senderID'] as string
+  const userColl = db.users.collection(senderID)
+  if (!(await userColl.isCollectionExist('wallet'))) {
+    await userColl.createCollection('wallet')
+  }
+  const wallet = await userColl.getCollection('wallet')
+  await wallet.increment('coins', 100)
+}
+```
+
+---
+
+### ✅ In-memory state — required key scoping
+
+If you intentionally use in-memory state (ephemeral caches, rate-limit counters that reset on restart), **every key must be prefixed with `userId:sessionId`** to prevent cross-instance bleed. Two sessions running in the same Node.js process share the same module-level `Map` object — without this prefix, one session's entries silently overwrite another session's entries for the same raw key.
+
+**Required key formats:**
+
+| Scope | Required key format | Example value |
+|---|---|---|
+| Thread-scoped in-memory | `` `${userId}:${sessionId}:${threadID}` `` | `"user1:sess1:thread123"` |
+| User-scoped in-memory | `` `${userId}:${sessionId}:${userID}` `` | `"user1:sess1:user456"` |
+
+`userId` and `sessionId` are always available from `native.userId` and `native.sessionId` inside any handler.
+
+```ts
+// ✅ Correctly scoped in-memory Map — safe for ephemeral, restart-losable state.
+// The userId:sessionId prefix ensures Session A and Session B never share entries.
+const activeQuizzes = new Map<string, { question: string; answer: string }>()
+
+export const onCommand = async ({ native, event, chat }: AppCtx) => {
+  const { userId, sessionId } = native
+  const threadID = event['threadID'] as string
+
+  // Thread-scoped key: userId:sessionId:threadID
+  // Without the prefix, Session B overwrites Session A's quiz for the same threadID.
+  const key = `${userId}:${sessionId}:${threadID}`
+  activeQuizzes.set(key, { question: 'What is 2+2?', answer: '4' })
+  await chat.replyMessage({ message: 'Quiz started! What is 2+2?' })
+}
+```
+
+> **Why `userId:sessionId` is the mandatory root:** Two sessions owned by different dashboard users run inside the same Node.js process. Without the prefix, `activeQuizzes.set(threadID, ...)` in Session A collides with Session B's entry for the same `threadID` — one session's state silently overwrites the other's.
+
+---
+
+### Best-practice summary
+
+| Scenario | Correct approach | Anti-pattern to avoid |
+|---|---|---|
+| Persistent per-user data | `db.users.collection(senderID)` | Writing to `users.json` |
+| Persistent per-thread data | `db.threads.collection(threadID)` | Writing to `threads.json` |
+| Economy / coin balance | `currencies.getMoney / increaseMoney / decreaseMoney` | Flat `economy.json` |
+| Session-level bot settings | `db` collection scoped to the bot session | Module-level `let config = {}` |
+| Ephemeral in-memory (restart-loss acceptable) | `Map` keyed by `` `${userId}:${sessionId}:${threadID}` `` | Unscoped `Map.set(threadID, ...)` |
+| Any `*.json` file for mutable state | ❌ Use `db` collections — never flat files | Flat file on disk |
