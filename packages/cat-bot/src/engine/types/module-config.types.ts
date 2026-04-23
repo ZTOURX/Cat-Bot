@@ -96,9 +96,6 @@ export interface CommandConfig {
   /** Author name or handle — shown in help output and error context. */
   author: string;
 
-  /** Command name (lowercase). Matched against the prefix-stripped token. */
-  name: string;
-
   /**
    * Usage pattern string or array of pattern strings.
    * Shown in the auto-generated usage reply when ctx.usage() is called.
