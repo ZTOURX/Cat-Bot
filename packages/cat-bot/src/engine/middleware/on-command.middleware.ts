@@ -373,14 +373,15 @@ export const enforceAdminOnly: MiddlewareFn<OnCommandCtx> = async function (
     const botColl = ctx.db.bot;
     if (await botColl.isCollectionExist('session_settings')) {
       const h = await botColl.getCollection('session_settings');
-      const enabled = (await h.get('adminOnlyEnabled')) as boolean | null;
+      // Read the entire settings object once — avoids three separate readAll() cache lookups
+      // that each traverse getBotSessionData() → lruCache.get() independently.
+      const settings = await h.getAll();
+      const enabled = settings['adminOnlyEnabled'] as boolean | null;
 
       if (enabled === true && !isAdmin) {
-        const ignoreList =
-          ((await h.get('adminOnlyIgnoreList')) as string[] | null) ?? [];
+        const ignoreList = (settings['adminOnlyIgnoreList'] as string[] | null) ?? [];
         if (!ignoreList.includes(cmdName)) {
-          const hideNoti =
-            (await h.get('adminOnlyHideNoti')) as boolean | null;
+          const hideNoti = settings['adminOnlyHideNoti'] as boolean | null;
           if (hideNoti !== true) {
             const key = `adminonly_noti:${sessionUserId}:${platform}:${sessionId}:${senderID}`;
             if (cooldownStore.check(key, now) === null) {
@@ -405,11 +406,13 @@ export const enforceAdminOnly: MiddlewareFn<OnCommandCtx> = async function (
       const threadColl = ctx.db.threads.collection(threadID);
       if (await threadColl.isCollectionExist('adminbox_settings')) {
         const h = await threadColl.getCollection('adminbox_settings');
-        const enabled = (await h.get('enabled')) as boolean | null;
+        // Read the entire settings object once — avoids three separate readAll() cache lookups
+        // that each traverse getThreadSessionData() → lruCache.get() independently.
+        const settings = await h.getAll();
+        const enabled = settings['enabled'] as boolean | null;
 
         if (enabled === true) {
-          const ignoreList =
-            ((await h.get('ignoreList')) as string[] | null) ?? [];
+          const ignoreList = (settings['ignoreList'] as string[] | null) ?? [];
           if (!ignoreList.includes(cmdName)) {
             // Bot admin already counts as allowed; otherwise check thread admin.
             let allowed = isAdmin;
@@ -417,8 +420,7 @@ export const enforceAdminOnly: MiddlewareFn<OnCommandCtx> = async function (
               allowed = await isThreadAdmin(threadID, senderID);
             }
             if (!allowed) {
-              const hideNoti =
-                (await h.get('hideNoti')) as boolean | null;
+              const hideNoti = settings['hideNoti'] as boolean | null;
               if (hideNoti !== true) {
                 const key = `adminbox_noti:${sessionUserId}:${platform}:${sessionId}:${threadID}:${senderID}`;
                 if (cooldownStore.check(key, now) === null) {
