@@ -1,22 +1,11 @@
 import { Helmet } from '@dr.pogodin/react-helmet'
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { Users, Bot, ShieldBan, AlertCircle } from 'lucide-react'
-import { authAdminClient } from '@/lib/better-auth-admin-client.lib'
 import { PLATFORM_LABELS } from '@/constants/platform.constants'
 import Badge from '@/components/ui/data-display/Badge'
 import { useAdminBots } from '@/features/admin/hooks/useAdminBots'
+import { useAdminUsers } from '@/features/admin/hooks/useAdminUsers'
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-interface ManagedUser {
-  id: string
-  name: string
-  email: string
-  role: string | null
-  // Aligned with better-auth UserWithRole.createdAt (Date) to fix TS2352
-  createdAt: Date
-  banned: boolean | null
-}
 
 // ── Shared subcomponents ──────────────────────────────────────────────────────
 
@@ -55,38 +44,18 @@ function StatCard({
  * inline mock data so the platform health numbers reflect live state.
  */
 export default function AdminDashboardPage() {
-  const [users, setUsers] = useState<ManagedUser[]>([])
-  const [isUsersLoading, setIsUsersLoading] = useState(true)
-  const { bots, isLoading: isBotsLoading } = useAdminBots()
+  // Fetch minimum recent data, but the stats properties represent the full server-side aggregates
+  const { users, stats: userStats, isLoading: isUsersLoading } = useAdminUsers(1, 6)
+  // Extracted only the stats and loading state; 'bots' array is unused in this aggregate view
+  const { stats: botStats, isLoading: isBotsLoading } = useAdminBots(1, 1)
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const result = await authAdminClient.admin.listUsers({
-          query: { limit: 10 },
-        })
-        if (!result.error) {
-          setUsers((result.data?.users ?? []) as ManagedUser[])
-        }
-      } catch (err) {
-        console.error('Failed to load recent users', err)
-      } finally {
-        setIsUsersLoading(false)
-      }
-    }
-    void fetchUsers()
-  }, [])
-
-  const totalUsers = users.length
-  const adminCount = users.filter((u) => u.role === 'admin').length
-  const bannedCount = users.filter((u) => u.banned).length
-  const activeBots = bots.filter((s) => s.isRunning).length
-  const totalBots = bots.length
-
-  const platformDist = bots.reduce<Record<string, number>>((acc, s) => {
-    acc[s.platform] = (acc[s.platform] ?? 0) + 1
-    return acc
-  }, {})
+  // Fallbacks mapping exactly to the server-calculated aggregate response
+  const totalUsers = userStats?.totalUsers ?? 0
+  const adminCount = userStats?.adminCount ?? 0
+  const bannedCount = userStats?.bannedCount ?? 0
+  const activeBots = botStats?.activeBots ?? 0
+  const totalBots = botStats?.totalBots ?? 0
+  const platformDist = botStats?.platformDist ?? {}
 
   return (
     <div className="flex flex-col gap-6">
@@ -149,9 +118,8 @@ export default function AdminDashboardPage() {
           ) : (
             <div className="flex flex-col">
               {Object.entries(platformDist).map(([platform, count]) => {
-                const running = bots.filter(
-                  (s) => s.platform === platform && s.isRunning,
-                ).length
+                // Extract active running count to show alongside the total
+                const running = botStats?.platformActiveDist?.[platform] ?? 0
                 return (
                   <div
                     key={platform}

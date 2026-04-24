@@ -1,5 +1,5 @@
 import { Helmet } from '@dr.pogodin/react-helmet'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { PLATFORM_LABELS } from '@/constants/platform.constants'
 import Table from '@/components/ui/data-display/Table'
 import EmptyState from '@/components/ui/data-display/EmptyState'
@@ -7,6 +7,7 @@ import Input from '@/components/ui/forms/Input'
 import { Bot, Search } from 'lucide-react'
 import Badge from '@/components/ui/data-display/Badge'
 import { useAdminBots } from '@/features/admin/hooks/useAdminBots'
+import { useDebounce } from '@/hooks/useDebounce'
 
 /**
  * AdminBotsPage
@@ -15,27 +16,18 @@ import { useAdminBots } from '@/features/admin/hooks/useAdminBots'
  * Replaces the previous mock data to give operators real platform health visibility.
  */
 export default function AdminBotsPage() {
-  const { bots, isLoading, error } = useAdminBots()
+  const [page, setPage] = useState(1)
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearch = useDebounce(searchQuery, 300)
 
-  const activeBots = bots.filter((s) => s.isRunning).length
+  useEffect(() => {
+    setPage(1)
+  }, [debouncedSearch])
 
-  const filteredBots =
-    searchQuery.trim() === ''
-      ? bots
-      : bots.filter(
-          (s) =>
-            s.nickname.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (s.userName ?? '')
-              .toLowerCase()
-              .includes(searchQuery.toLowerCase()) ||
-            (s.userEmail ?? '')
-              .toLowerCase()
-              .includes(searchQuery.toLowerCase()) ||
-            (PLATFORM_LABELS[s.platform] ?? s.platform)
-              .toLowerCase()
-              .includes(searchQuery.toLowerCase()),
-        )
+  const { bots, total, stats, isLoading, error } = useAdminBots(page, 10, debouncedSearch)
+  
+  const activeBots = stats?.activeBots ?? 0
+  const totalBots = stats?.totalBots ?? 0
 
   return (
     <div className="flex flex-col gap-6">
@@ -60,8 +52,8 @@ export default function AdminBotsPage() {
             className="shrink-0"
           >
             {searchQuery.trim()
-              ? `${filteredBots.length} of ${bots.length} matched`
-              : `${activeBots} / ${bots.length} running`}
+              ? `${total} of ${totalBots} matched`
+              : `${activeBots} / ${totalBots} running`}
           </Badge>
         )}
       </div>
@@ -82,10 +74,9 @@ export default function AdminBotsPage() {
             'facebook-messenger',
           ] as const
         ).map((platform) => {
-          const total = bots.filter((s) => s.platform === platform).length
-          const running = bots.filter(
-            (s) => s.platform === platform && s.isRunning,
-          ).length
+          // Stat derived from server's global knowledge
+          const platTotal = stats?.platformDist?.[platform] ?? 0
+          const platRunning = stats?.platformActiveDist?.[platform] ?? 0
           return (
             <div
               key={platform}
@@ -95,10 +86,10 @@ export default function AdminBotsPage() {
                 {PLATFORM_LABELS[platform] ?? platform}
               </span>
               <p className="text-headline-sm font-bold text-on-surface">
-                {total}
+                {platTotal}
               </p>
               <p className="text-label-sm text-on-surface-variant">
-                {running} running
+                {platRunning} running
               </p>
             </div>
           )
@@ -115,13 +106,15 @@ export default function AdminBotsPage() {
         />
       </div>
 
-      {!isLoading && bots.length === 0 && error === null ? (
+      {/* Only show global empty state if there are truly no bots in the system AND no active search */}
+      {!isLoading && bots.length === 0 && error === null && totalBots === 0 && !searchQuery.trim() ? (
         <EmptyState
           icon={Bot}
           title="No bot sessions"
           description="There are currently no registered bot sessions across any platform."
         />
       ) : (
+        <>
         <Table.ScrollArea className="bg-surface">
           <Table.Root variant="glass" fullWidth>
             <Table.Header>
@@ -136,7 +129,7 @@ export default function AdminBotsPage() {
             <Table.Body>
               {isLoading && <Table.Loading colSpan={5} rows={4} />}
               {!isLoading &&
-                filteredBots.map((session) => (
+                bots.map((session) => (
                   <Table.Row key={`${session.userId}:${session.sessionId}`}>
                     <Table.Cell className="font-medium">
                       {session.nickname}
@@ -176,18 +169,31 @@ export default function AdminBotsPage() {
                       >
                         {session.isRunning ? 'Running' : 'Stopped'}
                       </Badge>
-                    </Table.Cell>
-                  </Table.Row>
-                ))}
-              {!isLoading && filteredBots.length === 0 && bots.length > 0 && (
+                      </Table.Cell>
+                    </Table.Row>
+                  ))}
+              {!isLoading && bots.length === 0 && (totalBots > 0 || searchQuery.trim() !== '') && (
                 <Table.Empty
                   colSpan={5}
-                  message={`No bot sessions match "${searchQuery}"`}
+                  message={
+                    searchQuery.trim()
+                      ? `No bot sessions match "${searchQuery}"`
+                      : 'No bot sessions found.'
+                  }
                 />
               )}
             </Table.Body>
           </Table.Root>
         </Table.ScrollArea>
+        {total > 0 && (
+          <Table.Pagination
+            currentPage={page}
+            totalItems={total}
+            itemsPerPage={10}
+            onPageChange={setPage}
+          />
+        )}
+        </>
       )}
     </div>
   )

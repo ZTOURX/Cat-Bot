@@ -11,6 +11,8 @@ import Textarea from '@/components/ui/forms/Textarea'
 import Alert from '@/components/ui/feedback/Alert'
 import Badge from '@/components/ui/data-display/Badge'
 import { useAdminBots } from '@/features/admin/hooks/useAdminBots'
+import { useAdminUsers } from '@/features/admin/hooks/useAdminUsers'
+import { useDebounce } from '@/hooks/useDebounce'
 import adminService from '@/features/admin/services/admin.service'
 
 interface ManagedUser {
@@ -18,9 +20,8 @@ interface ManagedUser {
   name: string
   email: string
   role: string | null
-  // Aligned with better-auth UserWithRole.createdAt (Date) to fix TS2352
-  createdAt: Date
-  banned: boolean | null
+  createdAt: string
+  banned: boolean
 }
 
 /**
@@ -30,13 +31,16 @@ interface ManagedUser {
  * page doesn't unnecessarily pull the entire user payload when not needed.
  */
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState<ManagedUser[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
   const [searchQuery, setSearchQuery] = useState('')
-  // Fetch all bot sessions to derive real per-user counts — the same endpoint already
-  // consumed by the admin overview, so this shares the LRU cache and adds no DB round-trip.
-  const { bots } = useAdminBots()
+  const debouncedSearch = useDebounce(searchQuery, 300)
+
+  useEffect(() => { setPage(1) }, [debouncedSearch])
+
+  const { users, total, isLoading, error, refetch } = useAdminUsers(page, 10, debouncedSearch)
+  
+  // We still load ALL bots locally without pagination to safely derive user-bot relation counts on the client
+  const { bots } = useAdminBots(1, 10000, '')
 
   // Tracks which user the admin is about to ban — null means the dialog is closed.
   // Keeping this as a full ManagedUser object (not just id) lets the dialog render
@@ -50,26 +54,6 @@ export default function AdminUsersPage() {
   const [unbanTarget, setUnbanTarget] = useState<ManagedUser | null>(null)
   const [isUnbanning, setIsUnbanning] = useState(false)
   const [unbanError, setUnbanError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const result = await authAdminClient.admin.listUsers({
-          query: { limit: 100 },
-        })
-        if (result.error) {
-          setError(result.error.message ?? 'Failed to load users')
-        } else {
-          setUsers((result.data?.users ?? []) as ManagedUser[])
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load users')
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    void fetchUsers()
-  }, [])
 
   // Calls better-auth admin.banUser then optimistically flips the local row's
   // banned flag so the operator sees immediate feedback without a full re-fetch.
@@ -86,11 +70,9 @@ export default function AdminUsersPage() {
       if (result.error) {
         setBanError(result.error.message ?? 'Failed to ban user')
       } else {
-        setUsers((prev) =>
-          prev.map((u) => (u.id === banTarget.id ? { ...u, banned: true } : u)),
-        )
         setBanTarget(null)
         setBanReason('')
+        void refetch()
         // Fire-and-forget: stop all running bot sessions for the banned user.
         // The dialog closes immediately; session teardown is async so the operator
         // is never blocked by network latency or a large bot-session count.
@@ -135,12 +117,8 @@ export default function AdminUsersPage() {
       if (result.error) {
         setUnbanError(result.error.message ?? 'Failed to unban user')
       } else {
-        setUsers((prev) =>
-          prev.map((u) =>
-            u.id === unbanTarget.id ? { ...u, banned: false } : u,
-          ),
-        )
         setUnbanTarget(null)
+        void refetch()
         // Fire-and-forget: restart all bot sessions for the unbanned user.
         // Same rationale as the ban path — the UI resolves immediately.
         adminService.startUserSessions(unbanTarget.id).catch((err) => {
@@ -168,19 +146,6 @@ export default function AdminUsersPage() {
     setUnbanError(null)
   }
 
-  // Client-side filtering to ensure instant UI response and avoid unnecessary network requests
-  const filteredUsers =
-    searchQuery.trim() === ''
-      ? users
-      : users.filter(
-          (u) =>
-            u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (u.role ?? 'user')
-              .toLowerCase()
-              .includes(searchQuery.toLowerCase()),
-        )
-
   return (
     <div className="flex flex-col gap-6">
       <Helmet>
@@ -202,12 +167,12 @@ export default function AdminUsersPage() {
             size="md"
             pill
             className="shrink-0"
-          >
-            {searchQuery.trim()
-              ? `${filteredUsers.length} of ${users.length} matched`
-              : `${users.length} total`}
-          </Badge>
-        )}
+            >
+              {searchQuery.trim()
+                ? `${total} matched`
+                : `${total} total`}
+            </Badge>
+          )}
       </div>
 
       {error !== null && (
@@ -244,7 +209,7 @@ export default function AdminUsersPage() {
           <Table.Body>
             {isLoading && <Table.Loading colSpan={6} rows={4} />}
             {!isLoading &&
-              filteredUsers.map((u) => (
+              users.map((u) => (
                 <Table.Row key={u.id}>
                   <Table.Cell className="font-medium">{u.name}</Table.Cell>
                   <Table.Cell className="text-on-surface-variant">
@@ -313,7 +278,7 @@ export default function AdminUsersPage() {
                   </Table.Cell>
                 </Table.Row>
               ))}
-            {!isLoading && filteredUsers.length === 0 && (
+            {!isLoading && users.length === 0 && (
               <Table.Empty
                 colSpan={6}
                 message={
@@ -326,6 +291,14 @@ export default function AdminUsersPage() {
           </Table.Body>
         </Table.Root>
       </Table.ScrollArea>
+      {total > 0 && (
+        <Table.Pagination
+          currentPage={page}
+          totalItems={total}
+          itemsPerPage={10}
+          onPageChange={setPage}
+        />
+      )}
 
       {/* Ban dialog — controlled via banTarget state so no Trigger is needed.
           closeOnEsc / closeOnOverlayClick are disabled while the request is in
