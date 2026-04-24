@@ -34,6 +34,7 @@ import {
   enforceCooldown,
   enforcePermission,
   enforceNotBanned,
+  enforceAdminOnly,
 } from './on-command.middleware.js';
 import { chatPassthrough, chatLogThread } from './on-chat.middleware.js';
 import { replyStateValidation } from './on-reply.middleware.js';
@@ -50,6 +51,12 @@ use.onCommand([
   // Permission check runs first — an unauthorised user is rejected before their
   // cooldown window is consumed or option parsing wastes CPU on a denied request.
   enforcePermission,
+  // Enforces session-wide (adminonly) and per-thread (onlyadminbox) restriction
+  // modes; honours the matching ignoreonlyad / ignoreonlyadbox exemption lists.
+  // Runs after permission so commands already gated to BOT_ADMIN/SYSTEM_ADMIN do
+  // not pay the DB lookup, and before cooldown so a blocked attempt does not
+  // consume the user's cooldown window.
+  enforceAdminOnly,
   // Blocks commands still within their per-user cooldown window; sends exactly one
   // "please wait" notice on the first blocked attempt, silently drops the rest.
   // Runs after permission check so option parsing is still skipped for rate-limited commands.
