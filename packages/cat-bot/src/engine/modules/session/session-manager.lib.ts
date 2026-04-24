@@ -8,6 +8,7 @@
  */
 
 import { EventEmitter } from 'node:events';
+import { botRepo } from '@/server/repos/bot.repo.js';
 
 export interface SessionLifecycle {
   start: () => Promise<void>;
@@ -71,10 +72,20 @@ class SessionManager extends EventEmitter {
    * Records a session as currently running, logs its start time for uptime tracking, and broadcasts the status change to
    * all Socket.IO subscribers. Called by platform adapters after successful start().
    */
-  markActive(key: string): void {
+  async markActive(key: string): Promise<void> {
     const now = Date.now();
     this.#active.set(key, now);
     this.emit('status', { key, active: true, startedAt: now });
+
+    // Extract identifiers to sync running state directly into DB so crashes/stops reflect correctly
+    const [userId, , sessionId] = key.split(':');
+    if (userId && sessionId) {
+      try {
+        await botRepo.updateIsRunning(userId, sessionId, true);
+      } catch (err) {
+        console.error(`[session-manager] Failed to update isRunning=true for ${key}:`, err);
+      }
+    }
   }
 
   /**
@@ -82,9 +93,18 @@ class SessionManager extends EventEmitter {
    * platform adapters in their stop wrappers and on permanent startup failure so
    * the dashboard never shows a dead session as online.
    */
-  markInactive(key: string): void {
+  async markInactive(key: string): Promise<void> {
     this.#active.delete(key);
     this.emit('status', { key, active: false });
+
+    const [userId, , sessionId] = key.split(':');
+    if (userId && sessionId) {
+      try {
+        await botRepo.updateIsRunning(userId, sessionId, false);
+      } catch (err) {
+        console.error(`[session-manager] Failed to update isRunning=false for ${key}:`, err);
+      }
+    }
   }
 
   /**
@@ -137,9 +157,9 @@ class SessionManager extends EventEmitter {
   /**
    * Removes a session from the registry. Useful when credentials change and the closure must be rebuilt.
    */
-  unregister(key: string): void {
+  async unregister(key: string): Promise<void> {
     this.#sessions.delete(key);
-    if (this.#active.has(key)) this.markInactive(key);
+    if (this.#active.has(key)) await this.markInactive(key);
   }
 
   /**
@@ -172,13 +192,15 @@ class SessionManager extends EventEmitter {
    * Prevents stale closures from accumulating for banned accounts — the unban path
    * calls spawnDynamicSession which re-registers fresh lifecycle handles.
    */
-  unregisterAllByUserId(userId: string): void {
+  async unregisterAllByUserId(userId: string): Promise<void> {
+    const promises: Promise<void>[] = [];
     for (const key of [...this.#sessions.keys()]) {
       if (key.startsWith(`${userId}:`)) {
         this.#sessions.delete(key);
-        if (this.#active.has(key)) this.markInactive(key);
+        if (this.#active.has(key)) promises.push(this.markInactive(key));
       }
     }
+    await Promise.all(promises);
   }
 
   /**

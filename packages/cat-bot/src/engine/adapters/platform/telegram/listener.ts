@@ -169,7 +169,7 @@ export function createTelegramListener(
               { error: err },
             );
             // Alert UI proactively if token dies mid-session
-            sessionManager.markInactive(
+            void sessionManager.markInactive(
               `${config.userId}:${Platforms.Telegram}:${config.sessionId}`,
             );
           } else {

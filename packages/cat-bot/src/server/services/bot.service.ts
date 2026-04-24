@@ -214,7 +214,7 @@ export class BotService {
     // (If active, the frontend explicitly calls restartBot which will respawn it).
     const key = `${userId}:${platformStr}:${sessionId}`;
     if (!sessionManager.isActive(key)) {
-      sessionManager.unregister(key);
+      await sessionManager.unregister(key);
     }
   }
 
@@ -335,7 +335,7 @@ export class BotService {
       }
     }
     // Unregister so startBot falls through to a fresh spawn with new credentials
-    sessionManager.unregister(key);
+    await sessionManager.unregister(key);
     await this.startBot(userId, sessionId);
   }
 
@@ -364,7 +364,7 @@ export class BotService {
         });
       }
     }
-    sessionManager.unregister(key);
+    await sessionManager.unregister(key);
 
     await botRepo.deleteById(userId, sessionId);
     logger.info(`[bot.service] Deleted bot session ${key}`);
@@ -403,7 +403,7 @@ export class BotService {
     );
 
     // Remove stale closures and all LRU / prefix memory for this user
-    sessionManager.unregisterAllByUserId(userId);
+    await sessionManager.unregisterAllByUserId(userId);
     botRepo.clearUserCache(userId);
     prefixManager.clearAllByUserId(userId);
 
