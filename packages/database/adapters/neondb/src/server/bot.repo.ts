@@ -362,7 +362,11 @@ export class BotRepo {
   }
 
   // Returns every bot session regardless of owner — admin-only view.
-  async listAll(search: string = '', page: number = 1, limit: number = 10): Promise<GetAdminBotListResponseDto> {
+  async listAll(
+    search: string = '',
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<GetAdminBotListResponseDto> {
     const offset = (page - 1) * limit;
     let whereClause = '';
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -371,31 +375,34 @@ export class BotRepo {
     if (search) {
       const searchPattern = `%${search}%`;
       queryParams.push(searchPattern);
-      
+
       const platformIdMatches: number[] = [];
-      for (const[idStr, platStr] of Object.entries(ID_TO_PLATFORM)) {
+      for (const [idStr, platStr] of Object.entries(ID_TO_PLATFORM)) {
         if ((platStr as string).toLowerCase().includes(search.toLowerCase())) {
           platformIdMatches.push(parseInt(idStr, 10));
         }
       }
-      
+
       whereClause = `WHERE bs.nickname ILIKE $1 OR u.name ILIKE $1 OR u.email ILIKE $1`;
       if (platformIdMatches.length > 0) {
         whereClause += ` OR bs.platform_id IN (${platformIdMatches.join(',')})`;
       }
     }
 
-    const countRes = await pool.query<{ count: string }>(`
+    const countRes = await pool.query<{ count: string }>(
+      `
       SELECT COUNT(*)
       FROM bot_session bs
       LEFT JOIN "user" u ON u.id = bs.user_id
       ${whereClause}
-    `, queryParams);
+    `,
+      queryParams,
+    );
 
     const queryParamsPaginated = [...queryParams, limit, offset];
     const limitIdx = queryParamsPaginated.length - 1;
     const offsetIdx = queryParamsPaginated.length;
-    
+
     const res = await pool.query<{
       user_id: string;
       session_id: string;
@@ -405,7 +412,8 @@ export class BotRepo {
       is_running: boolean;
       user_name: string | null;
       user_email: string | null;
-    }>(`
+    }>(
+      `
       SELECT bs.user_id, bs.session_id, bs.platform_id, bs.nickname, bs.prefix, bs.is_running,
              u.name AS user_name,
              u.email AS user_email
@@ -414,9 +422,15 @@ export class BotRepo {
       ${whereClause}
       ORDER BY bs.user_id
       LIMIT $${limitIdx} OFFSET $${offsetIdx}
-    `, queryParamsPaginated);
+    `,
+      queryParamsPaginated,
+    );
 
-    const statsRes = await pool.query<{ platform_id: number, total: string, active: string }>(`
+    const statsRes = await pool.query<{
+      platform_id: number;
+      total: string;
+      active: string;
+    }>(`
       SELECT platform_id,
              COUNT(*) as total,
              COUNT(*) FILTER (WHERE is_running = true) as active
@@ -432,7 +446,8 @@ export class BotRepo {
     const platformActiveDist: Record<string, number> = {};
 
     for (const b of statsRes.rows) {
-      const platStr = (ID_TO_PLATFORM as Record<number, string>)[b.platform_id] ?? '';
+      const platStr =
+        (ID_TO_PLATFORM as Record<number, string>)[b.platform_id] ?? '';
       const t = parseInt(b.total, 10);
       const a = parseInt(b.active, 10);
       platformDist[platStr] = t;
@@ -446,7 +461,8 @@ export class BotRepo {
         sessionId: r.session_id,
         userId: r.user_id,
         platformId: r.platform_id,
-        platform: (ID_TO_PLATFORM as Record<number, string>)[r.platform_id] ?? '',
+        platform:
+          (ID_TO_PLATFORM as Record<number, string>)[r.platform_id] ?? '',
         nickname: r.nickname ?? '',
         prefix: r.prefix ?? '',
         isRunning: r.is_running,
@@ -457,7 +473,7 @@ export class BotRepo {
       page,
       limit,
       totalPages: Math.ceil(total / limit),
-      stats: { totalBots, activeBots, platformDist, platformActiveDist }
+      stats: { totalBots, activeBots, platformDist, platformActiveDist },
     };
   }
 

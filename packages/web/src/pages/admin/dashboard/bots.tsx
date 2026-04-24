@@ -24,8 +24,12 @@ export default function AdminBotsPage() {
     setPage(1)
   }, [debouncedSearch])
 
-  const { bots, total, stats, isLoading, error } = useAdminBots(page, 10, debouncedSearch)
-  
+  const { bots, total, stats, isLoading, error } = useAdminBots(
+    page,
+    10,
+    debouncedSearch,
+  )
+
   const activeBots = stats?.activeBots ?? 0
   const totalBots = stats?.totalBots ?? 0
 
@@ -107,7 +111,11 @@ export default function AdminBotsPage() {
       </div>
 
       {/* Only show global empty state if there are truly no bots in the system AND no active search */}
-      {!isLoading && bots.length === 0 && error === null && totalBots === 0 && !searchQuery.trim() ? (
+      {!isLoading &&
+      bots.length === 0 &&
+      error === null &&
+      totalBots === 0 &&
+      !searchQuery.trim() ? (
         <EmptyState
           icon={Bot}
           title="No bot sessions"
@@ -115,84 +123,87 @@ export default function AdminBotsPage() {
         />
       ) : (
         <>
-        <Table.ScrollArea className="bg-surface">
-          <Table.Root variant="glass" fullWidth>
-            <Table.Header>
-              <Table.Row>
-                <Table.Head>Nickname</Table.Head>
-                <Table.Head>Owner</Table.Head>
-                <Table.Head>Platform</Table.Head>
-                <Table.Head>Prefix</Table.Head>
-                <Table.Head>Status</Table.Head>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {isLoading && <Table.Loading colSpan={5} rows={4} />}
-              {!isLoading &&
-                bots.map((session) => (
-                  <Table.Row key={`${session.userId}:${session.sessionId}`}>
-                    <Table.Cell className="font-medium">
-                      {session.nickname}
-                    </Table.Cell>
-                    <Table.Cell>
-                      {session.userName || session.userEmail ? (
-                        <div className="flex flex-col min-w-0">
-                          <span className="font-medium text-on-surface truncate">
-                            {session.userName || 'Unknown User'}
+          <Table.ScrollArea className="bg-surface">
+            <Table.Root variant="glass" fullWidth>
+              <Table.Header>
+                <Table.Row>
+                  <Table.Head>Nickname</Table.Head>
+                  <Table.Head>Owner</Table.Head>
+                  <Table.Head>Platform</Table.Head>
+                  <Table.Head>Prefix</Table.Head>
+                  <Table.Head>Status</Table.Head>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {isLoading && <Table.Loading colSpan={5} rows={4} />}
+                {!isLoading &&
+                  bots.map((session) => (
+                    <Table.Row key={`${session.userId}:${session.sessionId}`}>
+                      <Table.Cell className="font-medium">
+                        {session.nickname}
+                      </Table.Cell>
+                      <Table.Cell>
+                        {session.userName || session.userEmail ? (
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-medium text-on-surface truncate">
+                              {session.userName || 'Unknown User'}
+                            </span>
+                            <span className="text-label-sm text-on-surface-variant truncate">
+                              {session.userEmail}
+                            </span>
+                          </div>
+                        ) : (
+                          // Fall back to raw cuid2 when the user row was deleted from the auth DB.
+                          <span className="text-on-surface-variant text-label-sm font-mono">
+                            {session.userId}
                           </span>
-                          <span className="text-label-sm text-on-surface-variant truncate">
-                            {session.userEmail}
-                          </span>
-                        </div>
-                      ) : (
-                        // Fall back to raw cuid2 when the user row was deleted from the auth DB.
-                        <span className="text-on-surface-variant text-label-sm font-mono">
-                          {session.userId}
+                        )}
+                      </Table.Cell>
+                      <Table.Cell>
+                        <span className="font-medium">
+                          {PLATFORM_LABELS[session.platform] ??
+                            session.platform}
                         </span>
-                      )}
-                    </Table.Cell>
-                    <Table.Cell>
-                      <span className="font-medium">
-                        {PLATFORM_LABELS[session.platform] ?? session.platform}
-                      </span>
-                    </Table.Cell>
-                    <Table.Cell className="font-mono text-on-surface-variant">
-                      {session.prefix}
-                    </Table.Cell>
-                    <Table.Cell>
-                      <Badge
-                        variant="tonal"
-                        color={session.isRunning ? 'success' : 'default'}
-                        size="sm"
-                        dot
-                        pill
-                      >
-                        {session.isRunning ? 'Running' : 'Stopped'}
-                      </Badge>
+                      </Table.Cell>
+                      <Table.Cell className="font-mono text-on-surface-variant">
+                        {session.prefix}
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Badge
+                          variant="tonal"
+                          color={session.isRunning ? 'success' : 'default'}
+                          size="sm"
+                          dot
+                          pill
+                        >
+                          {session.isRunning ? 'Running' : 'Stopped'}
+                        </Badge>
                       </Table.Cell>
                     </Table.Row>
                   ))}
-              {!isLoading && bots.length === 0 && (totalBots > 0 || searchQuery.trim() !== '') && (
-                <Table.Empty
-                  colSpan={5}
-                  message={
-                    searchQuery.trim()
-                      ? `No bot sessions match "${searchQuery}"`
-                      : 'No bot sessions found.'
-                  }
-                />
-              )}
-            </Table.Body>
-          </Table.Root>
-        </Table.ScrollArea>
-        {total > 0 && (
-          <Table.Pagination
-            currentPage={page}
-            totalItems={total}
-            itemsPerPage={10}
-            onPageChange={setPage}
-          />
-        )}
+                {!isLoading &&
+                  bots.length === 0 &&
+                  (totalBots > 0 || searchQuery.trim() !== '') && (
+                    <Table.Empty
+                      colSpan={5}
+                      message={
+                        searchQuery.trim()
+                          ? `No bot sessions match "${searchQuery}"`
+                          : 'No bot sessions found.'
+                      }
+                    />
+                  )}
+              </Table.Body>
+            </Table.Root>
+          </Table.ScrollArea>
+          {total > 0 && (
+            <Table.Pagination
+              currentPage={page}
+              totalItems={total}
+              itemsPerPage={10}
+              onPageChange={setPage}
+            />
+          )}
         </>
       )}
     </div>

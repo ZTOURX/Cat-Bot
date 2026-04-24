@@ -12,23 +12,24 @@
  */
 
 import type { AppCtx } from '@/engine/types/controller.types.js';
-import { Role }         from '@/engine/constants/role.constants.js';
+import { Role } from '@/engine/constants/role.constants.js';
 import { Platforms } from '@/engine/modules/platform/platform.constants.js';
 import { MessageStyle } from '@/engine/constants/message-style.constants.js';
 
 export const config = {
-  name:        'onlyadminbox',
-  aliases:     ['onlyadbox', 'adboxonly', 'adminboxonly'] as string[],
-  version:     '1.3.0',
-  role:        Role.THREAD_ADMIN,
-  author:      'NTKhang (Cat-Bot port)',
-  description: 'Turn on/off the mode where only group admins can use the bot in this thread.',
-  category:    'Admin',
+  name: 'onlyadminbox',
+  aliases: ['onlyadbox', 'adboxonly', 'adminboxonly'] as string[],
+  version: '1.3.0',
+  role: Role.THREAD_ADMIN,
+  author: 'NTKhang (Cat-Bot port)',
+  description:
+    'Turn on/off the mode where only group admins can use the bot in this thread.',
+  category: 'Admin',
   usage: [
     '[on | off] — Enable/disable admin-only mode for this thread',
     'noti [on | off] — Enable/disable the blocked-user notification',
   ],
-  cooldown:  5,
+  cooldown: 5,
   hasPrefix: true,
   platform: [
     Platforms.Discord,
@@ -44,8 +45,8 @@ async function getHandle(db: AppCtx['db'], threadID: string) {
   if (!(await coll.isCollectionExist('adminbox_settings'))) {
     await coll.createCollection('adminbox_settings');
     const h = await coll.getCollection('adminbox_settings');
-    await h.set('enabled',    false);
-    await h.set('hideNoti',   false);
+    await h.set('enabled', false);
+    await h.set('hideNoti', false);
     await h.set('ignoreList', []);
     return h;
   }
@@ -55,29 +56,33 @@ async function getHandle(db: AppCtx['db'], threadID: string) {
 // ── onCommand ─────────────────────────────────────────────────────────────────
 
 export const onCommand = async ({
-  chat, event, args, db, usage,
+  chat,
+  event,
+  args,
+  db,
+  usage,
 }: AppCtx): Promise<void> => {
   const threadID = event['threadID'] as string;
 
-  let isNoti   = false;
+  let isNoti = false;
   let argIndex = 0;
 
   if (args[0]?.toLowerCase() === 'noti') {
-    isNoti   = true;
+    isNoti = true;
     argIndex = 1;
   }
 
   const toggle = args[argIndex]?.toLowerCase();
   if (toggle !== 'on' && toggle !== 'off') return usage();
 
-  const value  = toggle === 'on';
+  const value = toggle === 'on';
   const handle = await getHandle(db, threadID);
 
   if (isNoti) {
     // hideNoti is the inverse of "noti on" — enabling notifications means NOT hiding them
     await handle.set('hideNoti', !value);
     await chat.replyMessage({
-      style:   MessageStyle.MARKDOWN,
+      style: MessageStyle.MARKDOWN,
       message: value
         ? '✅ Notification **enabled** — non-admins will be told when they are blocked.'
         : '✅ Notification **disabled** — non-admins will be silently ignored.',
@@ -85,7 +90,7 @@ export const onCommand = async ({
   } else {
     await handle.set('enabled', value);
     await chat.replyMessage({
-      style:   MessageStyle.MARKDOWN,
+      style: MessageStyle.MARKDOWN,
       message: value
         ? '✅ Admin-only mode **enabled** — only group admins can use the bot in this thread.'
         : '✅ Admin-only mode **disabled** — all users can use the bot in this thread.',

@@ -65,11 +65,15 @@ export async function isSystemAdmin(adminId: string): Promise<boolean> {
   return (res.rows[0] ?? null) !== null;
 }
 
-export async function listAllUsers(search: string = '', page: number = 1, limit: number = 10): Promise<GetAdminUserListResponseDto> {
+export async function listAllUsers(
+  search: string = '',
+  page: number = 1,
+  limit: number = 10,
+): Promise<GetAdminUserListResponseDto> {
   const offset = (page - 1) * limit;
   let whereClause = '';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const queryParams: any[] =[];
+  const queryParams: any[] = [];
 
   if (search) {
     const searchPattern = `%${search}%`;
@@ -77,10 +81,13 @@ export async function listAllUsers(search: string = '', page: number = 1, limit:
     whereClause = `WHERE name ILIKE $1 OR email ILIKE $1 OR role ILIKE $1`;
   }
 
-  const countRes = await pool.query<{ count: string }>(`
+  const countRes = await pool.query<{ count: string }>(
+    `
     SELECT COUNT(*) FROM "user"
     ${whereClause}
-  `, queryParams);
+  `,
+    queryParams,
+  );
 
   const queryParamsPaginated = [...queryParams, limit, offset];
   const limitIdx = queryParamsPaginated.length - 1;
@@ -93,15 +100,22 @@ export async function listAllUsers(search: string = '', page: number = 1, limit:
     role: string | null;
     createdAt: Date;
     banned: boolean | null;
-  }>(`
+  }>(
+    `
     SELECT id, name, email, role, "createdAt" AS "createdAt", banned 
     FROM "user" 
     ${whereClause}
     ORDER BY "createdAt" DESC
     LIMIT $${limitIdx} OFFSET $${offsetIdx}
-  `, queryParamsPaginated);
+  `,
+    queryParamsPaginated,
+  );
 
-  const statsRes = await pool.query<{ total_users: string, admin_count: string, banned_count: string }>(`
+  const statsRes = await pool.query<{
+    total_users: string;
+    admin_count: string;
+    banned_count: string;
+  }>(`
     SELECT 
       COUNT(*) as total_users,
       COUNT(*) FILTER (WHERE role = 'admin') as admin_count,
@@ -125,7 +139,7 @@ export async function listAllUsers(search: string = '', page: number = 1, limit:
     stats: {
       totalUsers: parseInt(statsRow.total_users, 10),
       adminCount: parseInt(statsRow.admin_count, 10),
-      bannedCount: parseInt(statsRow.banned_count, 10)
-    }
+      bannedCount: parseInt(statsRow.banned_count, 10),
+    },
   };
 }

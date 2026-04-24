@@ -12,7 +12,12 @@ interface UseBotEventsReturn {
   toggleEvent: (name: string, isEnable: boolean) => Promise<void>
 }
 
-export function useBotEvents(sessionId: string, page = 1, limit = 12, search = ''): UseBotEventsReturn {
+export function useBotEvents(
+  sessionId: string,
+  page = 1,
+  limit = 12,
+  search = '',
+): UseBotEventsReturn {
   const [data, setData] = useState<GetBotEventsResponseDto | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -28,7 +33,12 @@ export function useBotEvents(sessionId: string, page = 1, limit = 12, search = '
       setIsLoading(true)
       setError(null)
       try {
-        const result = await botService.getEvents(sessionId, page, limit, search)
+        const result = await botService.getEvents(
+          sessionId,
+          page,
+          limit,
+          search,
+        )
         if (!cancelled) setData(result)
       } catch (err) {
         if (!cancelled) {
@@ -48,7 +58,7 @@ export function useBotEvents(sessionId: string, page = 1, limit = 12, search = '
   const toggleEvent = useCallback(
     async (name: string, isEnable: boolean): Promise<void> => {
       setData((prev) => {
-        if (!prev) return prev;
+        if (!prev) return prev
         return {
           ...prev,
           events: prev.events.map((evt) =>
@@ -56,12 +66,12 @@ export function useBotEvents(sessionId: string, page = 1, limit = 12, search = '
           ),
         }
       })
-      
+
       try {
         await botService.toggleEvent(sessionId, name, isEnable)
       } catch (err) {
         setData((prev) => {
-          if (!prev) return prev;
+          if (!prev) return prev
           return {
             ...prev,
             events: prev.events.map((evt) =>
@@ -75,12 +85,12 @@ export function useBotEvents(sessionId: string, page = 1, limit = 12, search = '
     [sessionId],
   )
 
-  return { 
-    events: data?.events ?? [], 
-    total: data?.total ?? 0, 
-    totalPages: data?.totalPages ?? 0, 
-    isLoading, 
-    error, 
-    toggleEvent 
+  return {
+    events: data?.events ?? [],
+    total: data?.total ?? 0,
+    totalPages: data?.totalPages ?? 0,
+    isLoading,
+    error,
+    toggleEvent,
   }
 }

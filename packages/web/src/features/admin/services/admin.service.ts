@@ -64,17 +64,31 @@ export interface GetSystemAdminsResponseDto {
 
 export class AdminService {
   // GET /api/v1/admin/bots — all bot sessions across all owners
-  async getAdminBots(page = 1, limit = 10, search = ''): Promise<GetAdminBotsResponseDto> {
-    const response = await apiClient.get<GetAdminBotsResponseDto>('/api/v1/admin/bots', {
-      params: { page, limit, search }
-    })
+  async getAdminBots(
+    page = 1,
+    limit = 10,
+    search = '',
+  ): Promise<GetAdminBotsResponseDto> {
+    const response = await apiClient.get<GetAdminBotsResponseDto>(
+      '/api/v1/admin/bots',
+      {
+        params: { page, limit, search },
+      },
+    )
     return response.data
   }
 
-  async getAdminUsers(page = 1, limit = 10, search = ''): Promise<GetAdminUserListResponseDto> {
-    const response = await apiClient.get<GetAdminUserListResponseDto>('/api/v1/admin/users', {
-      params: { page, limit, search }
-    })
+  async getAdminUsers(
+    page = 1,
+    limit = 10,
+    search = '',
+  ): Promise<GetAdminUserListResponseDto> {
+    const response = await apiClient.get<GetAdminUserListResponseDto>(
+      '/api/v1/admin/users',
+      {
+        params: { page, limit, search },
+      },
+    )
     return response.data
   }
 

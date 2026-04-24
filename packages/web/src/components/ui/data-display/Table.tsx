@@ -726,7 +726,9 @@ const TablePagination: React.FC<TablePaginationProps> = ({
   // Priority: explicit size prop > table context size > default 'md'
   const effectiveSize = size ?? tableContext?.size ?? 'md'
 
-  const totalPages = Math.ceil(paginationProps.totalItems / paginationProps.itemsPerPage)
+  const totalPages = Math.ceil(
+    paginationProps.totalItems / paginationProps.itemsPerPage,
+  )
   const hideOnSinglePage = paginationProps.hideOnSinglePage ?? true
   if (totalPages <= 1 && hideOnSinglePage) {
     return null

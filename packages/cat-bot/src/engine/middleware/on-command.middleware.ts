@@ -340,20 +340,20 @@ export const enforceAdminOnly: MiddlewareFn<OnCommandCtx> = async function (
   }
 
   const sessionUserId = ctx.native.userId ?? '';
-  const sessionId     = ctx.native.sessionId ?? '';
-  const platform      = ctx.native.platform;
-  const senderID      = (ctx.event['senderID'] ??
+  const sessionId = ctx.native.sessionId ?? '';
+  const platform = ctx.native.platform;
+  const senderID = (ctx.event['senderID'] ??
     ctx.event['userID'] ??
     '') as string;
-  const threadID      = (ctx.event['threadID'] ?? '') as string;
+  const threadID = (ctx.event['threadID'] ?? '') as string;
 
   // Resolve canonical command name from the module config so aliases share the
   // same ignore-list entry (typing /adonly behaves the same as /adminonly).
-  const cfg     = ctx.mod['config'] as Record<string, unknown> | undefined;
+  const cfg = ctx.mod['config'] as Record<string, unknown> | undefined;
   const cmdName = (
     (cfg?.['name'] as string | undefined) ?? ctx.parsed.name
   ).toLowerCase();
-  const now     = Date.now();
+  const now = Date.now();
 
   // System admins bypass both gates unconditionally.
   if (senderID && (await isSystemAdmin(senderID))) {
@@ -379,7 +379,8 @@ export const enforceAdminOnly: MiddlewareFn<OnCommandCtx> = async function (
       const enabled = settings['adminOnlyEnabled'] as boolean | null;
 
       if (enabled === true && !isAdmin) {
-        const ignoreList = (settings['adminOnlyIgnoreList'] as string[] | null) ?? [];
+        const ignoreList =
+          (settings['adminOnlyIgnoreList'] as string[] | null) ?? [];
         if (!ignoreList.includes(cmdName)) {
           const hideNoti = settings['adminOnlyHideNoti'] as boolean | null;
           if (hideNoti !== true) {

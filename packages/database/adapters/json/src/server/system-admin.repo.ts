@@ -61,10 +61,14 @@ export async function isSystemAdmin(adminId: string): Promise<boolean> {
   return (db.systemAdmin as any[]).some((r: any) => r.adminId === adminId);
 }
 
-export async function listAllUsers(search: string = '', page: number = 1, limit: number = 10): Promise<GetAdminUserListResponseDto> {
+export async function listAllUsers(
+  search: string = '',
+  page: number = 1,
+  limit: number = 10,
+): Promise<GetAdminUserListResponseDto> {
   const db = await getDb();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const allUsers = (db.user ||[]).map((u: any) => ({
+  const allUsers = (db.user || []).map((u: any) => ({
     id: u.id,
     name: u.name,
     email: u.email,
@@ -74,12 +78,15 @@ export async function listAllUsers(search: string = '', page: number = 1, limit:
   }));
 
   const searchLower = search.trim().toLowerCase();
-  // Handle case-insensitive array filtering explicitly since JSON adapters lack real indices 
-  const filtered = searchLower ? allUsers.filter((u: any) =>
-    (u.name || '').toLowerCase().includes(searchLower) ||
-    (u.email || '').toLowerCase().includes(searchLower) ||
-    (u.role || '').toLowerCase().includes(searchLower)
-  ) : allUsers;
+  // Handle case-insensitive array filtering explicitly since JSON adapters lack real indices
+  const filtered = searchLower
+    ? allUsers.filter(
+        (u: any) =>
+          (u.name || '').toLowerCase().includes(searchLower) ||
+          (u.email || '').toLowerCase().includes(searchLower) ||
+          (u.role || '').toLowerCase().includes(searchLower),
+      )
+    : allUsers;
 
   const total = filtered.length;
   const totalPages = Math.ceil(total / limit);
@@ -88,7 +95,7 @@ export async function listAllUsers(search: string = '', page: number = 1, limit:
   const stats = {
     totalUsers: allUsers.length,
     adminCount: allUsers.filter((u: any) => u.role === 'admin').length,
-    bannedCount: allUsers.filter((u: any) => u.banned).length
+    bannedCount: allUsers.filter((u: any) => u.banned).length,
   };
 
   return { users: paginated, total, page, limit, totalPages, stats };

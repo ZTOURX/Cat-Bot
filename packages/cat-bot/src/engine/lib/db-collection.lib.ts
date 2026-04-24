@@ -173,7 +173,8 @@ function createCollectionHandle(
       const col = await readCollection();
       if (!path) return col;
       const sub = getByPath(col, path);
-      if (typeof sub !== 'object' || sub === null || Array.isArray(sub)) return {};
+      if (typeof sub !== 'object' || sub === null || Array.isArray(sub))
+        return {};
       return sub as Record<string, unknown>;
     },
 

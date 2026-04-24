@@ -63,27 +63,43 @@ export async function isSystemAdmin(adminId: string): Promise<boolean> {
   return row !== null;
 }
 
-export async function listAllUsers(search: string = '', page: number = 1, limit: number = 10): Promise<GetAdminUserListResponseDto> {
+export async function listAllUsers(
+  search: string = '',
+  page: number = 1,
+  limit: number = 10,
+): Promise<GetAdminUserListResponseDto> {
   const db = getMongoDb();
-  
-  // WHY: Escape regex characters to prevent MongoDB query execution errors on symbols like '['
-  const escapedSearch = search ? search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '';
-  const query = search ? {
-    $or:[
-      { name: { $regex: escapedSearch, $options: 'i' } },
-      { email: { $regex: escapedSearch, $options: 'i' } },
-      { role: { $regex: escapedSearch, $options: 'i' } }
-    ]
-  } : {};
 
-  const[users, total, totalUsers, adminCount, bannedCount] = await Promise.all([
-    // Perform cursor pagination natively in MongoDB for O(1) page access efficiency
-    db.collection<any>('user').find(query).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).toArray(),
-    db.collection('user').countDocuments(query),
-    db.collection('user').countDocuments(),
-    db.collection('user').countDocuments({ role: 'admin' }),
-    db.collection('user').countDocuments({ banned: true })
-  ]);
+  // WHY: Escape regex characters to prevent MongoDB query execution errors on symbols like '['
+  const escapedSearch = search
+    ? search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    : '';
+  const query = search
+    ? {
+        $or: [
+          { name: { $regex: escapedSearch, $options: 'i' } },
+          { email: { $regex: escapedSearch, $options: 'i' } },
+          { role: { $regex: escapedSearch, $options: 'i' } },
+        ],
+      }
+    : {};
+
+  const [users, total, totalUsers, adminCount, bannedCount] = await Promise.all(
+    [
+      // Perform cursor pagination natively in MongoDB for O(1) page access efficiency
+      db
+        .collection<any>('user')
+        .find(query)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .toArray(),
+      db.collection('user').countDocuments(query),
+      db.collection('user').countDocuments(),
+      db.collection('user').countDocuments({ role: 'admin' }),
+      db.collection('user').countDocuments({ banned: true }),
+    ],
+  );
 
   return {
     users: users.map((u) => ({
@@ -91,13 +107,16 @@ export async function listAllUsers(search: string = '', page: number = 1, limit:
       name: u.name,
       email: u.email,
       role: u.role ?? null,
-      createdAt: u.createdAt instanceof Date ? u.createdAt.toISOString() : new Date(u.createdAt as string).toISOString(),
+      createdAt:
+        u.createdAt instanceof Date
+          ? u.createdAt.toISOString()
+          : new Date(u.createdAt as string).toISOString(),
       banned: u.banned ?? false,
     })),
     total,
     page,
     limit,
     totalPages: Math.ceil(total / limit),
-    stats: { totalUsers, adminCount, bannedCount }
+    stats: { totalUsers, adminCount, bannedCount },
   };
 }

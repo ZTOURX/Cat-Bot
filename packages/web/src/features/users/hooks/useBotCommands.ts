@@ -13,7 +13,12 @@ interface UseBotCommandsReturn {
   toggleCommand: (name: string, isEnable: boolean) => Promise<void>
 }
 
-export function useBotCommands(sessionId: string, page = 1, limit = 12, search = ''): UseBotCommandsReturn {
+export function useBotCommands(
+  sessionId: string,
+  page = 1,
+  limit = 12,
+  search = '',
+): UseBotCommandsReturn {
   const [data, setData] = useState<GetBotCommandsResponseDto | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -29,7 +34,12 @@ export function useBotCommands(sessionId: string, page = 1, limit = 12, search =
       setIsLoading(true)
       setError(null)
       try {
-        const result = await botService.getCommands(sessionId, page, limit, search)
+        const result = await botService.getCommands(
+          sessionId,
+          page,
+          limit,
+          search,
+        )
         if (!cancelled) setData(result)
       } catch (err) {
         if (!cancelled) {
@@ -60,7 +70,7 @@ export function useBotCommands(sessionId: string, page = 1, limit = 12, search =
           ),
         }
       })
-      
+
       try {
         await botService.toggleCommand(sessionId, name, isEnable)
       } catch (err) {
@@ -82,12 +92,12 @@ export function useBotCommands(sessionId: string, page = 1, limit = 12, search =
     [sessionId],
   )
 
-  return { 
-    commands: data?.commands ?? [], 
-    total: data?.total ?? 0, 
-    totalPages: data?.totalPages ?? 0, 
-    isLoading, 
-    error, 
-    toggleCommand 
+  return {
+    commands: data?.commands ?? [],
+    total: data?.total ?? 0,
+    totalPages: data?.totalPages ?? 0,
+    isLoading,
+    error,
+    toggleCommand,
   }
 }

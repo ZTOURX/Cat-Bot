@@ -298,7 +298,11 @@ export class BotRepo {
 
   // Returns every bot session across all owners — used only by admin dashboard endpoints.
   // No userId filter intentional: admin needs a global view of platform health.
-  async listAll(search: string = '', page: number = 1, limit: number = 10): Promise<GetAdminBotListResponseDto> {
+  async listAll(
+    search: string = '',
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<GetAdminBotListResponseDto> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
     if (search) {
@@ -308,13 +312,13 @@ export class BotRepo {
           platformIdMatches.push(parseInt(idStr, 10));
         }
       }
-      
-      where.OR =[
+
+      where.OR = [
         { nickname: { contains: search } },
         { user: { name: { contains: search } } },
-        { user: { email: { contains: search } } }
+        { user: { email: { contains: search } } },
       ];
-      // Expand platform ID checks if they typed 'telegram' or 'discord' 
+      // Expand platform ID checks if they typed 'telegram' or 'discord'
       if (platformIdMatches.length > 0) {
         where.OR.push({ platformId: { in: platformIdMatches } });
       }
@@ -326,13 +330,13 @@ export class BotRepo {
         orderBy: { userId: 'asc' },
         skip: (page - 1) * limit,
         take: limit,
-        include: { user: true }
+        include: { user: true },
       }),
       prisma.botSession.count({ where }),
       prisma.botSession.groupBy({
         by: ['platformId', 'isRunning'],
-        _count: { _all: true }
-      })
+        _count: { _all: true },
+      }),
     ]);
 
     let totalBots = 0;
@@ -341,24 +345,27 @@ export class BotRepo {
     const platformActiveDist: Record<string, number> = {};
 
     for (const b of statsRows) {
-      const platStr = (ID_TO_PLATFORM as Record<number, string>)[b.platformId] ?? '';
+      const platStr =
+        (ID_TO_PLATFORM as Record<number, string>)[b.platformId] ?? '';
       const count = b._count._all;
-      
+
       totalBots += count;
       platformDist[platStr] = (platformDist[platStr] || 0) + count;
-      
+
       if (b.isRunning) {
         activeBots += count;
-        platformActiveDist[platStr] = (platformActiveDist[platStr] || 0) + count;
+        platformActiveDist[platStr] =
+          (platformActiveDist[platStr] || 0) + count;
       }
     }
 
     return {
-      bots: rows.map(row => ({
+      bots: rows.map((row) => ({
         sessionId: row.sessionId,
         userId: row.userId,
         platformId: row.platformId,
-        platform: (ID_TO_PLATFORM as Record<number, string>)[row.platformId] ?? '',
+        platform:
+          (ID_TO_PLATFORM as Record<number, string>)[row.platformId] ?? '',
         nickname: row.nickname ?? '',
         prefix: row.prefix ?? '',
         isRunning: row.isRunning,
@@ -369,7 +376,7 @@ export class BotRepo {
       page,
       limit,
       totalPages: Math.ceil(total / limit),
-      stats: { totalBots, activeBots, platformDist, platformActiveDist }
+      stats: { totalBots, activeBots, platformDist, platformActiveDist },
     };
   }
 

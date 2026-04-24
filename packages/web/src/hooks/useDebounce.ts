@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 
 /**
  * useDebounce
- * 
+ *
  * Delays the update of a value until the specified delay has passed without any new updates.
  * Used primarily to prevent rapid-fire API calls while a user is typing a search query.
  */

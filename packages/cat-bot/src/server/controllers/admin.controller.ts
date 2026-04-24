@@ -2,7 +2,12 @@ import type { Request, Response } from 'express';
 import { requireAdmin } from '@/server/validators/auth-session.validator.js';
 import { botRepo } from '@/server/repos/bot.repo.js';
 import { botService } from '@/server/services/bot.service.js';
-import { listSystemAdmins, addSystemAdmin, removeSystemAdmin, listAllUsers } from 'database';
+import {
+  listSystemAdmins,
+  addSystemAdmin,
+  removeSystemAdmin,
+  listAllUsers,
+} from 'database';
 import type { AddSystemAdminRequestDto } from '@/server/dtos/admin.dto.js';
 export class AdminController {
   // GET /api/v1/admin/users — fetches all users, delegating pagination and search directly to the database.
@@ -11,8 +16,11 @@ export class AdminController {
     try {
       const page = parseInt(req.query['page'] as string, 10) || 1;
       // Enforce a hard maximum to avoid massive performance drops from querying unlimited pages
-      const limit = Math.min(parseInt(req.query['limit'] as string, 10) || 10, 100);
-      const search = (req.query['search'] as string | undefined || '').trim();
+      const limit = Math.min(
+        parseInt(req.query['limit'] as string, 10) || 10,
+        100,
+      );
+      const search = ((req.query['search'] as string | undefined) || '').trim();
 
       // WHY: Search and pagination MUST happen in the packages/database layer natively (using SQL LIMIT/OFFSET,
       // MongoDB $facet, or Prisma skip/take) rather than dynamically slicing arrays in the server layer.
@@ -31,8 +39,11 @@ export class AdminController {
     if (!(await requireAdmin(req, res))) return;
     try {
       const page = parseInt(req.query['page'] as string, 10) || 1;
-      const limit = Math.min(parseInt(req.query['limit'] as string, 10) || 10, 100);
-      const search = (req.query['search'] as string | undefined || '').trim();
+      const limit = Math.min(
+        parseInt(req.query['limit'] as string, 10) || 10,
+        100,
+      );
+      const search = ((req.query['search'] as string | undefined) || '').trim();
 
       // WHY: Delegated to the database adapter. Never load the full bot_session table into memory
       // to perform dynamic Array.prototype.slice pagination here.

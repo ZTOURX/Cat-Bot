@@ -43,28 +43,36 @@ export async function isSystemAdmin(adminId: string): Promise<boolean> {
   return row !== null;
 }
 
-export async function listAllUsers(search: string = '', page: number = 1, limit: number = 10): Promise<GetAdminUserListResponseDto> {
+export async function listAllUsers(
+  search: string = '',
+  page: number = 1,
+  limit: number = 10,
+): Promise<GetAdminUserListResponseDto> {
   // SQLite handles default string matching case-insensitively behind the scenes
-  const where = search ? {
-    OR:[
-      { name: { contains: search } },
-      { email: { contains: search } },
-      { role: { contains: search } }
-    ]
-  } : {};
+  const where = search
+    ? {
+        OR: [
+          { name: { contains: search } },
+          { email: { contains: search } },
+          { role: { contains: search } },
+        ],
+      }
+    : {};
 
-  const[users, total, totalUsers, adminCount, bannedCount] = await Promise.all([
-    prisma.user.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * limit,
-      take: limit,
-    }),
-    prisma.user.count({ where }),
-    prisma.user.count(),
-    prisma.user.count({ where: { role: 'admin' } }),
-    prisma.user.count({ where: { banned: true } })
-  ]);
+  const [users, total, totalUsers, adminCount, bannedCount] = await Promise.all(
+    [
+      prisma.user.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.user.count({ where }),
+      prisma.user.count(),
+      prisma.user.count({ where: { role: 'admin' } }),
+      prisma.user.count({ where: { banned: true } }),
+    ],
+  );
 
   return {
     users: users.map((u) => ({
@@ -76,6 +84,6 @@ export async function listAllUsers(search: string = '', page: number = 1, limit:
     page,
     limit,
     totalPages: Math.ceil(total / limit),
-    stats: { totalUsers, adminCount, bannedCount }
+    stats: { totalUsers, adminCount, bannedCount },
   };
 }

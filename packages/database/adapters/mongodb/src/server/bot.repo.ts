@@ -368,9 +368,13 @@ export class BotRepo {
   }
 
   // Returns every bot session across all owners — used only by admin dashboard endpoints.
-  async listAll(search: string = '', page: number = 1, limit: number = 10): Promise<GetAdminBotListResponseDto> {
+  async listAll(
+    search: string = '',
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<GetAdminBotListResponseDto> {
     const db = getMongoDb();
-    
+
     // Execute filtering, joining, and pagination completely within the MongoDB engine.
     // Handle ObjectID mapping and fallback to 'users' collection to ensure owner is found.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -386,14 +390,14 @@ export class BotRepo {
                   $or: [
                     { $eq: ['$_id', '$$uid'] },
                     { $eq: ['$id', '$$uid'] },
-                    { $eq: [{ $toString: '$_id' }, '$$uid'] }
-                  ]
-                }
-              }
-            }
+                    { $eq: [{ $toString: '$_id' }, '$$uid'] },
+                  ],
+                },
+              },
+            },
           ],
-          as: 'owner_user'
-        }
+          as: 'owner_user',
+        },
       },
       {
         $lookup: {
@@ -406,14 +410,14 @@ export class BotRepo {
                   $or: [
                     { $eq: ['$_id', '$$uid'] },
                     { $eq: ['$id', '$$uid'] },
-                    { $eq: [{ $toString: '$_id' }, '$$uid'] }
-                  ]
-                }
-              }
-            }
+                    { $eq: [{ $toString: '$_id' }, '$$uid'] },
+                  ],
+                },
+              },
+            },
           ],
-          as: 'owner_users'
-        }
+          as: 'owner_users',
+        },
       },
       {
         $addFields: {
@@ -426,26 +430,26 @@ export class BotRepo {
                 $cond: {
                   if: { $gt: [{ $size: '$owner_users' }, 0] },
                   then: { $arrayElemAt: ['$owner_users', 0] },
-                  else: null
-                }
-              }
-            }
-          }
-        }
+                  else: null,
+                },
+              },
+            },
+          },
+        },
       },
       {
         $project: {
           owner_user: 0,
-          owner_users: 0
-        }
-      }
+          owner_users: 0,
+        },
+      },
     ];
 
     if (search) {
       // WHY: Escape regex characters to prevent SyntaxError crashes and ReDoS attacks
       const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const searchRegex = new RegExp(escapedSearch, 'i');
-      const platformIdMatches: number[] =[];
+      const platformIdMatches: number[] = [];
       for (const [idStr, platStr] of Object.entries(ID_TO_PLATFORM)) {
         if ((platStr as string).toLowerCase().includes(search.toLowerCase())) {
           platformIdMatches.push(parseInt(idStr, 10));
@@ -453,10 +457,10 @@ export class BotRepo {
       }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const matchOr: any[] =[
+      const matchOr: any[] = [
         { nickname: { $regex: searchRegex } },
         { 'owner.name': { $regex: searchRegex } },
-        { 'owner.email': { $regex: searchRegex } }
+        { 'owner.email': { $regex: searchRegex } },
       ];
 
       if (platformIdMatches.length > 0) {
@@ -470,30 +474,36 @@ export class BotRepo {
     pipeline.push({
       $facet: {
         metadata: [{ $count: 'total' }],
-        data:[
+        data: [
           { $sort: { userId: 1 } },
           { $skip: (page - 1) * limit },
-          { $limit: limit }
-        ]
-      }
+          { $limit: limit },
+        ],
+      },
     });
 
-    const [result] = await db.collection('botSessions').aggregate(pipeline).toArray();
-    
-    const total = result?.metadata[0]?.total ?? 0;
-    const paginated = result?.data ??[];
+    const [result] = await db
+      .collection('botSessions')
+      .aggregate(pipeline)
+      .toArray();
 
-    const statsPipeline =[
+    const total = result?.metadata[0]?.total ?? 0;
+    const paginated = result?.data ?? [];
+
+    const statsPipeline = [
       {
         $group: {
           _id: '$platformId',
           total: { $sum: 1 },
-          active: { $sum: { $cond: ['$isRunning', 1, 0] } }
-        }
-      }
+          active: { $sum: { $cond: ['$isRunning', 1, 0] } },
+        },
+      },
     ];
-    
-    const statsResult = await db.collection('botSessions').aggregate(statsPipeline).toArray();
+
+    const statsResult = await db
+      .collection('botSessions')
+      .aggregate(statsPipeline)
+      .toArray();
 
     const platformDist: Record<string, number> = {};
     const platformActiveDist: Record<string, number> = {};
@@ -501,7 +511,8 @@ export class BotRepo {
     let activeBots = 0;
 
     for (const stat of statsResult) {
-      const platStr = (ID_TO_PLATFORM as Record<number, string>)[stat._id as number] ?? '';
+      const platStr =
+        (ID_TO_PLATFORM as Record<number, string>)[stat._id as number] ?? '';
       platformDist[platStr] = stat.total;
       platformActiveDist[platStr] = stat.active;
       totalBots += stat.total;
@@ -516,7 +527,9 @@ export class BotRepo {
           userId: r.userId as string,
           platformId: r.platformId as number,
           platform:
-            (ID_TO_PLATFORM as Record<number, string>)[r.platformId as number] ?? '',
+            (ID_TO_PLATFORM as Record<number, string>)[
+              r.platformId as number
+            ] ?? '',
           nickname: (r.nickname as string | undefined) ?? '',
           prefix: (r.prefix as string | undefined) ?? '',
           isRunning: (r.isRunning as boolean | undefined) ?? false,
@@ -528,7 +541,7 @@ export class BotRepo {
       page,
       limit,
       totalPages: Math.ceil(total / limit),
-      stats: { totalBots, activeBots, platformDist, platformActiveDist }
+      stats: { totalBots, activeBots, platformDist, platformActiveDist },
     };
   }
 

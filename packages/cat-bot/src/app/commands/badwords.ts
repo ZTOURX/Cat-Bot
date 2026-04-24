@@ -36,19 +36,19 @@
  */
 
 import type { AppCtx } from '@/engine/types/controller.types.js';
-import { Role }         from '@/engine/constants/role.constants.js';
+import { Role } from '@/engine/constants/role.constants.js';
 import { kickRegistry } from '@/engine/lib/kick-registry.lib.js';
 import { Platforms } from '@/engine/modules/platform/platform.constants.js';
 import { MessageStyle } from '@/engine/constants/message-style.constants.js';
 
 export const config = {
-  name:        'badwords',
-  aliases:     ['badword'] as string[],
-  version:     '1.4.0',
-  role:        Role.ANYONE,           // per-subcommand admin gate is inside onCommand
-  author:      'NTKhang (Cat-Bot port)',
+  name: 'badwords',
+  aliases: ['badword'] as string[],
+  version: '1.4.0',
+  role: Role.ANYONE, // per-subcommand admin gate is inside onCommand
+  author: 'NTKhang (Cat-Bot port)',
   description: 'Manage and enforce a bad-words filter for this group.',
-  category:    'Admin',
+  category: 'Admin',
   usage: [
     'add <word[,word|word]> — Add banned word(s) (admin only)',
     'delete <word[,word|word]> — Remove banned word(s) (admin only)',
@@ -57,7 +57,7 @@ export const config = {
     'off — Disable enforcement (admin only)',
     'unwarn [@mention | uid] — Remove one warning from a user (admin only)',
   ],
-  cooldown:  5,
+  cooldown: 5,
   hasPrefix: true,
   platform: [
     Platforms.Discord,
@@ -80,11 +80,13 @@ async function isThreadAdmin(
   senderID: string,
 ): Promise<boolean> {
   try {
-    const info     = (await thread.getInfo()) as unknown as Record<string, unknown>;
-    const adminIDs = info['adminIDs'] as Array<string | { uid: string }> | undefined;
+    const info = (await thread.getInfo()) as unknown as Record<string, unknown>;
+    const adminIDs = info['adminIDs'] as
+      | Array<string | { uid: string }>
+      | undefined;
     if (!Array.isArray(adminIDs)) return false;
-    return adminIDs.some((a) =>
-      (typeof a === 'string' ? a : a.uid) === senderID,
+    return adminIDs.some(
+      (a) => (typeof a === 'string' ? a : a.uid) === senderID,
     );
   } catch {
     return false;
@@ -97,17 +99,14 @@ async function isThreadAdmin(
  * Returns (and lazily creates) the 'badwords' collection handle for a thread.
  * All DB state lives here — words list, enabled flag, and per-user violations.
  */
-async function getBadwordsHandle(
-  db: AppCtx['db'],
-  threadID: string,
-) {
+async function getBadwordsHandle(db: AppCtx['db'], threadID: string) {
   const coll = db.threads.collection(threadID);
   if (!(await coll.isCollectionExist('badwords'))) {
     await coll.createCollection('badwords');
     // Initialise defaults on first creation
     const fresh = await coll.getCollection('badwords');
-    await fresh.set('words',      []);
-    await fresh.set('enabled',    false);
+    await fresh.set('words', []);
+    await fresh.set('enabled', false);
     await fresh.set('violations', {});
     return fresh;
   }
@@ -127,7 +126,7 @@ export const onCommand = async ({
 }: AppCtx): Promise<void> => {
   const threadID = event['threadID'] as string;
   const senderID = event['senderID'] as string;
-  const sub      = args[0]?.toLowerCase();
+  const sub = args[0]?.toLowerCase();
 
   // Lazy-init the collection so every sub-command is guaranteed a valid handle
   const handle = await getBadwordsHandle(db, threadID);
@@ -136,7 +135,7 @@ export const onCommand = async ({
   if (sub === 'add') {
     if (!(await isThreadAdmin(thread, senderID))) {
       await chat.replyMessage({
-        style:   MessageStyle.MARKDOWN,
+        style: MessageStyle.MARKDOWN,
         message: '⚠️ Only admins can add banned words to the list.',
       });
       return;
@@ -145,18 +144,21 @@ export const onCommand = async ({
     const rawInput = args.slice(1).join(' ').trim();
     if (!rawInput) {
       await chat.replyMessage({
-        style:   MessageStyle.MARKDOWN,
+        style: MessageStyle.MARKDOWN,
         message: "⚠️ You haven't entered the banned words.",
       });
       return;
     }
 
-    const inputWords = rawInput.split(/[,|]/).map((w) => w.trim()).filter(Boolean);
-    const words      = ((await handle.get('words')) as string[] | null) ?? [];
+    const inputWords = rawInput
+      .split(/[,|]/)
+      .map((w) => w.trim())
+      .filter(Boolean);
+    const words = ((await handle.get('words')) as string[] | null) ?? [];
 
-    const added:     string[] = [];
+    const added: string[] = [];
     const duplicate: string[] = [];
-    const tooShort:  string[] = [];
+    const tooShort: string[] = [];
 
     for (const word of inputWords) {
       if (word.length < 2) {
@@ -172,12 +174,19 @@ export const onCommand = async ({
     await handle.set('words', words);
 
     const parts: string[] = [];
-    if (added.length)     parts.push(`✅ Added ${added.length} banned word(s) to the list.`);
-    if (duplicate.length) parts.push(`❌ ${duplicate.length} word(s) already in the list: ${duplicate.map(hideWord).join(', ')}`);
-    if (tooShort.length)  parts.push(`⚠️ ${tooShort.length} word(s) too short (< 2 chars): ${tooShort.join(', ')}`);
+    if (added.length)
+      parts.push(`✅ Added ${added.length} banned word(s) to the list.`);
+    if (duplicate.length)
+      parts.push(
+        `❌ ${duplicate.length} word(s) already in the list: ${duplicate.map(hideWord).join(', ')}`,
+      );
+    if (tooShort.length)
+      parts.push(
+        `⚠️ ${tooShort.length} word(s) too short (< 2 chars): ${tooShort.join(', ')}`,
+      );
 
     await chat.replyMessage({
-      style:   MessageStyle.MARKDOWN,
+      style: MessageStyle.MARKDOWN,
       message: parts.join('\n') || '⚠️ No changes made.',
     });
     return;
@@ -187,7 +196,7 @@ export const onCommand = async ({
   if (['delete', 'del', '-d'].includes(sub ?? '')) {
     if (!(await isThreadAdmin(thread, senderID))) {
       await chat.replyMessage({
-        style:   MessageStyle.MARKDOWN,
+        style: MessageStyle.MARKDOWN,
         message: '⚠️ Only admins can delete banned words from the list.',
       });
       return;
@@ -196,17 +205,20 @@ export const onCommand = async ({
     const rawInput = args.slice(1).join(' ').trim();
     if (!rawInput) {
       await chat.replyMessage({
-        style:   MessageStyle.MARKDOWN,
+        style: MessageStyle.MARKDOWN,
         message: "⚠️ You haven't entered the words to delete.",
       });
       return;
     }
 
-    const inputWords = rawInput.split(/[,|]/).map((w) => w.trim()).filter(Boolean);
-    const words      = ((await handle.get('words')) as string[] | null) ?? [];
+    const inputWords = rawInput
+      .split(/[,|]/)
+      .map((w) => w.trim())
+      .filter(Boolean);
+    const words = ((await handle.get('words')) as string[] | null) ?? [];
 
-    const removed:   string[] = [];
-    const notFound:  string[] = [];
+    const removed: string[] = [];
+    const notFound: string[] = [];
 
     for (const word of inputWords) {
       const idx = words.indexOf(word);
@@ -221,11 +233,15 @@ export const onCommand = async ({
     await handle.set('words', words);
 
     const parts: string[] = [];
-    if (removed.length)  parts.push(`✅ Deleted ${removed.length} banned word(s) from the list.`);
-    if (notFound.length) parts.push(`❌ ${notFound.length} word(s) not in the list: ${notFound.join(', ')}`);
+    if (removed.length)
+      parts.push(`✅ Deleted ${removed.length} banned word(s) from the list.`);
+    if (notFound.length)
+      parts.push(
+        `❌ ${notFound.length} word(s) not in the list: ${notFound.join(', ')}`,
+      );
 
     await chat.replyMessage({
-      style:   MessageStyle.MARKDOWN,
+      style: MessageStyle.MARKDOWN,
       message: parts.join('\n') || '⚠️ No changes made.',
     });
     return;
@@ -237,18 +253,20 @@ export const onCommand = async ({
 
     if (words.length === 0) {
       await chat.replyMessage({
-        style:   MessageStyle.MARKDOWN,
-        message: '⚠️ The list of banned words in your group is currently empty.',
+        style: MessageStyle.MARKDOWN,
+        message:
+          '⚠️ The list of banned words in your group is currently empty.',
       });
       return;
     }
 
-    const display = args[1]?.toLowerCase() === 'hide'
-      ? words.map(hideWord).join(', ')
-      : words.join(', ');
+    const display =
+      args[1]?.toLowerCase() === 'hide'
+        ? words.map(hideWord).join(', ')
+        : words.join(', ');
 
     await chat.replyMessage({
-      style:   MessageStyle.MARKDOWN,
+      style: MessageStyle.MARKDOWN,
       message: `📑 Banned words in this group: ${display}`,
     });
     return;
@@ -258,14 +276,14 @@ export const onCommand = async ({
   if (sub === 'on') {
     if (!(await isThreadAdmin(thread, senderID))) {
       await chat.replyMessage({
-        style:   MessageStyle.MARKDOWN,
+        style: MessageStyle.MARKDOWN,
         message: '⚠️ Only admins can enable this feature.',
       });
       return;
     }
     await handle.set('enabled', true);
     await chat.replyMessage({
-      style:   MessageStyle.MARKDOWN,
+      style: MessageStyle.MARKDOWN,
       message: '✅ Banned words warning has been **enabled**.',
     });
     return;
@@ -275,14 +293,14 @@ export const onCommand = async ({
   if (sub === 'off') {
     if (!(await isThreadAdmin(thread, senderID))) {
       await chat.replyMessage({
-        style:   MessageStyle.MARKDOWN,
+        style: MessageStyle.MARKDOWN,
         message: '⚠️ Only admins can disable this feature.',
       });
       return;
     }
     await handle.set('enabled', false);
     await chat.replyMessage({
-      style:   MessageStyle.MARKDOWN,
+      style: MessageStyle.MARKDOWN,
       message: '✅ Banned words warning has been **disabled**.',
     });
     return;
@@ -292,35 +310,40 @@ export const onCommand = async ({
   if (sub === 'unwarn') {
     if (!(await isThreadAdmin(thread, senderID))) {
       await chat.replyMessage({
-        style:   MessageStyle.MARKDOWN,
+        style: MessageStyle.MARKDOWN,
         message: '⚠️ Only admins can remove banned-words warnings.',
       });
       return;
     }
 
     // Resolve target user: @mention → first mention key, else arg[1], else quoted reply sender
-    const mentions   = (event['mentions'] as Record<string, string> | undefined) ?? {};
+    const mentions =
+      (event['mentions'] as Record<string, string> | undefined) ?? {};
     const mentionIDs = Object.keys(mentions);
-    const replyEvent = event['messageReply'] as Record<string, unknown> | undefined;
+    const replyEvent = event['messageReply'] as
+      | Record<string, unknown>
+      | undefined;
 
     let targetUID: string | undefined;
-    if (mentionIDs[0])                   targetUID = mentionIDs[0];
-    else if (args[1])                    targetUID = args[1];
-    else if (replyEvent?.['senderID'])   targetUID = replyEvent['senderID'] as string;
+    if (mentionIDs[0]) targetUID = mentionIDs[0];
+    else if (args[1]) targetUID = args[1];
+    else if (replyEvent?.['senderID'])
+      targetUID = replyEvent['senderID'] as string;
 
     if (!targetUID) {
       await chat.replyMessage({
-        style:   MessageStyle.MARKDOWN,
+        style: MessageStyle.MARKDOWN,
         message: "⚠️ You haven't entered a user ID or tagged a user.",
       });
       return;
     }
 
-    const violations = ((await handle.get('violations')) as Record<string, number> | null) ?? {};
+    const violations =
+      ((await handle.get('violations')) as Record<string, number> | null) ?? {};
 
     if (!violations[targetUID]) {
       await chat.replyMessage({
-        style:   MessageStyle.MARKDOWN,
+        style: MessageStyle.MARKDOWN,
         message: `⚠️ User \`${targetUID}\` has not been warned for banned words.`,
       });
       return;
@@ -336,7 +359,7 @@ export const onCommand = async ({
 
     const userName = await user.getName(targetUID);
     await chat.replyMessage({
-      style:   MessageStyle.MARKDOWN,
+      style: MessageStyle.MARKDOWN,
       message: `✅ Removed 1 warning from **${userName}** (\`${targetUID}\`).`,
     });
     return;
@@ -355,7 +378,7 @@ export const onChat = async ({
   event,
   db,
 }: AppCtx): Promise<void> => {
-  const message  = event['message'] as string | undefined;
+  const message = event['message'] as string | undefined;
   const threadID = event['threadID'] as string;
   const senderID = event['senderID'] as string;
 
@@ -390,8 +413,9 @@ export const onChat = async ({
     if (!pattern.test(message)) continue;
 
     // Word found — check violation count
-    const violations = ((await handle.get('violations')) as Record<string, number> | null) ?? {};
-    const count      = violations[senderID] ?? 0;
+    const violations =
+      ((await handle.get('violations')) as Record<string, number> | null) ?? {};
+    const count = violations[senderID] ?? 0;
 
     if (count < 1) {
       // First offence — warn
@@ -399,14 +423,14 @@ export const onChat = async ({
       await handle.set('violations', violations);
 
       await chat.replyMessage({
-        style:   MessageStyle.MARKDOWN,
+        style: MessageStyle.MARKDOWN,
         message: `⚠️ Banned word **"${word}"** detected in your message. If you continue to violate you will be kicked from the group.`,
       });
       return;
     } else {
       // Second offence — warn then kick
       await chat.replyMessage({
-        style:   MessageStyle.MARKDOWN,
+        style: MessageStyle.MARKDOWN,
         message: `⚠️ Banned word **"${word}"** detected. You have violated 2 times and will be kicked from the group.`,
       });
 
@@ -420,7 +444,7 @@ export const onChat = async ({
       } catch {
         // Bot lacks kick permission
         await chat.replyMessage({
-          style:   MessageStyle.MARKDOWN,
+          style: MessageStyle.MARKDOWN,
           message: '⚠️ Bot needs admin privileges to kick this member.',
         });
       }

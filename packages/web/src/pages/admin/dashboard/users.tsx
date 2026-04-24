@@ -35,10 +35,16 @@ export default function AdminUsersPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearch = useDebounce(searchQuery, 300)
 
-  useEffect(() => { setPage(1) }, [debouncedSearch])
+  useEffect(() => {
+    setPage(1)
+  }, [debouncedSearch])
 
-  const { users, total, isLoading, error, refetch } = useAdminUsers(page, 10, debouncedSearch)
-  
+  const { users, total, isLoading, error, refetch } = useAdminUsers(
+    page,
+    10,
+    debouncedSearch,
+  )
+
   // We still load ALL bots locally without pagination to safely derive user-bot relation counts on the client
   const { bots } = useAdminBots(1, 10000, '')
 
@@ -167,12 +173,10 @@ export default function AdminUsersPage() {
             size="md"
             pill
             className="shrink-0"
-            >
-              {searchQuery.trim()
-                ? `${total} matched`
-                : `${total} total`}
-            </Badge>
-          )}
+          >
+            {searchQuery.trim() ? `${total} matched` : `${total} total`}
+          </Badge>
+        )}
       </div>
 
       {error !== null && (

@@ -6,7 +6,6 @@ import Badge from '@/components/ui/data-display/Badge'
 import { useAdminBots } from '@/features/admin/hooks/useAdminBots'
 import { useAdminUsers } from '@/features/admin/hooks/useAdminUsers'
 
-
 // ── Shared subcomponents ──────────────────────────────────────────────────────
 
 function StatCard({
@@ -45,7 +44,11 @@ function StatCard({
  */
 export default function AdminDashboardPage() {
   // Fetch minimum recent data, but the stats properties represent the full server-side aggregates
-  const { users, stats: userStats, isLoading: isUsersLoading } = useAdminUsers(1, 6)
+  const {
+    users,
+    stats: userStats,
+    isLoading: isUsersLoading,
+  } = useAdminUsers(1, 6)
   // Extracted only the stats and loading state; 'bots' array is unused in this aggregate view
   const { stats: botStats, isLoading: isBotsLoading } = useAdminBots(1, 1)
 

@@ -80,7 +80,9 @@ export class BotSessionConfigController {
 
     const page = parseInt(req.query['page'] as string, 10) || 1;
     const limit = parseInt(req.query['limit'] as string, 10) || 12; // 12 fits 2-col/3-col grids beautifully
-    const search = (req.query['search'] as string | undefined || '').trim().toLowerCase();
+    const search = ((req.query['search'] as string | undefined) || '')
+      .trim()
+      .toLowerCase();
 
     try {
       const rawCommands = await findSessionCommands(
@@ -88,7 +90,7 @@ export class BotSessionConfigController {
         platform,
         sessionId,
       );
-      
+
       const enriched = rawCommands
         // Filter out commands that are structurally disallowed on this session's platform
         .filter((cmd: { commandName: string; isEnable: boolean }) => {
@@ -110,17 +112,22 @@ export class BotSessionConfigController {
           };
         });
 
-      const filtered = search ? enriched.filter((cmd: any) => 
-        cmd.commandName.toLowerCase().includes(search) ||
-        (cmd.description || '').toLowerCase().includes(search) ||
-        (cmd.author || '').toLowerCase().includes(search)
-      ) : enriched;
+      const filtered = search
+        ? enriched.filter(
+            (cmd: any) =>
+              cmd.commandName.toLowerCase().includes(search) ||
+              (cmd.description || '').toLowerCase().includes(search) ||
+              (cmd.author || '').toLowerCase().includes(search),
+          )
+        : enriched;
 
       const total = filtered.length;
       const totalPages = Math.ceil(total / limit);
       const paginated = filtered.slice((page - 1) * limit, page * limit);
 
-      res.status(200).json({ commands: paginated, total, page, limit, totalPages });
+      res
+        .status(200)
+        .json({ commands: paginated, total, page, limit, totalPages });
     } catch (error) {
       console.error('[BotSessionConfigController.getCommands]', error);
       res.status(500).json({ error: 'Failed to fetch commands' });
@@ -199,7 +206,9 @@ export class BotSessionConfigController {
 
     const page = parseInt(req.query['page'] as string, 10) || 1;
     const limit = parseInt(req.query['limit'] as string, 10) || 12;
-    const search = (req.query['search'] as string | undefined || '').trim().toLowerCase();
+    const search = ((req.query['search'] as string | undefined) || '')
+      .trim()
+      .toLowerCase();
 
     try {
       const rawEvents = await findSessionEvents(userId, platform, sessionId);
@@ -220,17 +229,22 @@ export class BotSessionConfigController {
           };
         });
 
-      const filtered = search ? enriched.filter((evt: any) => 
-        evt.eventName.toLowerCase().includes(search) ||
-        (evt.description || '').toLowerCase().includes(search) ||
-        (evt.author || '').toLowerCase().includes(search)
-      ) : enriched;
+      const filtered = search
+        ? enriched.filter(
+            (evt: any) =>
+              evt.eventName.toLowerCase().includes(search) ||
+              (evt.description || '').toLowerCase().includes(search) ||
+              (evt.author || '').toLowerCase().includes(search),
+          )
+        : enriched;
 
       const total = filtered.length;
       const totalPages = Math.ceil(total / limit);
       const paginated = filtered.slice((page - 1) * limit, page * limit);
 
-      res.status(200).json({ events: paginated, total, page, limit, totalPages });
+      res
+        .status(200)
+        .json({ events: paginated, total, page, limit, totalPages });
     } catch (error) {
       console.error('[BotSessionConfigController.getEvents]', error);
       res.status(500).json({ error: 'Failed to fetch events' });

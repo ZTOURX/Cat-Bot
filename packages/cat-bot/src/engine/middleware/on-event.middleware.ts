@@ -184,7 +184,7 @@ export const enforceWarnBan: MiddlewareFn<OnEventCtx> = async function (
       const warnList =
         ((await warnColl.get('list')) as Array<{
           uid: string;
-          list: unknown[]
+          list: unknown[];
         }> | null) ?? [];
 
       const entry = warnList.find((u) => u.uid === leftId);

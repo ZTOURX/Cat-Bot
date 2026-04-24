@@ -83,7 +83,10 @@ class SessionManager extends EventEmitter {
       try {
         await botRepo.updateIsRunning(userId, sessionId, true);
       } catch (err) {
-        console.error(`[session-manager] Failed to update isRunning=true for ${key}:`, err);
+        console.error(
+          `[session-manager] Failed to update isRunning=true for ${key}:`,
+          err,
+        );
       }
     }
   }
@@ -102,7 +105,10 @@ class SessionManager extends EventEmitter {
       try {
         await botRepo.updateIsRunning(userId, sessionId, false);
       } catch (err) {
-        console.error(`[session-manager] Failed to update isRunning=false for ${key}:`, err);
+        console.error(
+          `[session-manager] Failed to update isRunning=false for ${key}:`,
+          err,
+        );
       }
     }
   }

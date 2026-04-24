@@ -30,9 +30,16 @@ export default function BotCommandsPage() {
   const [query, setQuery] = useState('')
   const debouncedQuery = useDebounce(query, 300)
 
-  useEffect(() => { setPage(1) }, [debouncedQuery])
+  useEffect(() => {
+    setPage(1)
+  }, [debouncedQuery])
 
-  const { commands, total, isLoading, error, toggleCommand } = useBotCommands(id, page, 12, debouncedQuery)
+  const { commands, total, isLoading, error, toggleCommand } = useBotCommands(
+    id,
+    page,
+    12,
+    debouncedQuery,
+  )
 
   return (
     <div className="flex flex-col gap-4">
@@ -51,9 +58,11 @@ export default function BotCommandsPage() {
           </p>
         </div>
         <Badge color="secondary" size="sm" variant="tonal">
-          {isLoading 
-            ? 'Loading...' 
-            : query.trim() ? `${total} matched` : `${total} total`}
+          {isLoading
+            ? 'Loading...'
+            : query.trim()
+              ? `${total} matched`
+              : `${total} total`}
         </Badge>
       </div>
 
@@ -71,13 +80,23 @@ export default function BotCommandsPage() {
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {Array.from({ length: 12 }).map((_, i) => (
-            <Card.Root key={i} padding="sm" bordered className="flex flex-col gap-3">
+            <Card.Root
+              key={i}
+              padding="sm"
+              bordered
+              className="flex flex-col gap-3"
+            >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex flex-col gap-1.5 flex-1">
                   <Skeleton variant="text" width="60%" height="24px" />
                   <Skeleton variant="text" width="40%" height="20px" />
                 </div>
-                <Skeleton variant="rounded" width="44px" height="24px" className="rounded-full" />
+                <Skeleton
+                  variant="rounded"
+                  width="44px"
+                  height="24px"
+                  className="rounded-full"
+                />
               </div>
               <Skeleton variant="text" count={2} />
               <div className="pt-2 border-t border-outline-variant mt-auto">
@@ -194,7 +213,7 @@ export default function BotCommandsPage() {
           ))}
         </div>
       )}
-      
+
       {/* Hide pagination while loading to prevent stale total counts from rendering */}
       {!isLoading && total > 0 && (
         <div className="pt-4 flex justify-center">

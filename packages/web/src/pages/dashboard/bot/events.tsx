@@ -67,13 +67,23 @@ export default function BotEventsPage() {
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Card.Root key={i} padding="sm" bordered className="flex flex-col gap-3">
+            <Card.Root
+              key={i}
+              padding="sm"
+              bordered
+              className="flex flex-col gap-3"
+            >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex flex-col gap-1.5 flex-1">
                   <Skeleton variant="text" width="60%" height="24px" />
                   <Skeleton variant="text" width="40%" height="20px" />
                 </div>
-                <Skeleton variant="rounded" width="44px" height="24px" className="rounded-full" />
+                <Skeleton
+                  variant="rounded"
+                  width="44px"
+                  height="24px"
+                  className="rounded-full"
+                />
               </div>
               <Skeleton variant="text" count={2} />
               <div className="pt-2 border-t border-outline-variant mt-auto">

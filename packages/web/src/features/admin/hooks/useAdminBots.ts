@@ -13,7 +13,11 @@ interface UseAdminBotsReturn {
   refetch: () => Promise<void>
 }
 
-export function useAdminBots(page = 1, limit = 10, search = ''): UseAdminBotsReturn {
+export function useAdminBots(
+  page = 1,
+  limit = 10,
+  search = '',
+): UseAdminBotsReturn {
   const [data, setData] = useState<GetAdminBotsResponseDto | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -57,13 +61,13 @@ export function useAdminBots(page = 1, limit = 10, search = ''): UseAdminBotsRet
     }
   }
 
-  return { 
-    bots: data?.bots ?? [], 
-    total: data?.total ?? 0, 
-    totalPages: data?.totalPages ?? 0, 
-    stats: data?.stats ?? null, 
-    isLoading, 
-    error, 
-    refetch 
+  return {
+    bots: data?.bots ?? [],
+    total: data?.total ?? 0,
+    totalPages: data?.totalPages ?? 0,
+    stats: data?.stats ?? null,
+    isLoading,
+    error,
+    refetch,
   }
 }

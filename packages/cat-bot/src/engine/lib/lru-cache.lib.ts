@@ -44,7 +44,10 @@ export const lruCache = {
     if (value === undefined) return;
     // Null cannot be stored directly under NonNullable<unknown>; wrap it in NULL_SENTINEL
     // so get() can return null (cached "not found") instead of undefined (cache miss).
-    cache.set(key, value === null ? NULL_SENTINEL : (value as NonNullable<unknown>));
+    cache.set(
+      key,
+      value === null ? NULL_SENTINEL : (value as NonNullable<unknown>),
+    );
   },
 
   del(key: string): void {

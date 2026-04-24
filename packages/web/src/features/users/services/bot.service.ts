@@ -47,10 +47,15 @@ export class BotService {
   }
 
   // Commands toggle — reads and mutates bot_session_commands rows for this session
-  async getCommands(sessionId: string, page = 1, limit = 12, search = ''): Promise<GetBotCommandsResponseDto> {
+  async getCommands(
+    sessionId: string,
+    page = 1,
+    limit = 12,
+    search = '',
+  ): Promise<GetBotCommandsResponseDto> {
     const response = await apiClient.get<GetBotCommandsResponseDto>(
       `/api/v1/bots/${sessionId}/commands`,
-      { params: { page, limit, search } }
+      { params: { page, limit, search } },
     )
     return response.data
   }
@@ -66,10 +71,15 @@ export class BotService {
   }
 
   // Events toggle — reads and mutates bot_session_events rows for this session
-  async getEvents(sessionId: string, page = 1, limit = 12, search = ''): Promise<GetBotEventsResponseDto> {
+  async getEvents(
+    sessionId: string,
+    page = 1,
+    limit = 12,
+    search = '',
+  ): Promise<GetBotEventsResponseDto> {
     const response = await apiClient.get<GetBotEventsResponseDto>(
       `/api/v1/bots/${sessionId}/events`,
-      { params: { page, limit, search } }
+      { params: { page, limit, search } },
     )
     return response.data
   }

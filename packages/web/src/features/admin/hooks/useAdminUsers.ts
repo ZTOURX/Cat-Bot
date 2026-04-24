@@ -31,9 +31,7 @@ export function useAdminUsers(
       const result = await adminService.getAdminUsers(page, limit, search)
       setData(result)
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to load users',
-      )
+      setError(err instanceof Error ? err.message : 'Failed to load users')
     } finally {
       setIsLoading(false)
     }

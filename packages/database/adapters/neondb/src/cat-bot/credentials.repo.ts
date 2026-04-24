@@ -405,4 +405,3 @@ export async function setBotSessionData(
     [userId, platformId, sessionId, JSON.stringify(data)],
   );
 }
-
