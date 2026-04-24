@@ -70,7 +70,7 @@ export function createFacebookPageListener(
           '[facebook-page] Session offline — page access token revoked or invalid',
           { error: err },
         );
-        sessionManager.markInactive(
+        void sessionManager.markInactive(
           `${config.userId}:${Platforms.FacebookPage}:${config.sessionId}`,
         );
       },

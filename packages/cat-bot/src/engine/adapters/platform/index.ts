@@ -177,7 +177,7 @@ async function startSessionWithRetry(
       { error: err },
     );
     // Ensure dashboard updates to reflect offline status regardless of auth error or exhausted retries
-    sessionManager.markInactive(smKey);
+    void sessionManager.markInactive(smKey);
   });
 }
 
@@ -245,10 +245,10 @@ export function createUnifiedPlatformListener(
       // markActive only after start() resolves so status tracks real transport readiness
       const startFn = async () => {
         await l.start(commands);
-        sessionManager.markActive(smKey);
+        await sessionManager.markActive(smKey);
       };
       const stopFn = async (signal?: string) => {
-        sessionManager.markInactive(smKey);
+        await sessionManager.markInactive(smKey);
         await l.stop(signal);
       };
       sessionManager.register(smKey, {
@@ -270,10 +270,10 @@ export function createUnifiedPlatformListener(
       });
       const startFn = async () => {
         await l.start(commands);
-        sessionManager.markActive(smKey);
+        await sessionManager.markActive(smKey);
       };
       const stopFn = async (signal?: string) => {
-        sessionManager.markInactive(smKey);
+        await sessionManager.markInactive(smKey);
         await l.stop(signal);
       };
       sessionManager.register(smKey, {
@@ -296,10 +296,10 @@ export function createUnifiedPlatformListener(
       });
       const startFn = async () => {
         await l.start();
-        sessionManager.markActive(smKey);
+        await sessionManager.markActive(smKey);
       };
       const stopFn = async (signal?: string) => {
-        sessionManager.markInactive(smKey);
+        await sessionManager.markInactive(smKey);
         await l.stop(signal);
       };
       sessionManager.register(smKey, {
@@ -322,10 +322,10 @@ export function createUnifiedPlatformListener(
       });
       const startFn = async () => {
         await Promise.resolve(l.start());
-        sessionManager.markActive(smKey);
+        await sessionManager.markActive(smKey);
       };
       const stopFn = async (signal?: string) => {
-        sessionManager.markInactive(smKey);
+        await sessionManager.markInactive(smKey);
         await l.stop(signal);
       };
       sessionManager.register(smKey, {
@@ -396,10 +396,10 @@ export async function spawnDynamicSession(
     });
     startFn = async () => {
       await l.start(activeCommands!);
-      sessionManager.markActive(smKey);
+      await sessionManager.markActive(smKey);
     };
     stopFn = async (signal?: string) => {
-      sessionManager.markInactive(smKey);
+      await sessionManager.markInactive(smKey);
       await l.stop(signal);
     };
   } else if (platform === Platforms.Telegram) {
@@ -414,10 +414,10 @@ export async function spawnDynamicSession(
     });
     startFn = async () => {
       await l.start(activeCommands!);
-      sessionManager.markActive(smKey);
+      await sessionManager.markActive(smKey);
     };
     stopFn = async (signal?: string) => {
-      sessionManager.markInactive(smKey);
+      await sessionManager.markInactive(smKey);
       await l.stop(signal);
     };
   } else if (platform === Platforms.FacebookMessenger) {
@@ -434,10 +434,10 @@ export async function spawnDynamicSession(
     });
     startFn = async () => {
       await l.start();
-      sessionManager.markActive(smKey);
+      await sessionManager.markActive(smKey);
     };
     stopFn = async (signal?: string) => {
-      sessionManager.markInactive(smKey);
+      await sessionManager.markInactive(smKey);
       await l.stop(signal);
     };
   } else if (platform === Platforms.FacebookPage) {
@@ -452,10 +452,10 @@ export async function spawnDynamicSession(
     });
     startFn = async () => {
       await Promise.resolve(l.start());
-      sessionManager.markActive(smKey);
+      await sessionManager.markActive(smKey);
     };
     stopFn = async (signal?: string) => {
-      sessionManager.markInactive(smKey);
+      await sessionManager.markInactive(smKey);
       await l.stop(signal);
     };
   } else {

@@ -16,12 +16,44 @@ export interface AdminBotItemDto {
 
 export interface GetAdminBotsResponseDto {
   bots: AdminBotItemDto[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+  stats: {
+    totalBots: number
+    activeBots: number
+    platformDist: Record<string, number>
+    platformActiveDist: Record<string, number>
+  }
+}
+
+export interface AdminUserItemDto {
+  id: string
+  name: string
+  email: string
+  role: string | null
+  createdAt: string
+  banned: boolean
 }
 
 export interface SystemAdminDto {
   id: string
   adminId: string
   createdAt: string
+}
+
+export interface GetAdminUserListResponseDto {
+  users: AdminUserItemDto[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+  stats: {
+    totalUsers: number
+    adminCount: number
+    bannedCount: number
+  }
 }
 
 export interface GetSystemAdminsResponseDto {
@@ -32,9 +64,17 @@ export interface GetSystemAdminsResponseDto {
 
 export class AdminService {
   // GET /api/v1/admin/bots — all bot sessions across all owners
-  async getAdminBots(): Promise<GetAdminBotsResponseDto> {
-    const response =
-      await apiClient.get<GetAdminBotsResponseDto>('/api/v1/admin/bots')
+  async getAdminBots(page = 1, limit = 10, search = ''): Promise<GetAdminBotsResponseDto> {
+    const response = await apiClient.get<GetAdminBotsResponseDto>('/api/v1/admin/bots', {
+      params: { page, limit, search }
+    })
+    return response.data
+  }
+
+  async getAdminUsers(page = 1, limit = 10, search = ''): Promise<GetAdminUserListResponseDto> {
+    const response = await apiClient.get<GetAdminUserListResponseDto>('/api/v1/admin/users', {
+      params: { page, limit, search }
+    })
     return response.data
   }
 

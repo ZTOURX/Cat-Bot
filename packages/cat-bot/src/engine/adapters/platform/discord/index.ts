@@ -88,7 +88,7 @@ export function createDiscordListener(config: DiscordConfig): EventEmitter & {
     // Prefix unused param with _ to satisfy ESLint
     activeClient = await createDiscordClient(token, sessionLogger, (_err) => {
       // Marks UI explicit offline if Discord gateway refuses token post-boot
-      sessionManager.markInactive(
+      void sessionManager.markInactive(
         `${userId}:${Platforms.Discord}:${sessionId}`,
       );
     });

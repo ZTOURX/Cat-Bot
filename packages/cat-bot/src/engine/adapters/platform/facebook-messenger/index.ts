@@ -109,7 +109,7 @@ export function createFacebookMessengerListener(
               '[facebook-messenger] Session offline — MQTT auth error (appstate may be expired)',
               { error: err },
             );
-            sessionManager.markInactive(
+            void sessionManager.markInactive(
               `${config.userId}:${Platforms.FacebookMessenger}:${config.sessionId}`,
             );
             return;
@@ -157,7 +157,7 @@ export function createFacebookMessengerListener(
                   { error: finalErr },
                 );
                 // Reconnect loop officially given up; sync UI state to offline
-                sessionManager.markInactive(
+                void sessionManager.markInactive(
                   `${config.userId}:${Platforms.FacebookMessenger}:${config.sessionId}`,
                 );
               });
