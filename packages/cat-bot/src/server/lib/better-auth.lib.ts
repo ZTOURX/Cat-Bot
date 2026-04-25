@@ -55,6 +55,21 @@ export const auth = betterAuth({
   // Admin and user sessions are always independent: impersonation creates a new session row
   // with impersonatedBy = adminId while the admin's original session is never modified or revoked.
   plugins: [admin()],
+  rateLimit: {
+    // In-memory storage — no DB round-trips on every auth request. Resets on
+    // process restart, which is acceptable for Cat-Bot's single-process deployment.
+    enabled: true,
+    window: 60,
+    max: 100,
+    storage: 'memory',
+    customRules: {
+      // 5 attempts / 10 s: generous for a human retyping a password but blocks
+      // automated credential-stuffing lists that fire hundreds of requests per second.
+      '/sign-in/email': { window: 10, max: 5 },
+      // Prevent mass account creation from a single IP address.
+      '/sign-up/email': { window: 60, max: 5 },
+    },
+  },
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
       if (ctx.path !== '/sign-in/email') return;
