@@ -106,24 +106,27 @@ export const use: MiddlewareUse = middlewareRegistry;
  * NOTE: `finalHandler` must not call next(). Doing so would re-invoke finalHandler, not
  * advance the middleware chain (the chain is already exhausted at that point).
  */
-export async function runMiddlewareChain<TCtx>(
+export function runMiddlewareChain<TCtx>(
   middlewares: MiddlewareFn<TCtx>[],
   ctx: TCtx,
   finalHandler: () => Promise<void>,
 ): Promise<void> {
-  let index = 0;
+  let index = -1;
 
-  // Closure captures index so each next() invocation advances the chain independently
-  // regardless of async interleaving between parallel requests.
-  const next = async (): Promise<void> => {
-    // noUncheckedIndexedAccess: array[n] returns T | undefined; guard against exhausted chain
-    const mw = middlewares[index++];
-    if (mw !== undefined) {
-      await mw(ctx, next);
-    } else {
-      await finalHandler();
+  function dispatch(i: number): Promise<void> {
+    if (i <= index) return Promise.reject(new Error('next() called multiple times'));
+    index = i;
+    const mw = middlewares[i];
+    try {
+      if (mw !== undefined) {
+        return Promise.resolve(mw(ctx, () => dispatch(i + 1)));
+      } else {
+        return Promise.resolve(finalHandler());
+      }
+    } catch (err) {
+      return Promise.reject(err);
     }
-  };
+  }
 
-  await next();
+  return dispatch(0);
 }
