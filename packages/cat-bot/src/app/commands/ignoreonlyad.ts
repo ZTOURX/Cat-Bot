@@ -9,14 +9,9 @@
  *   GoatBot verified the command name via global.GoatBot.commands.get().
  *   Cat-Bot's documented API provides no equivalent. The check is omitted.
  *
- * ⚠️ GAP — in-memory global list:
- *   GoatBot mutated global.GoatBot.config.adminOnly.ignoreCommand directly
- *   and persisted it via fs.writeFileSync. In Cat-Bot this is stored in
- *   db.users.collection(native.userId) → 'session_settings' → 'adminOnlyIgnoreList',
- *   which is correctly scoped per session and persisted by the db layer.
- *
- * DB schema: same 'session_settings' collection as adminonly.
+ * DB schema (db.bot → 'session_settings'):
  *   adminOnlyIgnoreList: string[]  — command names exempt from enforcement
+ *   (shared collection with adminonly; other fields managed there)
  */
 
 import type { AppCtx } from '@/engine/types/controller.types.js';
@@ -49,8 +44,8 @@ export const config = {
 
 // ── DB helper (shared schema with adminonly) ───────────────────────────────────
 
-async function getSessionHandle(db: AppCtx['db'], ownerUserId: string) {
-  const coll = db.users.collection(ownerUserId);
+async function getBotHandle(db: AppCtx['db']) {
+  const coll = db.bot;
   if (!(await coll.isCollectionExist('session_settings'))) {
     await coll.createCollection('session_settings');
     const h = await coll.getCollection('session_settings');
@@ -68,22 +63,10 @@ export const onCommand = async ({
   chat,
   args,
   db,
-  native,
   usage,
 }: AppCtx): Promise<void> => {
-  const ownerUserId = native.userId ?? '';
-
-  if (!ownerUserId) {
-    await chat.replyMessage({
-      style: MessageStyle.MARKDOWN,
-      message:
-        '❌ Cannot resolve session identity — ignoreonlyad is unavailable.',
-    });
-    return;
-  }
-
   const sub = args[0]?.toLowerCase();
-  const handle = await getSessionHandle(db, ownerUserId);
+  const handle = await getBotHandle(db);
 
   // ── add ───────────────────────────────────────────────────────────────────
   if (sub === 'add') {
