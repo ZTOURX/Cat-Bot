@@ -18,6 +18,8 @@ export default function AdminResetPasswordPage() {
   const [searchParams] = useSearchParams()
   // Safely trim any trailing whitespace or newline characters injected by strict email clients
   const token = searchParams.get('token')?.trim()
+  // Extract email so we can provide a 1-click resend experience if token expires
+  const emailParam = searchParams.get('email')?.trim()
 
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -29,6 +31,10 @@ export default function AdminResetPasswordPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isValidating, setIsValidating] = useState(true)
   const [isTokenValid, setIsTokenValid] = useState(false)
+
+  const [isResending, setIsResending] = useState(false)
+  const [resendSuccess, setResendSuccess] = useState(false)
+  const [resendError, setResendError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!token) {
@@ -105,6 +111,27 @@ export default function AdminResetPasswordPage() {
     }
   }
 
+  const handleResend = async () => {
+    if (!emailParam) return
+    setIsResending(true)
+    setResendError(null)
+
+    try {
+      await apiClient.post('/api/v1/validate/reset-password/request', {
+        email: emailParam,
+        adminOnly: true,
+      })
+      setResendSuccess(true)
+    } catch (err) {
+      const e = err as { response?: { data?: { error?: string } } }
+      setResendError(
+        e.response?.data?.error || 'Failed to resend reset link.',
+      )
+    } finally {
+      setIsResending(false)
+    }
+  }
+
   if (!isEmailEnabled) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface-container-high px-4 py-12">
@@ -136,20 +163,38 @@ export default function AdminResetPasswordPage() {
       <div className="min-h-screen flex items-center justify-center bg-surface-container-high px-4 py-12">
         <div className="w-full max-w-sm">
           <Alert
-            color="error"
-            title="Authorization Denied"
-            message="Your secure token is missing, invalid, or has expired. Please trigger a new request."
+            color={resendSuccess ? 'success' : 'error'}
+            title={resendSuccess ? 'Link Sent' : 'Authorization Denied'}
+            message={resendSuccess ? "A new secure reset link has been sent to your admin email." : "Your secure token is missing, invalid, or has expired. Please trigger a new request."}
           />
-          <div className="mt-6 flex">
+          {resendError && (
+            <div className="mt-4">
+              <Alert variant="tonal" color="error" title="Resend Failed" message={resendError} size="sm" />
+            </div>
+          )}
+          <div className="mt-6 flex flex-col gap-3">
+            {!resendSuccess && emailParam && (
+              <Button
+                onClick={() => void handleResend()}
+                variant="filled"
+                color="primary"
+                size="md"
+                fullWidth
+                isLoading={isResending}
+              >
+                Resend reset link
+              </Button>
+            )}
             <Button
               as={Link}
-              to={ROUTES.ADMIN.FORGOT_PASSWORD}
-              variant="tonal"
+              // Append email to URL so the ForgotPassword form populates automatically
+              to={`${ROUTES.ADMIN.FORGOT_PASSWORD}${emailParam ? `?email=${encodeURIComponent(emailParam)}` : ''}`}
+              variant={!resendSuccess && emailParam ? 'tonal' : 'filled'}
               color="primary"
               size="md"
               fullWidth
             >
-              Back to Recovery
+              {emailParam ? 'Use a different email' : 'Back to Recovery'}
             </Button>
           </div>
         </div>

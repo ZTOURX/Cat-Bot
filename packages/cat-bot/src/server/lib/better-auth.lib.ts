@@ -61,12 +61,19 @@ export const auth = betterAuth({
   emailAndPassword: {
     // Enables POST /api/auth/sign-up/email and POST /api/auth/sign-in/email out of the box
     enabled: true,
+    // Disable auto sign-in so the frontend can display the success alert instead of
+    // being instantly redirected to the dashboard by the PublicRoute guard.
+    autoSignIn: false,
     // Block sign-in for unverified accounts — prevents bot sessions being configured
     // by users who haven't confirmed ownership of their email address
     requireEmailVerification: isEmailServicesEnabled,
     // Dynamically insert reset password functionality if emails are enabled
     ...(isEmailServicesEnabled && {
       sendResetPassword: async ({ user, url }) => {
+        // Append email context to native URL so UI can enable 1-click token resends
+        const resetUrl = new URL(url);
+        resetUrl.searchParams.set('email', user.email);
+        const finalUrl = resetUrl.toString();
         void sendMail({
           to: user.email,
           subject: 'Reset your Cat-Bot password',
@@ -74,12 +81,12 @@ export const auth = betterAuth({
             `
             <p style="margin: 0 0 16px 0; color: ${COLORS.onSurface}; font-weight: 500;">Hello ${String(user.name ?? user.email)},</p>
             <p style="margin: 0 0 24px 0;">Click the button below to reset your Cat-Bot password:</p>
-            ${buildButton(url, 'Reset Password')}
+            ${buildButton(finalUrl, 'Reset Password')}
             <p style="margin: 24px 0 0 0; color: ${COLORS.outlineVariant}; font-size: 14px;">This link expires in 1 hour. If you did not request this, you can safely ignore this email.</p>
           `,
             'Securely reset your password',
           ),
-          text: `Reset your Cat-Bot password by visiting: ${url}`,
+          text: `Reset your Cat-Bot password by visiting: ${finalUrl}`,
         });
       },
     }),
@@ -218,9 +225,15 @@ export const adminAuth = betterAuth({
   },
   emailAndPassword: {
     enabled: true,
+    // Disable auto sign-in to prevent AdminPublicRoute from preemptively redirecting the user.
+    autoSignIn: false,
     // Dynamically insert reset password functionality if emails are enabled
     ...(isEmailServicesEnabled && {
       sendResetPassword: async ({ user, url }) => {
+        // Append email context to native admin URL
+        const resetUrl = new URL(url);
+        resetUrl.searchParams.set('email', user.email);
+        const finalUrl = resetUrl.toString();
         void sendMail({
           to: user.email,
           subject: 'Reset your Cat-Bot Admin password',
@@ -228,12 +241,12 @@ export const adminAuth = betterAuth({
             `
             <p style="margin: 0 0 16px 0; color: ${COLORS.onSurface}; font-weight: 500;">Hello ${String(user.name ?? user.email)},</p>
             <p style="margin: 0 0 24px 0;">Click the button below to securely reset your admin password:</p>
-            ${buildButton(url, 'Reset Admin Password')}
+            ${buildButton(finalUrl, 'Reset Admin Password')}
             <p style="margin: 24px 0 0 0; color: ${COLORS.outlineVariant}; font-size: 14px;">This link expires in 1 hour. If you did not request this, you can safely ignore this email.</p>
           `,
             'Securely reset your admin password',
           ),
-          text: `Reset your Cat-Bot Admin password by visiting: ${url}`,
+          text: `Reset your Cat-Bot Admin password by visiting: ${finalUrl}`,
         });
       },
     }),

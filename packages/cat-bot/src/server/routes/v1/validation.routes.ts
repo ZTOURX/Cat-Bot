@@ -14,6 +14,7 @@ import {
   requestPasswordResetCustom,
   verifyResetTokenCustom,
   confirmPasswordResetCustom,
+  checkEmailStatus,
 } from '../../controllers/validation.controller.js';
 
 const validationRouter = Router();
@@ -36,6 +37,11 @@ validationRouter.post('/facebook-messenger', (req, res) => {
 // POST /api/v1/validate/email-reset — check email existence + optional admin-role filter
 validationRouter.post('/email-reset', (req, res) => {
   void validateEmailForPasswordReset(req, res);
+});
+
+// POST /api/v1/validate/email-status — check email existence and verification status
+validationRouter.post('/email-status', (req, res) => {
+  void checkEmailStatus(req, res);
 });
 
 // POST /api/v1/validate/reset-password/request — generate in-memory reset token
