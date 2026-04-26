@@ -18,6 +18,8 @@ import { AdminAuthProvider } from '@/contexts/AdminAuthContext'
 const HomePage = lazy(() => import('@/pages/Home'))
 const LoginPage = lazy(() => import('@/pages/Login'))
 const SignupPage = lazy(() => import('@/pages/Signup'))
+const ForgotPasswordPage = lazy(() => import('@/pages/ForgotPassword'))
+const ResetPasswordPage = lazy(() => import('@/pages/ResetPassword'))
 const SettingsPage = lazy(() => import('@/pages/dashboard/settings'))
 const BotManagerPage = lazy(() => import('@/pages/dashboard'))
 const NewBotPage = lazy(() => import('@/pages/dashboard/create-new-bot'))
@@ -29,6 +31,8 @@ const BotCommandsPage = lazy(() => import('@/pages/dashboard/bot/commands'))
 const BotEventsPage = lazy(() => import('@/pages/dashboard/bot/events'))
 const BotSettingsPage = lazy(() => import('@/pages/dashboard/bot/settings'))
 const AdminLoginPage = lazy(() => import('@/pages/admin'))
+const AdminForgotPasswordPage = lazy(() => import('@/pages/admin/ForgotPassword'))
+const AdminResetPasswordPage = lazy(() => import('@/pages/admin/ResetPassword'))
 const AdminDashboardPage = lazy(() => import('@/pages/admin/dashboard'))
 const AdminUsersPage = lazy(() => import('@/pages/admin/dashboard/users'))
 const AdminBotsPage = lazy(() => import('@/pages/admin/dashboard/bots'))
@@ -94,6 +98,15 @@ export const router = createBrowserRouter([
           },
         ],
       },
+      // WHY: Extracted from PublicRoute to prevent authenticated users from being redirected to the dashboard when visiting password recovery links.
+      {
+        path: ROUTE_SEGMENTS.FORGOT_PASSWORD,
+        element: withSuspense(<ForgotPasswordPage />),
+      },
+      {
+        path: ROUTE_SEGMENTS.RESET_PASSWORD,
+        element: withSuspense(<ResetPasswordPage />),
+      },
       { path: '*', element: withSuspense(<NotFound />) },
     ],
   },
@@ -156,14 +169,23 @@ export const router = createBrowserRouter([
         element: <AdminPublicRoute />,
         children: [
           {
-            path: ROUTES.ADMIN.ROOT,
-            element: withSuspense(<AdminLoginPage />),
-          },
-        ],
-      },
-      {
-        element: <AdminProtectedRoute />,
-        children: [
+          path: ROUTES.ADMIN.ROOT,
+          element: withSuspense(<AdminLoginPage />),
+        },
+      ],
+    },
+    // WHY: Extracted from AdminPublicRoute so active admin sessions don't redirect password recovery URLs to the dashboard.
+    {
+      path: ROUTES.ADMIN.FORGOT_PASSWORD,
+      element: withSuspense(<AdminForgotPasswordPage />),
+    },
+    {
+      path: ROUTES.ADMIN.RESET_PASSWORD,
+      element: withSuspense(<AdminResetPasswordPage />),
+    },
+    {
+      element: <AdminProtectedRoute />,
+      children: [
           {
             // AdminSidebarLayout provides the persistent sidebar for all protected admin pages
             element: <AdminSidebarLayout />,

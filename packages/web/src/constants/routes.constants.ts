@@ -14,6 +14,8 @@ export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
   SIGNUP: '/signup',
+  FORGOT_PASSWORD: '/forgot-password',
+  RESET_PASSWORD: '/reset-password',
   DASHBOARD: {
     ROOT: '/dashboard',
     SETTINGS: '/dashboard/settings',
@@ -26,6 +28,8 @@ export const ROUTES = {
   ADMIN: {
     ROOT: '/admin',
     DASHBOARD: '/admin/dashboard',
+    FORGOT_PASSWORD: '/admin/forgot-password',
+    RESET_PASSWORD: '/admin/reset-password',
     USERS: '/admin/dashboard/users',
     BOTS: '/admin/dashboard/bots',
     SETTINGS: '/admin/dashboard/settings',
@@ -40,6 +44,8 @@ export const ROUTES = {
 export const ROUTE_SEGMENTS = {
   LOGIN: 'login',
   SIGNUP: 'signup',
+  FORGOT_PASSWORD: 'forgot-password',
+  RESET_PASSWORD: 'reset-password',
   DASHBOARD: 'dashboard',
   BOTS: 'bots',
   COMMANDS: 'commands',
@@ -49,6 +55,8 @@ export const ROUTE_SEGMENTS = {
   BOT: 'bot',
   ADMIN: 'admin',
   ADMIN_LOGIN: 'login',
+  ADMIN_FORGOT_PASSWORD: 'forgot-password',
+  ADMIN_RESET_PASSWORD: 'reset-password',
   ADMIN_DASHBOARD: 'dashboard',
   ADMIN_USERS: 'users',
   ADMIN_BOTS: 'bots',
