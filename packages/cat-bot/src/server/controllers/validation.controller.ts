@@ -555,9 +555,9 @@ export async function requestPasswordResetCustom(
     const baseUrl = (
       env.VITE_URL || `${req.protocol}://${req.get('host')}`
     ).replace(/\/$/, '');
-    const url = `${baseUrl}${adminOnly ? '/admin' : ''}/reset-password?token=${token}`;
 
     const targetEmail = String(user['email'] ?? email);
+    const url = `${baseUrl}${adminOnly ? '/admin' : ''}/reset-password?token=${token}&email=${encodeURIComponent(targetEmail)}`;
     const targetName = String(user['name'] ?? email);
 
     await sendMail({
