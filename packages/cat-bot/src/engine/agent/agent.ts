@@ -146,7 +146,7 @@ export async function runAgent(
 
   while (turns-- > 0) {
     const response = await groq.chat.completions.create({
-      model: 'openai/gpt-oss-20b',
+      model: 'openai/gpt-oss-120b',
       messages,
       tools: groqTools,
       tool_choice: 'auto',
