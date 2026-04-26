@@ -46,4 +46,14 @@ adminRouter.post('/users/:userId/unban-sessions', (req, res) => {
   void adminController.startUserSessions(req, res);
 });
 
+// PUT /api/v1/admin/users/:userId — edit user name, email, and role
+adminRouter.put('/users/:userId', (req, res) => {
+  void adminController.updateUser(req, res);
+});
+
+// POST /api/v1/admin/users/:userId/verify — manually verify a user account's email
+adminRouter.post('/users/:userId/verify', (req, res) => {
+  void adminController.verifyUser(req, res);
+});
+
 export default adminRouter;

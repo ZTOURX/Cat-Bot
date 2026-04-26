@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { requireAdmin } from '@/server/validators/auth-session.validator.js';
+import { adminAuth } from '@/server/lib/better-auth.lib.js';
 import { botRepo } from '@/server/repos/bot.repo.js';
 import { botService } from '@/server/services/bot.service.js';
 import {
@@ -138,6 +139,80 @@ export class AdminController {
     } catch (error) {
       console.error('[AdminController.startUserSessions]', error);
       res.status(500).json({ error: 'Failed to start user sessions' });
+    }
+  }
+
+  // PUT /api/v1/admin/users/:userId
+  // Updates the user's name, email, and role.
+  async updateUser(req: Request, res: Response): Promise<void> {
+    if (!(await requireAdmin(req, res))) return;
+    const userId = String(req.params['userId'] ?? '');
+    const { name, email, role } = req.body as {
+      name?: string;
+      email?: string;
+      role?: string;
+    };
+
+    if (!userId) {
+      res.status(400).json({ error: 'Missing userId param' });
+      return;
+    }
+
+    try {
+      const ctx = await adminAuth.$context;
+
+      // Validation: Prevent email collisions. If the email attempt already exists in user table database, reject it.
+      if (email) {
+        const lowerEmail = email.toLowerCase();
+        const existing = await ctx.adapter.findOne<Record<string, unknown>>({
+          model: 'user',
+          where: [{ field: 'email', value: lowerEmail }],
+        });
+
+        if (existing && existing['id'] !== userId) {
+          res.status(400).json({ error: 'Email already exists in user table database' });
+          return;
+        }
+      }
+
+      const updateData: Record<string, unknown> = {};
+      if (name) updateData['name'] = name;
+      if (email) updateData['email'] = email.toLowerCase();
+      if (role) updateData['role'] = role;
+
+      // Using the raw adapter directly as it seamlessly updates the core user schema fields
+      await ctx.adapter.update({
+        model: 'user',
+        where: [{ field: 'id', value: userId }],
+        update: updateData,
+      });
+
+      res.status(200).json({ status: 'updated' });
+    } catch (error) {
+      console.error('[AdminController.updateUser]', error);
+      res.status(500).json({ error: 'Failed to update user' });
+    }
+  }
+
+  // POST /api/v1/admin/users/:userId/verify
+  async verifyUser(req: Request, res: Response): Promise<void> {
+    if (!(await requireAdmin(req, res))) return;
+    const userId = String(req.params['userId'] ?? '');
+    if (!userId) {
+      res.status(400).json({ error: 'Missing userId param' });
+      return;
+    }
+    try {
+      const ctx = await adminAuth.$context;
+      await ctx.adapter.update({
+        model: 'user',
+        where: [{ field: 'id', value: userId }],
+        update: { emailVerified: true },
+      });
+      res.status(200).json({ status: 'verified' });
+    } catch (error) {
+      console.error('[AdminController.verifyUser]', error);
+      res.status(500).json({ error: 'Failed to verify user' });
     }
   }
 }
