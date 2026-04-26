@@ -366,7 +366,10 @@ export const onChat = async ({
   try {
     adminIds = await listBotAdmins(userId, platform, sessionId);
   } catch (err) {
-    console.error('[detect] Failed to fetch admin list:', (err as Error).message);
+    console.error(
+      '[detect] Failed to fetch admin list:',
+      (err as Error).message,
+    );
     return;
   }
 
@@ -385,9 +388,9 @@ export const onChat = async ({
   if (!detected.length) return;
 
   // ── 7. Resolve display context ─────────────────────────────────────────────
-  const threadID  = (event['threadID']  as string) || 'Unknown';
+  const threadID = (event['threadID'] as string) || 'Unknown';
   const messageID = (event['messageID'] as string) || 'N/A';
-  const isGroup   = (event['isGroup']   as boolean) ?? false;
+  const isGroup = (event['isGroup'] as boolean) ?? false;
 
   // Resolve human-readable names — both are best-effort; fall back to raw IDs
   // on failure so a single lookup error never silences the entire alert.
@@ -421,9 +424,7 @@ export const onChat = async ({
       `• Type: ${chatType}\n` +
       `• Name: **${escapeMd(threadName)}**\n` +
       `• ID: \`${threadID}\``
-    : `*Chat Details:*\n` +
-      `• Type: ${chatType}\n` +
-      `• ID: \`${threadID}\``;
+    : `*Chat Details:*\n` + `• Type: ${chatType}\n` + `• ID: \`${threadID}\``;
 
   const report =
     `🚨 *Keyword Detected: ${keywords}*\n\n` +

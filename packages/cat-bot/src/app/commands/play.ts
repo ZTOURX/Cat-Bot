@@ -108,7 +108,10 @@ function parseFlags(args: string[]): ParsedFlags {
     if ((cur === '-i' || cur === '--index') && args[i + 1] !== undefined) {
       const val = parseInt(args[++i] as string, 10);
       index = isNaN(val) || val < 0 ? 0 : val;
-    } else if ((cur === '-s' || cur === '--source') && args[i + 1] !== undefined) {
+    } else if (
+      (cur === '-s' || cur === '--source') &&
+      args[i + 1] !== undefined
+    ) {
       source = (args[++i] as string).toLowerCase();
     } else {
       inputParts.push(cur);
@@ -175,7 +178,9 @@ export const onCommand = async ({
         throw new Error('No Spotify results found for that query.');
       const track = results[index];
       if (!track)
-        throw new Error(`No result at index ${index} (found ${results.length}).`);
+        throw new Error(
+          `No result at index ${index} (found ${results.length}).`,
+        );
 
       // Show metadata before downloading
       if (waitId) {
@@ -234,9 +239,8 @@ export const onCommand = async ({
         throw new Error(`YouTube search failed (${searchRes.status})`);
       const searchData = (await searchRes.json()) as YouTubeSearchResponse;
 
-      const videos = searchData?.data?.all?.filter(
-        (r) => r.type === 'video',
-      ) ?? [];
+      const videos =
+        searchData?.data?.all?.filter((r) => r.type === 'video') ?? [];
       if (!videos.length)
         throw new Error('No YouTube video results found for that query.');
       const video = videos[index];

@@ -86,7 +86,7 @@ export default function SignupPage() {
         // better-auth returns structured errors (e.g. EMAIL_ALREADY_EXISTS) rather than throwing
         throw new Error(result.error.message ?? 'Registration failed')
       }
-      
+
       // Always show the success state rather than auto-redirecting so the user can read the alert
       setIsSubmitted(true)
     } catch (err) {
@@ -123,21 +123,28 @@ export default function SignupPage() {
           {isSubmitted ? (
             <div className="flex flex-col gap-6">
               {import.meta.env.VITE_EMAIL_SERVICES_ENABLE === 'true' ? (
-                <Alert 
-                  variant="tonal" 
+                <Alert
+                  variant="tonal"
                   color="success"
-                  title="Check your email" 
-                  message={`A verification link has been sent to ${form.email}. Please verify your email before logging in.`} 
+                  title="Check your email"
+                  message={`A verification link has been sent to ${form.email}. Please verify your email before logging in.`}
                 />
               ) : (
-                <Alert 
-                  variant="tonal" 
+                <Alert
+                  variant="tonal"
                   color="success"
-                  title="Account created" 
-                  message="Your account has been successfully created. You can now log in." 
+                  title="Account created"
+                  message="Your account has been successfully created. You can now log in."
                 />
               )}
-              <Button as={Link} to={ROUTES.LOGIN} variant="filled" color="primary" size="md" fullWidth>
+              <Button
+                as={Link}
+                to={ROUTES.LOGIN}
+                variant="filled"
+                color="primary"
+                size="md"
+                fullWidth
+              >
                 Go to log in
               </Button>
             </div>
@@ -159,7 +166,7 @@ export default function SignupPage() {
                 />
                 <Field.ErrorText>{errors.name}</Field.ErrorText>
               </Field.Root>
-  
+
               {/* Email */}
               <Field.Root invalid={!!errors.email} required>
                 <Field.Label>Email</Field.Label>
@@ -172,7 +179,7 @@ export default function SignupPage() {
                 />
                 <Field.ErrorText>{errors.email}</Field.ErrorText>
               </Field.Root>
-  
+
               {/* Password */}
               <Field.Root invalid={!!errors.password} required>
                 <Field.Label>Password</Field.Label>
@@ -184,7 +191,7 @@ export default function SignupPage() {
                 />
                 <Field.ErrorText>{errors.password}</Field.ErrorText>
               </Field.Root>
-  
+
               {/* Confirm password */}
               <Field.Root invalid={!!errors.confirmPassword} required>
                 <Field.Label>Confirm password</Field.Label>
@@ -196,7 +203,7 @@ export default function SignupPage() {
                 />
                 <Field.ErrorText>{errors.confirmPassword}</Field.ErrorText>
               </Field.Root>
-  
+
               {/* API-level error — surfaced separately from field validation */}
               {apiError && (
                 <Alert
@@ -206,7 +213,7 @@ export default function SignupPage() {
                   message={apiError}
                 />
               )}
-  
+
               <Button
                 type="submit"
                 variant="filled"

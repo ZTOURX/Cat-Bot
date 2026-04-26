@@ -170,7 +170,9 @@ export class AdminController {
         });
 
         if (existing && existing['id'] !== userId) {
-          res.status(400).json({ error: 'Email already exists in user table database' });
+          res
+            .status(400)
+            .json({ error: 'Email already exists in user table database' });
           return;
         }
       }

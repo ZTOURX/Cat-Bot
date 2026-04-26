@@ -21,7 +21,7 @@ export default function ForgotPasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!email) {
       setError('Email is required.')
       return
@@ -44,7 +44,9 @@ export default function ForgotPasswordPage() {
         { email, adminOnly: false },
       )
       if (!check.data.valid) {
-        setError(check.data.error ?? 'No account found with this email address.')
+        setError(
+          check.data.error ?? 'No account found with this email address.',
+        )
         setIsLoading(false)
         return
       }
@@ -69,8 +71,14 @@ export default function ForgotPasswordPage() {
   if (!isEmailEnabled) {
     return (
       <div className="flex items-center justify-center min-h-[80vh] px-6 py-12">
-        <Helmet><title>Forgot Password · Cat-Bot</title></Helmet>
-        <Alert color="warning" title="Disabled" message="Email services are disabled on this instance." />
+        <Helmet>
+          <title>Forgot Password · Cat-Bot</title>
+        </Helmet>
+        <Alert
+          color="warning"
+          title="Disabled"
+          message="Email services are disabled on this instance."
+        />
       </div>
     )
   }
@@ -80,7 +88,7 @@ export default function ForgotPasswordPage() {
       <Helmet>
         <title>Forgot Password · Cat-Bot</title>
       </Helmet>
-      
+
       <div className="w-full max-w-md flex flex-col gap-8">
         <div className="text-center flex flex-col gap-2">
           <h1 className="text-headline-md font-medium text-on-surface font-brand">
@@ -94,18 +102,29 @@ export default function ForgotPasswordPage() {
         <div className="rounded-2xl bg-surface shadow-elevation-1 p-8 flex flex-col gap-6">
           {isSubmitted ? (
             <div className="flex flex-col gap-6">
-              <Alert 
-                variant="tonal" 
+              <Alert
+                variant="tonal"
                 color="success"
-                title="Check your email" 
-                message={`If ${email} is registered, a recovery link has been sent.`} 
+                title="Check your email"
+                message={`If ${email} is registered, a recovery link has been sent.`}
               />
-              <Button as={Link} to={ROUTES.LOGIN} variant="filled" color="primary" size="md" fullWidth>
+              <Button
+                as={Link}
+                to={ROUTES.LOGIN}
+                variant="filled"
+                color="primary"
+                size="md"
+                fullWidth
+              >
                 Back to log in
               </Button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
+            <form
+              onSubmit={handleSubmit}
+              noValidate
+              className="flex flex-col gap-5"
+            >
               <Field.Root invalid={!!error} required>
                 <Field.Label>Email</Field.Label>
                 <Input
@@ -138,7 +157,13 @@ export default function ForgotPasswordPage() {
         {!isSubmitted && (
           <p className="text-center text-body-md text-on-surface-variant">
             Remember your password?{' '}
-            <Button as={Link} to={ROUTES.LOGIN} variant="link" color="primary" size="md">
+            <Button
+              as={Link}
+              to={ROUTES.LOGIN}
+              variant="link"
+              color="primary"
+              size="md"
+            >
               Log in
             </Button>
           </p>

@@ -19,11 +19,14 @@ export default function AdminResetPasswordPage() {
   // Safely trim any trailing whitespace or newline characters injected by strict email clients
   const token = searchParams.get('token')?.trim()
 
-  const[password, setPassword] = useState('')
+  const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [errors, setErrors] = useState<{ password?: string; confirmPassword?: string }>({})
+  const [errors, setErrors] = useState<{
+    password?: string
+    confirmPassword?: string
+  }>({})
   const [isSubmitted, setIsSubmitted] = useState(false)
-  const[isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [isValidating, setIsValidating] = useState(true)
   const [isTokenValid, setIsTokenValid] = useState(false)
 
@@ -36,10 +39,13 @@ export default function AdminResetPasswordPage() {
     let isMounted = true
     const checkToken = async () => {
       try {
-        const result = await apiClient.post<{ valid: boolean }>('/api/v1/validate/reset-password/verify-token', {
-          token,
-          adminOnly: true,
-        })
+        const result = await apiClient.post<{ valid: boolean }>(
+          '/api/v1/validate/reset-password/verify-token',
+          {
+            token,
+            adminOnly: true,
+          },
+        )
         if (isMounted) setIsTokenValid(result.data.valid)
       } catch {
         if (isMounted) setIsTokenValid(false)
@@ -48,7 +54,9 @@ export default function AdminResetPasswordPage() {
       }
     }
     void checkToken()
-    return () => { isMounted = false }
+    return () => {
+      isMounted = false
+    }
   }, [token])
 
   const validate = () => {
@@ -58,7 +66,7 @@ export default function AdminResetPasswordPage() {
     } else if (password.length < 8) {
       newErrors.password = 'Password must be at least 8 characters.'
     }
-    
+
     if (!confirmPassword) {
       newErrors.confirmPassword = 'Confirmation is required.'
     } else if (password !== confirmPassword) {
@@ -70,7 +78,7 @@ export default function AdminResetPasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     const fieldErrors = validate()
     if (Object.keys(fieldErrors).length > 0) {
       setErrors(fieldErrors)
@@ -89,7 +97,9 @@ export default function AdminResetPasswordPage() {
       setIsSubmitted(true)
     } catch (err) {
       const e = err as { response?: { data?: { error?: string } } }
-      setErrors({ password: e.response?.data?.error || 'Failed to reset password.' })
+      setErrors({
+        password: e.response?.data?.error || 'Failed to reset password.',
+      })
     } finally {
       setIsLoading(false)
     }
@@ -98,8 +108,14 @@ export default function AdminResetPasswordPage() {
   if (!isEmailEnabled) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface-container-high px-4 py-12">
-        <Helmet><title>Admin Reset Password · Cat-Bot</title></Helmet>
-        <Alert color="warning" title="Disabled" message="Email services are disabled on this instance." />
+        <Helmet>
+          <title>Admin Reset Password · Cat-Bot</title>
+        </Helmet>
+        <Alert
+          color="warning"
+          title="Disabled"
+          message="Email services are disabled on this instance."
+        />
       </div>
     )
   }
@@ -107,7 +123,9 @@ export default function AdminResetPasswordPage() {
   if (isValidating) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface-container-high px-4 py-12">
-        <Helmet><title>Validating... · Cat-Bot</title></Helmet>
+        <Helmet>
+          <title>Validating... · Cat-Bot</title>
+        </Helmet>
         <p className="text-on-surface-variant">Validating secure token...</p>
       </div>
     )
@@ -117,13 +135,20 @@ export default function AdminResetPasswordPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface-container-high px-4 py-12">
         <div className="w-full max-w-sm">
-          <Alert 
-            color="error" 
-            title="Authorization Denied" 
-            message="Your secure token is missing, invalid, or has expired. Please trigger a new request." 
+          <Alert
+            color="error"
+            title="Authorization Denied"
+            message="Your secure token is missing, invalid, or has expired. Please trigger a new request."
           />
           <div className="mt-6 flex">
-            <Button as={Link} to={ROUTES.ADMIN.FORGOT_PASSWORD} variant="tonal" color="primary" size="md" fullWidth>
+            <Button
+              as={Link}
+              to={ROUTES.ADMIN.FORGOT_PASSWORD}
+              variant="tonal"
+              color="primary"
+              size="md"
+              fullWidth
+            >
               Back to Recovery
             </Button>
           </div>
@@ -137,11 +162,20 @@ export default function AdminResetPasswordPage() {
       <Helmet>
         <title>Admin Reset Password · Cat-Bot</title>
       </Helmet>
-      
+
       <div className="w-full max-w-sm flex flex-col gap-6">
         <div className="flex flex-col items-center gap-3 text-center">
           <span className="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-primary/10 text-primary">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-5 h-5"
+            >
               <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
@@ -159,24 +193,31 @@ export default function AdminResetPasswordPage() {
         <div className="rounded-2xl bg-surface shadow-elevation-1 p-6 flex flex-col gap-5">
           {isSubmitted ? (
             <div className="flex flex-col gap-5">
-              <Alert 
-                variant="tonal" 
+              <Alert
+                variant="tonal"
                 color="success"
-                title="Credential Updated" 
-                message="Your admin password was successfully secured." 
+                title="Credential Updated"
+                message="Your admin password was successfully secured."
               />
-              <Button 
+              <Button
                 onClick={() => {
                   // WHY: Force a hard page reload to clear any stale session state in React memory
                   window.location.href = ROUTES.ADMIN.ROOT
-                }} 
-                variant="filled" color="primary" size="md" fullWidth
+                }}
+                variant="filled"
+                color="primary"
+                size="md"
+                fullWidth
               >
                 Access Dashboard
               </Button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+            <form
+              onSubmit={handleSubmit}
+              noValidate
+              className="flex flex-col gap-4"
+            >
               <Field.Root invalid={!!errors.password} required>
                 <Field.Label>New Password</Field.Label>
                 <PasswordInput
@@ -197,7 +238,10 @@ export default function AdminResetPasswordPage() {
                   value={confirmPassword}
                   onChange={(e) => {
                     setConfirmPassword(e.target.value)
-                    setErrors((prev) => ({ ...prev, confirmPassword: undefined }))
+                    setErrors((prev) => ({
+                      ...prev,
+                      confirmPassword: undefined,
+                    }))
                   }}
                 />
                 <Field.ErrorText>{errors.confirmPassword}</Field.ErrorText>

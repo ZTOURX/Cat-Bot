@@ -120,7 +120,8 @@ export function runMiddlewareChain<TCtx>(
   let index = -1;
 
   function dispatch(i: number): Promise<void> {
-    if (i <= index) return Promise.reject(new Error('next() called multiple times'));
+    if (i <= index)
+      return Promise.reject(new Error('next() called multiple times'));
     index = i;
     const mw = middlewares[i];
     try {

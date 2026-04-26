@@ -1,8 +1,8 @@
 /**
  * Vanilla HTML Email Templates
  *
- * Mapped directly from packages/web/src/styles/theme/light.css 
- * and dark.css tokens. Uses semantic div containers and inline CSS 
+ * Mapped directly from packages/web/src/styles/theme/light.css
+ * and dark.css tokens. Uses semantic div containers and inline CSS
  * for a clean layout, with a <style> block for dark mode overrides.
  */
 
@@ -27,7 +27,10 @@ export const DARK_COLORS = {
 };
 
 // Wraps dynamic content within our branded email layout shell.
-export function buildEmailLayout(content: string, previewText?: string): string {
+export function buildEmailLayout(
+  content: string,
+  previewText?: string,
+): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>

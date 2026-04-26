@@ -64,9 +64,9 @@ export const onCommand = async ({
   // ctx.quoted?.text → event['messageReply']?.['message'] for quoted messages
   const directText = args.join(' ').trim();
   const quotedText = (
-    (event['messageReply'] as Record<string, unknown> | undefined)?.['message'] as
-      | string
-      | undefined
+    (event['messageReply'] as Record<string, unknown> | undefined)?.[
+      'message'
+    ] as string | undefined
   )?.trim();
 
   const input = directText || quotedText;
@@ -97,8 +97,7 @@ export const onCommand = async ({
 
   try {
     const res = await fetch(url);
-    if (!res.ok)
-      throw new Error(`API responded with status ${res.status}`);
+    if (!res.ok) throw new Error(`API responded with status ${res.status}`);
 
     const data = (await res.json()) as LexcodeClaudeResponse;
     if (!data?.result) throw new Error('API returned an empty response.');

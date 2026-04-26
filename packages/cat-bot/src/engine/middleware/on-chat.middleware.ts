@@ -83,7 +83,12 @@ export const chatPassthrough: MiddlewareFn<OnChatCtx> = async function (
       const [threadUpdatedAt, senderUpdatedAt] = await Promise.all([
         getThreadSessionUpdatedAt(sessionUserId, platform, sessionId, threadID),
         senderID
-          ? getUserSessionUpdatedAt(sessionUserId, platform, sessionId, senderID)
+          ? getUserSessionUpdatedAt(
+              sessionUserId,
+              platform,
+              sessionId,
+              senderID,
+            )
           : Promise.resolve(null as Date | null),
       ]);
       // Null means the thread has never been synced; a timestamp older than SYNC_INTERVAL_MS means the

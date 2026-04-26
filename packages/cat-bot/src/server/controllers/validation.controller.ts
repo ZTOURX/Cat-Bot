@@ -36,7 +36,11 @@ import {
   withRetry,
   isNetworkError,
 } from '@/engine/lib/retry.lib.js';
-import { buildEmailLayout, buildButton, COLORS } from '@/server/email-template/index.js';
+import {
+  buildEmailLayout,
+  buildButton,
+  COLORS,
+} from '@/server/email-template/index.js';
 
 // ── Discord ───────────────────────────────────────────────────────────────────
 
@@ -236,8 +240,8 @@ export async function validateFacebookMessenger(
 
       const botId = api.getCurrentUserID();
 
-      const getBotInfo = await new Promise
-        <Record<string, { name?: string; vanity?: string | null }>
+      const getBotInfo = await new Promise<
+        Record<string, { name?: string; vanity?: string | null }>
       >((resolve, reject) => {
         api.getUserInfo([String(botId)], (err, info) => {
           if (err) reject(err);
@@ -314,12 +318,10 @@ export async function validateEmailForPasswordReset(
     });
 
     if (!user) {
-      res
-        .status(200)
-        .json({
-          valid: false,
-          error: 'No account found with this email address.',
-        });
+      res.status(200).json({
+        valid: false,
+        error: 'No account found with this email address.',
+      });
       return;
     }
 
@@ -508,7 +510,9 @@ export async function requestPasswordResetCustom(
     const token = createSignedToken(email, !!adminOnly);
 
     // Prevent malformed double slashes if env.VITE_URL contains a trailing slash
-    const baseUrl = (env.VITE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+    const baseUrl = (
+      env.VITE_URL || `${req.protocol}://${req.get('host')}`
+    ).replace(/\/$/, '');
     const url = `${baseUrl}${adminOnly ? '/admin' : ''}/reset-password?token=${token}`;
 
     const targetEmail = String(user['email'] ?? email);
@@ -519,12 +523,15 @@ export async function requestPasswordResetCustom(
       subject: adminOnly
         ? 'Reset your Cat-Bot Admin password'
         : 'Reset your Cat-Bot password',
-      html: buildEmailLayout(`
+      html: buildEmailLayout(
+        `
         <p style="margin: 0 0 16px 0; color: ${COLORS.onSurface}; font-weight: 500;">Hello ${targetName},</p>
         <p style="margin: 0 0 24px 0;">Click the button below to securely reset your ${adminOnly ? 'admin ' : ''}password:</p>
         ${buildButton(url, 'Reset Password')}
         <p style="margin: 24px 0 0 0; color: ${COLORS.outlineVariant}; font-size: 14px;">This link expires in 1 hour. If you did not request this, you can safely ignore this email.</p>
-      `, 'Securely reset your password'),
+      `,
+        'Securely reset your password',
+      ),
       text: `Reset your password by visiting: ${url}`,
     });
 
@@ -575,7 +582,11 @@ export async function confirmPasswordResetCustom(
   req: Request,
   res: Response,
 ): Promise<void> {
-  const body = req.body as { token?: string; password?: string; adminOnly?: boolean };
+  const body = req.body as {
+    token?: string;
+    password?: string;
+    adminOnly?: boolean;
+  };
   // Protect against whitespace injection exactly as the verification endpoint does
   const token = body.token?.trim();
   const password = body.password;
@@ -608,7 +619,7 @@ export async function confirmPasswordResetCustom(
 
     const accounts = await ctx.adapter.findMany<Record<string, unknown>>({
       model: 'account',
-      where:[
+      where: [
         { field: 'userId', value: user['id'] as string },
         { field: 'providerId', value: 'credential' },
       ],
@@ -617,7 +628,7 @@ export async function confirmPasswordResetCustom(
     if (accounts && accounts.length > 0) {
       await ctx.adapter.update({
         model: 'account',
-        where:[{ field: 'id', value: accounts[0]!['id'] as string }],
+        where: [{ field: 'id', value: accounts[0]!['id'] as string }],
         update: { password: hashed },
       });
     } else {
@@ -642,7 +653,7 @@ export async function confirmPasswordResetCustom(
     // Force sign-out of all devices by clearing sessions
     await ctx.adapter.deleteMany({
       model: 'session',
-      where:[{ field: 'userId', value: user['id'] as string }],
+      where: [{ field: 'userId', value: user['id'] as string }],
     });
 
     res.status(200).json({ success: true });

@@ -132,11 +132,16 @@ export class AdminService {
     userId: string,
     data: { name: string; email: string; role: string },
   ): Promise<void> {
-    await apiClient.put(`/api/v1/admin/users/${encodeURIComponent(userId)}`, data)
+    await apiClient.put(
+      `/api/v1/admin/users/${encodeURIComponent(userId)}`,
+      data,
+    )
   }
 
   async verifyUser(userId: string): Promise<void> {
-    await apiClient.post(`/api/v1/admin/users/${encodeURIComponent(userId)}/verify`)
+    await apiClient.post(
+      `/api/v1/admin/users/${encodeURIComponent(userId)}/verify`,
+    )
   }
 }
 

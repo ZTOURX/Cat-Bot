@@ -336,8 +336,12 @@ export default function SettingsPage() {
               {/* Allow operators to send a quick reset link straight from their active session without needing to remember their current password */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-surface-container-lowest rounded-xl border border-outline-variant/50">
                 <div>
-                  <p className="text-label-lg font-medium text-on-surface">Password Reset</p>
-                  <p className="text-body-sm text-on-surface-variant">Send a secure reset link to your email address.</p>
+                  <p className="text-label-lg font-medium text-on-surface">
+                    Password Reset
+                  </p>
+                  <p className="text-body-sm text-on-surface-variant">
+                    Send a secure reset link to your email address.
+                  </p>
                 </div>
                 <Button
                   variant="tonal"
@@ -347,10 +351,13 @@ export default function SettingsPage() {
                     setResetSent(true)
                     // Target the custom HMAC token flow that powers the Forgot Password page
                     // instead of better-auth's default implementation.
-                    await apiClient.post('/api/v1/validate/reset-password/request', {
-                      email: session?.user?.email || '',
-                      adminOnly: false,
-                    })
+                    await apiClient.post(
+                      '/api/v1/validate/reset-password/request',
+                      {
+                        email: session?.user?.email || '',
+                        adminOnly: false,
+                      },
+                    )
                   }}
                   disabled={resetSent}
                 >
@@ -358,12 +365,12 @@ export default function SettingsPage() {
                 </Button>
               </div>
               {resetSent && (
-                <Alert 
-                  variant="tonal" 
-                  color="success" 
-                  title="Check your email" 
-                  message="We've sent you a secure link to reset your password." 
-                  size="sm" 
+                <Alert
+                  variant="tonal"
+                  color="success"
+                  title="Check your email"
+                  message="We've sent you a secure link to reset your password."
+                  size="sm"
                 />
               )}
               <Divider spacing="sm" />

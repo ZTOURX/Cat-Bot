@@ -60,18 +60,26 @@ export default function AdminUsersPage() {
 
   // Tracks the user currently selected for unbanning
   const [unbanTarget, setUnbanTarget] = useState<ManagedUser | null>(null)
-  const[isUnbanning, setIsUnbanning] = useState(false)
+  const [isUnbanning, setIsUnbanning] = useState(false)
   const [unbanError, setUnbanError] = useState<string | null>(null)
 
   // ── Edit User State ────────────────────────────────────────────────────────
   const [editTarget, setEditTarget] = useState<ManagedUser | null>(null)
-  const [editForm, setEditForm] = useState({ name: '', email: '', role: 'user' })
+  const [editForm, setEditForm] = useState({
+    name: '',
+    email: '',
+    role: 'user',
+  })
   const [isEditing, setIsEditing] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
 
   const openEditDialog = (user: ManagedUser) => {
     setEditTarget(user)
-    setEditForm({ name: user.name, email: user.email, role: user.role ?? 'user' })
+    setEditForm({
+      name: user.name,
+      email: user.email,
+      role: user.role ?? 'user',
+    })
     setEditError(null)
   }
 
@@ -122,7 +130,9 @@ export default function AdminUsersPage() {
       void refetch()
       closeVerifyDialog()
     } catch (err) {
-      setVerifyError(err instanceof Error ? err.message : 'Failed to verify user')
+      setVerifyError(
+        err instanceof Error ? err.message : 'Failed to verify user',
+      )
     } finally {
       setIsVerifying(false)
     }
@@ -557,9 +567,7 @@ export default function AdminUsersPage() {
           <Dialog.Backdrop />
           <Dialog.Content size="sm">
             <Dialog.Header>
-              <Dialog.Title>
-                Edit User
-              </Dialog.Title>
+              <Dialog.Title>Edit User</Dialog.Title>
               <Dialog.CloseTrigger />
             </Dialog.Header>
             <Dialog.Body className="flex flex-col gap-4">
@@ -567,7 +575,9 @@ export default function AdminUsersPage() {
                 <Field.Label>Name</Field.Label>
                 <Input
                   value={editForm.name}
-                  onChange={(e) => setEditForm((prev) => ({ ...prev, name: e.target.value }))}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, name: e.target.value }))
+                  }
                   disabled={isEditing}
                 />
               </Field.Root>
@@ -576,7 +586,9 @@ export default function AdminUsersPage() {
                 <Input
                   type="email"
                   value={editForm.email}
-                  onChange={(e) => setEditForm((prev) => ({ ...prev, email: e.target.value }))}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, email: e.target.value }))
+                  }
                   disabled={isEditing}
                 />
               </Field.Root>
@@ -589,19 +601,31 @@ export default function AdminUsersPage() {
                     { value: 'admin', label: 'Admin' },
                   ]}
                   value={editForm.role}
-                  onChange={(value) => setEditForm((prev) => ({ ...prev, role: value }))}
+                  onChange={(value) =>
+                    setEditForm((prev) => ({ ...prev, role: value }))
+                  }
                   disabled={isEditing}
                 />
               </Field.Root>
               {editError !== null && (
                 <div className="mt-2">
-                  <Alert variant="tonal" color="error" title={editError} size="sm" />
+                  <Alert
+                    variant="tonal"
+                    color="error"
+                    title={editError}
+                    size="sm"
+                  />
                 </div>
               )}
             </Dialog.Body>
             <Dialog.Footer>
               <Dialog.CloseTrigger asChild>
-                <Button variant="text" color="neutral" size="sm" disabled={isEditing}>
+                <Button
+                  variant="text"
+                  color="neutral"
+                  size="sm"
+                  disabled={isEditing}
+                >
                   Cancel
                 </Button>
               </Dialog.CloseTrigger>

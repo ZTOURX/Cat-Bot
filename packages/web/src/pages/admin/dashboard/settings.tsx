@@ -402,8 +402,12 @@ export default function AdminSettingsPage() {
               {/* Admin password recovery directly from session state */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-surface-container-lowest rounded-xl border border-outline-variant/50">
                 <div>
-                  <p className="text-label-lg font-medium text-on-surface">Password Reset</p>
-                  <p className="text-body-sm text-on-surface-variant">Send a secure reset link to your admin email.</p>
+                  <p className="text-label-lg font-medium text-on-surface">
+                    Password Reset
+                  </p>
+                  <p className="text-body-sm text-on-surface-variant">
+                    Send a secure reset link to your admin email.
+                  </p>
                 </div>
                 <Button
                   variant="tonal"
@@ -413,10 +417,13 @@ export default function AdminSettingsPage() {
                     setResetSent(true)
                     // Target the custom HMAC token flow that powers the Admin Forgot Password page
                     // instead of better-auth's native implementation.
-                    await apiClient.post('/api/v1/validate/reset-password/request', {
-                      email: session?.user?.email || '',
-                      adminOnly: true,
-                    })
+                    await apiClient.post(
+                      '/api/v1/validate/reset-password/request',
+                      {
+                        email: session?.user?.email || '',
+                        adminOnly: true,
+                      },
+                    )
                   }}
                   disabled={resetSent}
                 >
@@ -424,12 +431,12 @@ export default function AdminSettingsPage() {
                 </Button>
               </div>
               {resetSent && (
-                <Alert 
-                  variant="tonal" 
-                  color="success" 
-                  title="Check your email" 
-                  message="We've sent you a secure link to reset your password." 
-                  size="sm" 
+                <Alert
+                  variant="tonal"
+                  color="success"
+                  title="Check your email"
+                  message="We've sent you a secure link to reset your password."
+                  size="sm"
                 />
               )}
               <Divider spacing="sm" />

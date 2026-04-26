@@ -17,12 +17,12 @@ export default function AdminForgotPasswordPage() {
 
   const [email, setEmail] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const[isSubmitted, setIsSubmitted] = useState(false)
+  const [isSubmitted, setIsSubmitted] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!email) {
       setError('Admin email is required.')
       return
@@ -44,7 +44,9 @@ export default function AdminForgotPasswordPage() {
         { email, adminOnly: true },
       )
       if (!check.data.valid) {
-        setError(check.data.error ?? 'No admin account found with this email address.')
+        setError(
+          check.data.error ?? 'No admin account found with this email address.',
+        )
         setIsLoading(false)
         return
       }
@@ -69,8 +71,14 @@ export default function AdminForgotPasswordPage() {
   if (!isEmailEnabled) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface-container-high px-4 py-12">
-        <Helmet><title>Admin Recovery · Cat-Bot</title></Helmet>
-        <Alert color="warning" title="Disabled" message="Email services are disabled on this instance." />
+        <Helmet>
+          <title>Admin Recovery · Cat-Bot</title>
+        </Helmet>
+        <Alert
+          color="warning"
+          title="Disabled"
+          message="Email services are disabled on this instance."
+        />
       </div>
     )
   }
@@ -80,13 +88,22 @@ export default function AdminForgotPasswordPage() {
       <Helmet>
         <title>Admin Recovery · Cat-Bot</title>
       </Helmet>
-      
+
       <div className="w-full max-w-sm flex flex-col gap-6">
         <div className="flex flex-col items-center gap-3 text-center">
           <span className="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-primary/10 text-primary">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-               <circle cx="12" cy="12" r="3"></circle>
-               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-5 h-5"
+            >
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
             </svg>
           </span>
           <div>
@@ -102,18 +119,29 @@ export default function AdminForgotPasswordPage() {
         <div className="rounded-2xl bg-surface shadow-elevation-1 p-6 flex flex-col gap-5">
           {isSubmitted ? (
             <div className="flex flex-col gap-5">
-              <Alert 
-                variant="tonal" 
+              <Alert
+                variant="tonal"
                 color="success"
-                title="Request Processed" 
-                message={`Instructions have been sent to ${email} if an admin record exists.`} 
+                title="Request Processed"
+                message={`Instructions have been sent to ${email} if an admin record exists.`}
               />
-              <Button as={Link} to={ROUTES.ADMIN.ROOT} variant="filled" color="primary" size="md" fullWidth>
+              <Button
+                as={Link}
+                to={ROUTES.ADMIN.ROOT}
+                variant="filled"
+                color="primary"
+                size="md"
+                fullWidth
+              >
                 Return to Admin Login
               </Button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+            <form
+              onSubmit={handleSubmit}
+              noValidate
+              className="flex flex-col gap-4"
+            >
               <Field.Root invalid={!!error} required>
                 <Field.Label>Admin Email</Field.Label>
                 <Input
@@ -145,7 +173,10 @@ export default function AdminForgotPasswordPage() {
 
         {!isSubmitted && (
           <p className="text-center text-body-sm text-on-surface-variant">
-            <Link to={ROUTES.ADMIN.ROOT} className="text-primary hover:underline">
+            <Link
+              to={ROUTES.ADMIN.ROOT}
+              className="text-primary hover:underline"
+            >
               Cancel and return to login
             </Link>
           </p>

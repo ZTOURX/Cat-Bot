@@ -41,7 +41,8 @@ export const config: CommandConfig = {
   // The engine enforces this before onCommand runs — no boilerplate needed inside.
   role: Role.PREMIUM,
   author: 'AjiroDesu',
-  description: 'Generate a premium AI image using AILabs (Neo API). Premium users only.',
+  description:
+    'Generate a premium AI image using AILabs (Neo API). Premium users only.',
   category: 'AI Generate',
   usage: '<prompt>',
   cooldown: 10,
@@ -63,11 +64,13 @@ export const button = {
     label: '🔁 Generate Again',
     style: ButtonStyle.PRIMARY,
     onClick: async (ctx: AppCtx) => {
-      const prompt = (ctx.session.context['prompt'] as string | undefined) ?? '';
+      const prompt =
+        (ctx.session.context['prompt'] as string | undefined) ?? '';
       if (!prompt) {
         await ctx.chat.replyMessage({
           style: MessageStyle.MARKDOWN,
-          message: '⚠️ Could not recover the original prompt. Please re-run the command.',
+          message:
+            '⚠️ Could not recover the original prompt. Please re-run the command.',
         });
         return;
       }
@@ -134,7 +137,10 @@ async function generateAndSend(ctx: AppCtx, prompt: string): Promise<void> {
     };
     if (loadingId) await chat.unsendMessage(loadingId).catch(() => {});
     if (isButtonAction) {
-      await chat.editMessage({ ...errPayload, message_id_to_edit: event['messageID'] as string });
+      await chat.editMessage({
+        ...errPayload,
+        message_id_to_edit: event['messageID'] as string,
+      });
     } else {
       await chat.replyMessage(errPayload);
     }
@@ -146,9 +152,9 @@ async function generateAndSend(ctx: AppCtx, prompt: string): Promise<void> {
 export const onCommand = async (ctx: AppCtx): Promise<void> => {
   const directText = ctx.args.join(' ').trim();
   const quotedText = (
-    (ctx.event['messageReply'] as Record<string, unknown> | undefined)?.['message'] as
-      | string
-      | undefined
+    (ctx.event['messageReply'] as Record<string, unknown> | undefined)?.[
+      'message'
+    ] as string | undefined
   )?.trim();
   const input = directText || quotedText;
   if (!input) return ctx.usage();
