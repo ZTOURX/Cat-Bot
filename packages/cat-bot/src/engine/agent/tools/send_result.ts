@@ -76,19 +76,19 @@ async function replayCall(
       // Skip stream attachment — single-use, consumed during test preview
       // URL-based attachments survive normalization and can be delivered
       if (Array.isArray(rawOpts?.['attachment_url'])) {
-        options.attachment_url = rawOpts['attachment_url'] as ReplyMessageOptions['attachment_url'];
+        options.attachment_url = rawOpts['attachment_url'] as NonNullable<ReplyMessageOptions['attachment_url']>;
       }
       if (Array.isArray(rawOpts?.['button'])) {
-        options.button = rawOpts['button'] as ReplyMessageOptions['button'];
+        options.button = rawOpts['button'] as NonNullable<ReplyMessageOptions['button']>;
       }
       if (typeof rawOpts?.['reply_to_message_id'] === 'string') {
         options.reply_to_message_id = rawOpts['reply_to_message_id'];
       }
       if (Array.isArray(rawOpts?.['mentions'])) {
-        options.mentions = rawOpts['mentions'] as ReplyMessageOptions['mentions'];
+        options.mentions = rawOpts['mentions'] as NonNullable<ReplyMessageOptions['mentions']>;
       }
       if (rawOpts?.['style']) {
-        options.style = rawOpts['style'] as ReplyMessageOptions['style'];
+        options.style = rawOpts['style'] as NonNullable<ReplyMessageOptions['style']>;
       }
 
       await api.replyMessage(threadID, options);
@@ -121,16 +121,16 @@ async function replayCall(
       const opts = (rawOpts ?? {}) as Record<string, unknown>;
       const options: EditMessageOptions = {};
       if (typeof opts['message'] === 'string') options.message = opts['message'];
-      if (opts['style']) options.style = opts['style'] as EditMessageOptions['style'];
+      if (opts['style']) options.style = opts['style'] as NonNullable<EditMessageOptions['style']>;
       if (Array.isArray(opts['button'])) {
-        options.button = opts['button'] as EditMessageOptions['button'];
+        options.button = opts['button'] as NonNullable<EditMessageOptions['button']>;
       }
       if (typeof opts['message_id_to_edit'] === 'string') {
         options.message_id_to_edit = opts['message_id_to_edit'];
       }
       if (typeof opts['threadID'] === 'string') options.threadID = opts['threadID'];
       if (Array.isArray(opts['attachment_url'])) {
-        options.attachment_url = opts['attachment_url'] as EditMessageOptions['attachment_url'];
+        options.attachment_url = opts['attachment_url'] as NonNullable<EditMessageOptions['attachment_url']>;
       }
       await api.editMessage(messageID, options);
       return `✓ editMessage → message ${messageID}`;
