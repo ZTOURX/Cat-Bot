@@ -343,6 +343,48 @@ export async function validateEmailForPasswordReset(
   }
 }
 
+// ── Email Status Check ────────────────────────────────────────────────────────
+
+/**
+ * POST /api/v1/validate/email-status
+ * Body: { email: string }
+ * Returns the existence and verification status of an email address.
+ * Used during sign-up to determine whether to surface an "already exists" error
+ * or redirect the user to the verification flow.
+ */
+export async function checkEmailStatus(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  const { email } = req.body as { email?: string };
+
+  if (!email || typeof email !== 'string') {
+    res.status(400).json({ error: 'Missing email' });
+    return;
+  }
+
+  try {
+    const ctx = await auth.$context;
+    const user = await ctx.adapter.findOne<Record<string, unknown>>({
+      model: 'user',
+      where: [{ field: 'email', value: email.toLowerCase().trim() }],
+    });
+
+    if (!user) {
+      res.status(200).json({ exists: false, verified: false });
+      return;
+    }
+
+    res.status(200).json({
+      exists: true,
+      verified: user['emailVerified'] === true,
+    });
+  } catch (error) {
+    logger.error('[validate] Email status check failed', { error });
+    res.status(500).json({ error: 'Failed to check email status' });
+  }
+}
+
 // ── HMAC-signed Password Reset Token Flow ─────────────────────────────────────
 //
 // WHY stateless HMAC tokens instead of the previous in-memory Map:
