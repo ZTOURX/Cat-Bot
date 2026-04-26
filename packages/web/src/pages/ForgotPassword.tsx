@@ -1,6 +1,6 @@
 import { Helmet } from '@dr.pogodin/react-helmet'
 import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import Button from '@/components/ui/buttons/Button'
 import { Field } from '@/components/ui/forms/Field'
 import Input from '@/components/ui/forms/Input'
@@ -14,7 +14,8 @@ import apiClient from '@/lib/api-client.lib'
 export default function ForgotPasswordPage() {
   const isEmailEnabled = import.meta.env.VITE_EMAIL_SERVICES_ENABLE === 'true'
 
-  const [email, setEmail] = useState('')
+  const [searchParams] = useSearchParams()
+  const [email, setEmail] = useState(searchParams.get('email') || '')
   const [error, setError] = useState<string | null>(null)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
