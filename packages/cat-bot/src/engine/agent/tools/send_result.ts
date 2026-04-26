@@ -121,16 +121,16 @@ async function replayCall(
       const opts = (rawOpts ?? {}) as Record<string, unknown>;
       const options: EditMessageOptions = {};
       if (typeof opts['message'] === 'string') options.message = opts['message'];
-      if (opts['style']) options.style = opts['style'] as EditMessageOptions['style'];
+      if (opts['style']) options.style = opts['style'] as NonNullable<EditMessageOptions['style']>;
       if (Array.isArray(opts['button'])) {
-        options.button = opts['button'] as EditMessageOptions['button'];
+        options.button = opts['button'] as NonNullable<EditMessageOptions['button']>;
       }
       if (typeof opts['message_id_to_edit'] === 'string') {
         options.message_id_to_edit = opts['message_id_to_edit'];
       }
       if (typeof opts['threadID'] === 'string') options.threadID = opts['threadID'];
       if (Array.isArray(opts['attachment_url'])) {
-        options.attachment_url = opts['attachment_url'] as EditMessageOptions['attachment_url'];
+        options.attachment_url = opts['attachment_url'] as NonNullable<EditMessageOptions['attachment_url']>;
       }
       await api.editMessage(messageID, options);
       return `✓ editMessage → message ${messageID}`;
