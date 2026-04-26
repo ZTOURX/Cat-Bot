@@ -10,9 +10,9 @@
  * This eliminates the blind two-step execute pattern where the agent had no visibility
  * into what execute_command would actually send before it was already sent.
  *
- * Key format: `${sessionUserId}:${platform}:${sessionId}:${autoIncrement}`
- * The per-prefix autoIncrement prevents key collisions across concurrent agent turns
- * within the same session (e.g., two agent turns in the same FB Messenger group).
+ * Key format: `${hash}:${autoIncrement}`
+ * A lightweight non-cryptographic hash (DJB2) of the session identity replaces the 
+ * long string to minimize token usage and LLM output length, while preserving uniqueness.
  *
  * Intentionally in-memory — agent turn results are transient and tied to a single
  * agent lifecycle. A restart clears all pending entries, which is acceptable because
@@ -142,7 +142,7 @@ export const commandResultStore = {
    * Generates a unique composite lookup key and advances the per-prefix counter.
    * Must be called exactly once per test_command invocation, immediately before store().
    *
-   * Returns: `${sessionUserId}:${platform}:${sessionId}:${n}`
+   * Returns: `${shortHash}:${n}`
    * The n suffix is monotonically increasing — no two keys for the same session ever match.
    */
   generateKey(
@@ -153,7 +153,15 @@ export const commandResultStore = {
     const prefix = `${sessionUserId}:${platform}:${sessionId}`;
     const n = (counters.get(prefix) ?? 0) + 1;
     counters.set(prefix, n);
-    return `${prefix}:${n}`;
+
+    // Lightweight non-cryptographic hash (DJB2) to keep the key short for the LLM
+    let hash = 5381;
+    for (let i = 0; i < prefix.length; i++) {
+      hash = ((hash << 5) + hash) + prefix.charCodeAt(i);
+    }
+    const shortHash = (hash >>> 0).toString(36);
+
+    return `${shortHash}:${n}`;
   },
 
   /**
