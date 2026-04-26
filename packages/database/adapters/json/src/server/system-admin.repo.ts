@@ -75,6 +75,8 @@ export async function listAllUsers(
     role: u.role ?? null,
     createdAt: new Date(u.createdAt as string).toISOString(),
     banned: u.banned ?? false,
+    // Expose email verification status explicitly for the admin list
+    emailVerified: u.emailVerified ?? false,
   }));
 
   const searchLower = search.trim().toLowerCase();

@@ -58,6 +58,7 @@ export interface AdminUserItemDto {
   role: string | null;
   createdAt: string;
   banned: boolean;
+  emailVerified: boolean;
 }
 
 export interface GetAdminUserListResponseDto {

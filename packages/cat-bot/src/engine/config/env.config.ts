@@ -42,6 +42,13 @@ interface EnvConfig {
   readonly BETTER_AUTH_SECRET: string;
   readonly BETTER_AUTH_URL?: string | undefined;
   readonly VITE_URL?: string | undefined;
+  readonly VITE_EMAIL_SERVICES_ENABLE?: string | undefined;
+
+  // Gmail SMTP — optional; when absent mailer.lib.ts skips email delivery and logs a warning.
+  // Both vars must be set together: GMAIL_USER is the sender address, GOOGLE_APP_PASSWORD
+  // is the 16-character App Password generated at myaccount.google.com → Security → App Passwords.
+  readonly GMAIL_USER?: string | undefined;
+  readonly GOOGLE_APP_PASSWORD?: string | undefined;
 
   // Security
   readonly ENCRYPTION_KEY: string;
@@ -190,6 +197,11 @@ export const env: EnvConfig = {
   BETTER_AUTH_SECRET: getRequiredEnv('BETTER_AUTH_SECRET'),
   BETTER_AUTH_URL: getRequiredEnv('BETTER_AUTH_URL'),
   VITE_URL: getOptionalEnv('VITE_URL'),
+  VITE_EMAIL_SERVICES_ENABLE: getOptionalEnv('VITE_EMAIL_SERVICES_ENABLE'),
+
+  // Gmail SMTP — read at startup; absent vars produce undefined without throwing
+  GMAIL_USER: getOptionalEnv('GMAIL_USER'),
+  GOOGLE_APP_PASSWORD: getOptionalEnv('GOOGLE_APP_PASSWORD'),
 
   // Security
   ENCRYPTION_KEY: getRequiredEnv('ENCRYPTION_KEY'),

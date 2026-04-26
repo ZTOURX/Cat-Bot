@@ -112,6 +112,8 @@ export async function listAllUsers(
           ? u.createdAt.toISOString()
           : new Date(u.createdAt as string).toISOString(),
       banned: u.banned ?? false,
+      // Map emailVerified from the MongoDB user document explicitly
+      emailVerified: u.emailVerified ?? false,
     })),
     total,
     page,

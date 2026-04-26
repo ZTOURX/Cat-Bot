@@ -221,9 +221,9 @@
   --z-sticky: 100;
   --z-fixed: 200;
   --z-drawer: 300;
-  --z-dropdown: 400;
-  --z-modal-backdrop: 450;
-  --z-modal: 500;
+  --z-modal-backdrop: 400;
+  --z-modal: 450;
+  --z-dropdown: 500;
   --z-popover: 600;
   --z-tooltip: 700;
   --z-notification: 800;

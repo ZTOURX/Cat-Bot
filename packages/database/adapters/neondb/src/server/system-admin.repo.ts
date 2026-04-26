@@ -100,9 +100,10 @@ export async function listAllUsers(
     role: string | null;
     createdAt: Date;
     banned: boolean | null;
+    emailVerified: boolean | null;
   }>(
     `
-    SELECT id, name, email, role, "createdAt" AS "createdAt", banned 
+    SELECT id, name, email, role, "createdAt" AS "createdAt", banned, "emailVerified" AS "emailVerified"
     FROM "user" 
     ${whereClause}
     ORDER BY "createdAt" DESC
@@ -131,6 +132,8 @@ export async function listAllUsers(
       ...r,
       createdAt: r.createdAt.toISOString(),
       banned: r.banned ?? false,
+      // Include the projected email verification status
+      emailVerified: r.emailVerified ?? false,
     })),
     total,
     page,

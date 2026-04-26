@@ -79,6 +79,8 @@ export async function listAllUsers(
       ...u,
       createdAt: u.createdAt.toISOString(),
       banned: u.banned ?? false,
+      // Ensure emailVerified is distinctly handled and falls back to false if null/undefined
+      emailVerified: u.emailVerified ?? false,
     })),
     total,
     page,

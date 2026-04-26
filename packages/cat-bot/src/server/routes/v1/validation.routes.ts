@@ -10,6 +10,10 @@ import {
   validateDiscord,
   validateTelegram,
   validateFacebookMessenger,
+  validateEmailForPasswordReset,
+  requestPasswordResetCustom,
+  verifyResetTokenCustom,
+  confirmPasswordResetCustom,
 } from '../../controllers/validation.controller.js';
 
 const validationRouter = Router();
@@ -27,6 +31,26 @@ validationRouter.post('/telegram', (req, res) => {
 // POST /api/v1/validate/facebook-messenger — structural parse of appstate JSON
 validationRouter.post('/facebook-messenger', (req, res) => {
   void validateFacebookMessenger(req, res);
+});
+
+// POST /api/v1/validate/email-reset — check email existence + optional admin-role filter
+validationRouter.post('/email-reset', (req, res) => {
+  void validateEmailForPasswordReset(req, res);
+});
+
+// POST /api/v1/validate/reset-password/request — generate in-memory reset token
+validationRouter.post('/reset-password/request', (req, res) => {
+  void requestPasswordResetCustom(req, res);
+});
+
+// POST /api/v1/validate/reset-password/verify-token — check in-memory reset token
+validationRouter.post('/reset-password/verify-token', (req, res) => {
+  void verifyResetTokenCustom(req, res);
+});
+
+// POST /api/v1/validate/reset-password/confirm — consume token and reset password
+validationRouter.post('/reset-password/confirm', (req, res) => {
+  void confirmPasswordResetCustom(req, res);
 });
 
 export default validationRouter;
