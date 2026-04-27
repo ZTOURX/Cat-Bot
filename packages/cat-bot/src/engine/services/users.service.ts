@@ -12,7 +12,7 @@
 
 import type { BaseCtx } from '@/engine/types/controller.types.js';
 import { toBotUserData } from '@/engine/models/users.model.js';
-import { upsertUser, upsertUserSession } from '@/engine/repos/users.repo.js';
+import { upsertUser, upsertUserSession, userExists } from '@/engine/repos/users.repo.js';
 import { logger } from '@/engine/modules/logger/logger.lib.js'; // Relocated module
 
 /**
@@ -32,7 +32,17 @@ export async function syncUser(
     // the middleware compares lastUpdatedAt against SYNC_INTERVAL_MS and only calls here
     // when the session row is absent or older than 1 hour. No guard needed here.
     const info = await ctx.user.getInfo(userId);
-    await upsertUser(toBotUserData(info));
+    const botUserData = toBotUserData(info);
+
+    // WHY: user.getInfo produces a low-quality avatarUrl for FB Messenger. We only want to set avatarUrl
+    // if the user is completely new. If the user already exists, we strip avatarUrl
+    // from the payload to prevent overwriting high-res avatars previously fetched by getAvatarUrl.
+    const exists = await userExists(ctx.native.platform, userId);
+    if (exists) {
+      botUserData.avatarUrl = null;
+    }
+
+    await upsertUser(botUserData);
     // Mark this session as having seen this user — subsequent messages short-circuit here
     await upsertUserSession(
       sessionUserId,
