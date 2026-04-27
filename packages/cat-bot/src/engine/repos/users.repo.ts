@@ -19,6 +19,8 @@ import {
   userSessionExists as _userSessionExists,
   upsertUserSession as _upsertUserSession,
   getUserName as _getUserName,
+  getUserAvatar as _getUserAvatar,
+  updateUserAvatar as _updateUserAvatar,
   getUserSessionData as _getUserSessionData,
   setUserSessionData as _setUserSessionData,
   getAllUserSessionData as _getAllUserSessionData,
@@ -131,6 +133,14 @@ export async function getUserName(userId: string): Promise<string> {
   const result = await _getUserName(userId);
   lruCache.set(key, result);
   return result;
+}
+
+export async function getUserAvatar(userId: string): Promise<string | null> {
+  return _getUserAvatar(userId);
+}
+
+export async function updateUserAvatar(userId: string, avatarUrl: string): Promise<void> {
+  await _updateUserAvatar(userId, avatarUrl);
 }
 
 export async function getUserSessionData(

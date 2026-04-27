@@ -10,7 +10,7 @@ export async function upsertUser(data: BotUserData): Promise<void> {
       name: data.name,
       firstName: data.firstName,
       username: data.username,
-      avatarUrl: data.avatarUrl,
+      // avatarUrl intentionally omitted to preserve high-res avatars
     });
   } else {
     db.botUser.push({ ...data });
@@ -105,6 +105,21 @@ export async function getUserName(userId: string): Promise<string> {
   const db = await getDb();
   const rec = db.botUser.find((u: any) => u.id === userId);
   return rec?.name ?? 'Unknown user';
+}
+
+export async function getUserAvatar(userId: string): Promise<string | null> {
+  const db = await getDb();
+  const rec = db.botUser.find((u: any) => u.id === userId);
+  return rec?.avatarUrl ?? null;
+}
+
+export async function updateUserAvatar(userId: string, avatarUrl: string): Promise<void> {
+  const db = await getDb();
+  const rec = db.botUser.find((u: any) => u.id === userId);
+  if (rec) {
+    rec.avatarUrl = avatarUrl;
+    await saveDb();
+  }
 }
 
 /**

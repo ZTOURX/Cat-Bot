@@ -10,7 +10,7 @@ export async function upsertUser(data: BotUserData): Promise<void> {
        name = EXCLUDED.name,
        first_name = EXCLUDED.first_name,
        username = EXCLUDED.username,
-       avatar_url = EXCLUDED.avatar_url,
+       -- avatar_url intentionally omitted to preserve high-res avatars
        updated_at = NOW()`,
     [
       data.platformId,
@@ -92,6 +92,21 @@ export async function getUserName(userId: string): Promise<string> {
     [userId],
   );
   return res.rows[0]?.name ?? 'Unknown user';
+}
+
+export async function getUserAvatar(userId: string): Promise<string | null> {
+  const res = await pool.query<{ avatar_url: string | null }>(
+    `SELECT avatar_url FROM bot_users WHERE id = $1`,
+    [userId]
+  );
+  return res.rows[0]?.avatar_url ?? null;
+}
+
+export async function updateUserAvatar(userId: string, avatarUrl: string): Promise<void> {
+  await pool.query(
+    `UPDATE bot_users SET avatar_url = $1 WHERE id = $2`,
+    [avatarUrl, userId]
+  );
 }
 
 /**

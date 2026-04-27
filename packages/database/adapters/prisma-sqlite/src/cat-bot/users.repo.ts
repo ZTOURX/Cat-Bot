@@ -10,7 +10,7 @@ export async function upsertUser(data: BotUserData): Promise<void> {
       name: data.name,
       firstName: data.firstName,
       username: data.username,
-      avatarUrl: data.avatarUrl,
+      // avatarUrl intentionally omitted to preserve high-res avatars from getAvatarUrl
     },
   });
 }
@@ -71,6 +71,21 @@ export async function getUserName(userId: string): Promise<string> {
     select: { name: true },
   });
   return row?.name ?? 'Unknown user';
+}
+
+export async function getUserAvatar(userId: string): Promise<string | null> {
+  const row = await prisma.botUser.findUnique({
+    where: { id: userId },
+    select: { avatarUrl: true },
+  });
+  return row?.avatarUrl ?? null;
+}
+
+export async function updateUserAvatar(userId: string, avatarUrl: string): Promise<void> {
+  await prisma.botUser.updateMany({
+    where: { id: userId },
+    data: { avatarUrl },
+  });
 }
 
 export async function userExists(

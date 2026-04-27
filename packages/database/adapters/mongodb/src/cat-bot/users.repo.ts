@@ -11,12 +11,13 @@ export async function upsertUser(data: BotUserData): Promise<void> {
         name: data.name,
         firstName: data.firstName,
         username: data.username,
-        avatarUrl: data.avatarUrl,
+        // avatarUrl intentionally omitted to preserve high-res avatars
         updatedAt: new Date(),
       },
       $setOnInsert: {
         platformId: data.platformId,
         id: data.id,
+        avatarUrl: data.avatarUrl,
         createdAt: new Date(),
       },
     },
@@ -97,6 +98,23 @@ export async function getUserName(userId: string): Promise<string> {
     .collection<{ name: string }>('botUsers')
     .findOne({ id: userId }, { projection: { name: 1, _id: 0 } });
   return rec?.name ?? 'Unknown user';
+}
+
+export async function getUserAvatar(userId: string): Promise<string | null> {
+  const db = getMongoDb();
+  const rec = await db.collection<{ avatarUrl?: string | null }>('botUsers').findOne(
+    { id: userId },
+    { projection: { avatarUrl: 1, _id: 0 } }
+  );
+  return rec?.avatarUrl ?? null;
+}
+
+export async function updateUserAvatar(userId: string, avatarUrl: string): Promise<void> {
+  const db = getMongoDb();
+  await db.collection('botUsers').updateOne(
+    { id: userId },
+    { $set: { avatarUrl, updatedAt: new Date() } }
+  );
 }
 
 /**
