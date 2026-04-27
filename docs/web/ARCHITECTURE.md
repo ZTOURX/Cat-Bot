@@ -354,19 +354,20 @@ packages/web/
     │   │       │
     │   │       ├── users.tsx             — User management table
     │   │       │                           All registered accounts with role, bot session count, join date;
-    │   │       │                           ban dialog (optional reason, stops user sessions fire-and-forget);
-    │   │       │                           unban dialog (restarts user sessions fire-and-forget);
-    │   │       │                           client-side search filtering
+    │   │       │                           ban/unban dialogs (with fire-and-forget session start/stop);
+    │   │       │                           edit dialog (role/name updates), verify dialog (manual email bypass);
+    │   │       │                           server-side paginated search
     │   │       │
     │   │       ├── bots.tsx              — Bot sessions table
     │   │       │                           All sessions across all users; per-platform summary cards;
-    │   │       │                           search by nickname, owner, or platform;
+    │   │       │                           server-side paginated search by nickname, owner, or platform;
     │   │       │                           isRunning status badge from useAdminBots
     │   │       │
     │   │       └── settings.tsx          — Admin settings page
     │   │                                   Appearance (dark mode toggle), Admin Profile (display name,
     │   │                                   email read-only), System Administrators (global bot admin IDs
-    │   │                                   persisted to DB via admin.service), Security (change password)
+    │   │                                   persisted to DB via admin.service), Security (change password,
+    │   │                                   send password reset link)
     │   │
     │   └── dashboard/
     │       ├── index.tsx                 — Bot Manager page
@@ -377,7 +378,7 @@ packages/web/
     │       ├── settings.tsx              — User settings page
     │       │                               Appearance, Profile (editable display name), Facebook Page
     │       │                               Webhook (URL + verify token with clipboard copy, verified status),
-    │       │                               Security (change password revokes other sessions)
+    │       │                               Security (change password revokes other sessions, send reset link)
     │       │
     │       ├── create-new-bot.tsx        — Three-step bot creation wizard
     │       │                               Step 1 — Identity: nickname, prefix, bot admin IDs;
@@ -482,6 +483,9 @@ createBrowserRouter([
 │   ├── { element: <PublicRoute /> }             ← Bounces authenticated users to /dashboard
 │   │   ├── login: LoginPage
 │   │   └── signup: SignupPage
+│   ├── forgot-password: ForgotPasswordPage      ← Outside PublicRoute so active sessions can reset
+│   ├── account-verification: VerificationPage
+│   ├── reset-password: ResetPasswordPage
 │   └── *: NotFound
 │
 ├── { element: <UserProtectedRoute /> }          ← Pathless guard; bounces to /login if unauthenticated
@@ -498,6 +502,8 @@ createBrowserRouter([
 └── { element: <AdminLayout /> }                 ← Scopes AdminAuthProvider to admin subtree only
     ├── { element: <AdminPublicRoute /> }        ← Bounces authenticated admins to /admin/dashboard
     │   └── { path: '/admin', element: <AdminLoginPage /> }
+    ├── admin/forgot-password: AdminForgotPasswordPage
+    ├── admin/reset-password: AdminResetPasswordPage
     └── { element: <AdminProtectedRoute /> }     ← Bounces to /admin if no admin session or role != 'admin'
         └── { element: <AdminSidebarLayout /> }
             ├── /admin/dashboard: AdminDashboardPage
@@ -576,6 +582,16 @@ tailwind base/components/utilities directives
 ```
 
 **Theme switching:** `ThemeProvider` calls `applyTheme()` which adds or removes `.dark` from `<html>`. The `.dark` CSS class triggers the override layer in `dark.css`, remapping all `--color-*` variables to their dark values. No component re-renders; all visual changes happen via CSS variable resolution.
+
+---
+
+## Server-State Synthesis
+
+The Web dashboard is not an isolated state machine; its architecture is a reactive reflection of the **Server** and **Engine** layers:
+
+- **DTO Coupling:** The Web's `dtos/bot.dto.ts` maps strictly to the Server's DTO contracts. The discriminated union `PlatformCredentials` ensures that the React UI statically handles `discord`, `telegram`, `facebook-messenger`, and `facebook-page` exactly as the Server's `bot.service.ts` processes them, enforcing alignment across the network boundary.
+- **Socket-Driven UI:** The `useBotLogs` hook forms the terminal end of the Engine's pipeline. When a command executes in the Engine, Winston logs it, the Server routes it into a `bot-log:{sessionId}` socket room, and this React hook receives it instantly to render via the `<AnsiToReact>` component. The dashboard is directly visualizing internal Engine memory.
+- **Optimistic Engine Sync:** When `useBotCommands` toggles a command, the UI optimistically updates before the Server responds. Concurrently, the Server updates the Database and triggers an Engine slash-sync. If the Discord API rejects the sync in the Engine, the Server responds 500, and the Web hook catches the error, reverting the optimistic React state. This binds the UI toggle directly to the reality of the Discord API.
 
 ---
 

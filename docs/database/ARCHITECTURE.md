@@ -57,7 +57,7 @@ packages/database/
 │   │   │   └── server/
 │   │   │       ├── bot.repo.ts          ← BotRepo class: create, getById, update, list, updateIsRunning,
 │   │   │       │                          getPlatformId, listAll, deleteById
-│   │   │       └── system-admin.repo.ts ← listSystemAdmins, addSystemAdmin, removeSystemAdmin, isSystemAdmin
+│   │   │       └── system-admin.repo.ts ← listSystemAdmins, addSystemAdmin, removeSystemAdmin, isSystemAdmin, listAllUsers
 │   │   ├── package.json                 ← name: database-json; type: module; no runtime dependencies
 │   │   └── tsconfig.json               ← rootDir: ./src; @cat-bot/* paths alias → ../../../cat-bot/src/*
 │   │
@@ -114,6 +114,7 @@ packages/database/
 │       │   ├── schema.prisma            ← Authoritative schema definition; generator: prisma-client;
 │       │   │                              output: ../src/generated/prisma; datasource: sqlite;
 │       │   │                              models: BotUser, BotThread, BotUserSession, BotThreadSession,
+│       │   │                              BotDiscordServer, BotDiscordChannel, BotDiscordServerSession,
 │       │   │                              BotSession, BotAdmin, BotPremium, BotCredentialDiscord,
 │       │   │                              BotCredentialTelegram, BotCredentialFacebookPage,
 │       │   │                              BotCredentialFacebookMessenger, FbPageWebhook,
@@ -192,10 +193,16 @@ Bot Session Events    — upsertSessionEvents, findSessionEvents, setEventEnable
 Credentials           — findDiscord/TelegramCredentialState, updateDiscord/TelegramCredentialCommandHash,
                         findAll{Discord,Telegram,FbPage,FbMessenger}Credentials, findAllBotSessions,
                         isBotAdmin, addBotAdmin, removeBotAdmin, listBotAdmins, updateBotSessionPrefix,
-                        getBotNickname, isBotPremium, addBotPremium, removeBotPremium, listBotPremiums
+                        getBotNickname, isBotPremium, addBotPremium, removeBotPremium, listBotPremiums,
+                        getBotSessionData, setBotSessionData
 Threads               — upsertThread, threadExists, threadSessionExists, upsertThreadSession,
                         getThreadSessionUpdatedAt, isThreadAdmin, getThreadName,
-                        getThreadSessionData, setThreadSessionData, getAllGroupThreadIds
+                        getThreadSessionData, setThreadSessionData, getAllGroupThreadIds,
+                        upsertDiscordServer, linkDiscordChannel, getDiscordServerIdByChannel,
+                        upsertDiscordServerSession, getDiscordServerSessionUpdatedAt,
+                        getDiscordServerSessionData, setDiscordServerSessionData,
+                        isDiscordServerAdmin, getDiscordServerName, getAllDiscordServerIds,
+                        discordServerExists, discordServerSessionExists
 Users                 — upsertUser, userExists, userSessionExists, upsertUserSession,
                         getUserSessionUpdatedAt, getUserName, getUserSessionData,
                         setUserSessionData, getAllUserSessionData
@@ -203,7 +210,7 @@ Webhooks              — getFbPageWebhookVerification, upsertFbPageWebhookVerif
 Bans                  — banUser, unbanUser, isUserBanned, banThread, unbanThread, isThreadBanned
 Server Repo           — botRepo (BotRepo class: create, getById, update, list, updateIsRunning,
                         getPlatformId, listAll, deleteById)
-System Admin          — listSystemAdmins, addSystemAdmin, removeSystemAdmin, isSystemAdmin
+System Admin          — listSystemAdmins, addSystemAdmin, removeSystemAdmin, isSystemAdmin, listAllUsers
 Database Instances    — prisma (prisma-sqlite only), getDb/saveDb (json only),
                         mongoClient/getMongoDb (mongodb only), pool/initDb/dbReady (neondb only)
 ```
@@ -287,6 +294,16 @@ neondb         → betterAuth({ database: pool })
 ```
 
 The four better-auth tables (`user`, `session`, `account`, `verification`) are defined alongside the bot tables in every adapter's schema so auth and bot data coexist in the same database file, connection, or cluster.
+
+---
+
+## Cross-Layer Data Synthesis
+
+The `database` package is strictly passive, but it serves as the foundation tying the Web, Server, and Engine together structurally:
+
+- **Shared Connections:** The Engine's bot runtime (via `cat-bot/repos`) and the Server's authentication system (via `better-auth`) both consume these identical raw adapter singletons. A Web dashboard user viewing their profile and a Discord user triggering a command theoretically query through the same physical connection pool (e.g., the NeonDB `pg.Pool`).
+- **Cache Authority Boundary:** The database package enforces the boundary of *raw truth*. The Engine's LRU cache (`cat-bot/src/engine/repos`) sits *above* this package. This guarantees that cross-adapter migration scripts (`scripts/migrate-*`) can safely read and write massive datasets natively without accidentally poisoning or triggering the Engine's operational memory cache.
+- **Auth & Bot Coexistence:** Because the schemas (Prisma, SQL, JSON) embed both `better-auth` tables (`user`, `session`) and Bot tables (`BotSession`, `BotThread`) side-by-side, the Server can perform high-efficiency SQL joins (like `bot.repo.ts` listing bots with their `user` owners) without making cross-database HTTP requests.
 
 ---
 

@@ -328,6 +328,16 @@ Facebook Page Messenger has no zero-cost name lookup for Page-Scoped User IDs. T
 
 ---
 
+## Systemic Integration
+
+The Facebook Page adapter is structurally unique as it blends directly into the HTTP routing layer:
+
+- **Server to Transport Pipeline:** Unlike other platforms, this adapter has no network connection to "start". When the Web UI registers a Page, `index.ts` calls `registerPageSession()`. This mounts the adapter's webhook listener directly into the **Server**'s Express routing tree at `/api/v1/facebook-page`, making the bot Engine a synchronous processor of the Server's HTTP traffic.
+- **Validation Handshake:** Before a session is even established, the Web UI initiates a Socket.IO OTP validation flow. The Server intercepts incoming Graph API webhook events, validates the OTP via `facebook-page.controller.ts`, and reports success to the React frontend.
+- **Upward to Models:** Validated webhooks are sent to `event-router.ts`, which pre-fetches reply and reaction metadata from the Graph API before normalizing the payload into a `UnifiedEvent`. The event then flows up through the **Models** layer precisely like a Discord or Telegram message.
+
+---
+
 ## Key Design Decisions
 
 **Webhook-driven, stateless adapter.** Unlike the Facebook Messenger adapter (persistent MQTT) or the Discord/Telegram adapters (long-polling or webhook with library-managed connection state), the Page adapter holds no network connection and no stateful client object. Start/stop are lightweight operations limited to session registration and deregistration. Connection failures are not a concern — each webhook POST is an independent HTTP request.

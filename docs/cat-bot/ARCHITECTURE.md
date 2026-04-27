@@ -81,16 +81,18 @@ src/engine/
     ├── middleware/                      ← Express-style middleware pipeline (registered once at boot)
     │   ├── index.ts                     ← Pipeline wiring — registers all default middlewares
     │   │                                  onCommand: enforceNotBanned → enforcePermission →
-    │   │                                             enforceCooldown → validateCommandOptions
+    │   │                                             enforceAdminOnly → enforceCooldown → validateCommandOptions
     │   │                                  onChat:    chatPassthrough → chatLogThread
     │   │                                  onReply:   replyStateValidation
     │   │                                  onReact:   reactStateValidation
     │   │                                  onButtonClick: enforceButtonScope
+    │   │                                  onEvent:   enforceCommandKick → enforceWarnBan
     │   ├── on-command.middleware.ts     ← Ban enforcement, role permission gates, cooldown, option parsing
     │   ├── on-chat.middleware.ts        ← Thread + user DB sync on every message (chatPassthrough)
     │   ├── on-reply.middleware.ts       ← Passthrough placeholder for reply flow guards
     │   ├── on-react.middleware.ts       ← Passthrough placeholder for reaction flow guards
-    │   └── on-button-click.middleware.ts ← Tilde-scope ownership enforcement for button interactions
+    │   ├── on-button-click.middleware.ts ← Tilde-scope ownership enforcement for button interactions
+    │   └── on-event.middleware.ts       ← Event handler pre-dispatch guards (warn-ban, command kick)
     │
     ├── controllers/                     ← Entry points and routing layer for all event types
     │   ├── index.ts                     ← Public barrel — app.ts and platform adapters import from here
@@ -115,6 +117,7 @@ src/engine/
     │
     ├── lib/                             ← Stateful singleton utilities used by middleware and dispatchers
     │   ├── state.lib.ts                 ← In-memory stateStore Map for pending onReply / onReact flows
+    │   ├── ttl-map.lib.ts               ← Generic in-memory map with expiration and lazy eviction
     │   ├── cooldown.lib.ts              ← Per-user command rate-limit tracker (CooldownStore)
     │   ├── middleware.lib.ts            ← MiddlewareRegistry singleton + runMiddlewareChain() runner
     │   ├── module-registry.lib.ts       ← commandRegistry / eventRegistry Maps (populated at boot)
@@ -122,6 +125,7 @@ src/engine/
     │   ├── db-collection.lib.ts         ← Rich dot-path CRUD surface over bot_users_session.data JSON blob
     │   ├── currencies.lib.ts            ← Economy API (getMoney / increaseMoney / decreaseMoney) built on db-collection
     │   ├── button-context.lib.ts        ← In-memory button context and dynamic override store
+    │   ├── kick-registry.lib.ts         ← Transient registry bridging bot removal commands and leave events
     │   └── retry.lib.ts                 ← withRetry() with exponential backoff; isAuthError / isNetworkError classifiers
     │
     ├── repos/                           ← LRU cache wrappers over the 'database' package (cat-bot's caching layer)
@@ -129,7 +133,7 @@ src/engine/
     │   ├── threads.repo.ts              ← Cached: upsertThread, isThreadAdmin, getThreadSessionData, etc.
     │   ├── banned.repo.ts               ← Cached: isUserBanned, isThreadBanned (write-through on ban/unban)
     │   ├── credentials.repo.ts          ← Cached: isBotAdmin, isBotPremium, findAll*Credentials, etc.
-    │   ├── session.repo.ts              ← Cached: getBotNickname
+    │   ├── session.repo.ts              ← Cached: getBotNickname, getBotSessionData, setBotSessionData
     │   ├── system-admin.repo.ts         ← Cached: isSystemAdmin (single Set<string> key for all admins)
     │   └── webhooks.repo.ts             ← Cached: getFbPageWebhookVerification
     │
@@ -173,9 +177,11 @@ src/engine/
     │   ├── agent.ts                     ← runAgent(): ReAct tool-call loop; loads system_prompt.md at boot
     │   ├── agent.util.ts                ← AgentTool interface; resolveAgentContext() helper
     │   ├── agent-command-guard.lib.ts   ← inspectCommandConstraints(): AI-readable pre-flight constraint check
+    │   ├── lib/
+    │   │   └── command-result-store.lib.ts ← In-memory lookup for intercepted test_command outputs
     │   └── tools/
     │       ├── help.ts                  ← Tool: paginated role-filtered command list (mirrors /help output)
-    │       ├── execute_command.ts       ← Tool: executes a command on behalf of the user
+    │       ├── send_result.ts           ← Tool: unified delivery of AI-synthesized response + attachments
     │       └── test_command.ts          ← Tool: dry-runs a command with a proxied API to intercept output
     │
     ├── config/
@@ -188,7 +194,7 @@ src/engine/
     │
     ├── types/
     │   ├── controller.types.ts          ← BaseCtx, AppCtx, NativeContext, CommandMap, EventModuleMap, ParsedCommand
-    │   ├── middleware.types.ts          ← MiddlewareFn, OnCommandCtx, OnChatCtx, OnReplyCtx, OnReactCtx, OnButtonClickCtx
+    │   ├── middleware.types.ts          ← MiddlewareFn, OnCommandCtx, OnChatCtx, OnReplyCtx, OnReactCtx, OnButtonClickCtx, OnEventCtx
     │   └── module-config.types.ts       ← CommandConfig, EventConfig, CommandOption typed contracts for module authors
     │
     └── utils/                           ← Pure cross-cutting utility functions
@@ -387,6 +393,17 @@ Event module exports:
 │                                          Optional: platform[]
 └── onEvent(ctx: BaseCtx)              ← Triggered for each matched event type string
 ```
+
+---
+
+## Engine-to-Server Synthesis
+
+Though the **Engine** (bot runtime) and the **Server** (Express/Socket API) are distinct architectural layers, they run in the same Node.js process and heavily interoperate via shared memory boundaries:
+
+- **Lifecycle Orchestration:** The Server's `services/bot.service.ts` directly manipulates the Engine's `SessionManager.start()` and `.stop()`. When the Web UI requests a bot boot, the Server bypasses network transport and directly triggers the Engine's platform listener factories.
+- **Cache Invalidation:** The Engine maintains an aggressive LRU cache in `src/engine/repos/`. The Server shares this exact cache instance via `repos/bot.repo.ts`. When a dashboard user modifies bot settings, the Server invalidates the specific `SESSIONS_ALL_KEY`, forcing the Engine to pull fresh credentials from the Database on the next event loop without requiring a restart.
+- **Log Streaming:** The Engine's standard Winston logger writes to standard output, but is concurrently tapped by `log-relay.lib.ts`. This relay passes formatted execution logs (with session-specific metadata) directly into the Server's `bot-monitor.socket.ts`, bridging raw Engine diagnostics to the Web dashboard's live terminal in milliseconds.
+- **Webhook Routing:** The Server's `facebook-page.routes.ts` receives raw HTTP POSTs from Meta. It uses the Engine's `facebook-page-session.lib.ts` registry to route the payload to the correct Engine adapter session, transforming a stateless HTTP server into a stateful bot transport.
 
 ---
 

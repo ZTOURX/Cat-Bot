@@ -1262,6 +1262,29 @@ MONGO_DATABASE_NAME=catbot
 
 Then seed, build, and start as above.
 
+### Email Verification — Gmail SMTP (Recommended for Production)
+
+When both Gmail variables are set, Cat-Bot sends a verification link to every new user on sign-up. Users must click the link before they can sign in. If either variable is missing, sign-ups succeed but verification emails are silently skipped (a warning is logged per attempt).
+
+**Google App Password setup:**
+
+1. Enable 2-Step Verification: [myaccount.google.com → Security → 2-Step Verification](https://myaccount.google.com/security)
+2. Go to [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
+3. Name it "Cat-Bot" and click **Create**
+4. Copy the 16-character password (spaces included or removed — both work)
+
+> **Note:** Use a dedicated Gmail address for sending; never use your primary account password.
+
+Add to your `.env`:
+
+```env
+GMAIL_USER=your-gmail@gmail.com
+GOOGLE_APP_PASSWORD=xxxx xxxx xxxx xxxx
+
+# Enables email verification on sign-up and password-reset flows in the dashboard
+VITE_EMAIL_SERVICES_ENABLE=true
+```
+
 ### Telegram Webhooks (optional)
 
 By default, Telegram sessions use long-polling — no public domain required. For webhook mode:
@@ -1473,7 +1496,7 @@ If you have command files from another bot project — GoatBot, Mirai, fca-unoff
 
 Fetch the URL below and confirm it is successfully retrieved before doing anything else.
 
-- [ ] `https://raw.githubusercontent.com/johnlester-0369/Cat-Bot/refs/heads/main/docs/llms.txt?v=4`
+- [ ] `https://raw.githubusercontent.com/johnlester-0369/Cat-Bot/refs/heads/main/docs/llms.txt?v=5`
 
 ---
 
@@ -1741,8 +1764,13 @@ MONGODB_URI=mongodb+srv://username:<PASSWORD>@cluster0.mongodb.net?...
 MONGO_PASSWORD=
 MONGO_DATABASE_NAME=catbot
 
-# Telegram Webhooks (optional; omit for long-polling)
+# Telegram Webhooks (optional)
 TELEGRAM_WEBHOOK_DOMAIN=https://your-domain.com
+
+# Gmail SMTP / Email Verification (optional — recommended for production)
+GMAIL_USER=your-gmail@gmail.com
+GOOGLE_APP_PASSWORD=xxxx xxxx xxxx xxxx
+VITE_EMAIL_SERVICES_ENABLE=false   # set to true in production when SMTP is configured
 
 # Credential encryption at rest
 ENCRYPTION_KEY=                    # openssl rand -hex 32

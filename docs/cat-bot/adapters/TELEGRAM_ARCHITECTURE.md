@@ -335,6 +335,16 @@ The database fallback layer ensures that cross-platform name resolution works co
 
 ---
 
+## Systemic Integration
+
+The Telegram adapter bridges raw Telegram Bot API traffic into Cat-Bot's centralized state systems:
+
+- **Server to Transport Pipeline:** Credentials sourced from the **Server**'s REST layer flow into the Engine's `SessionManager`, booting `listener.ts`. If `TELEGRAM_WEBHOOK_DOMAIN` is set, this adapter routes its webhook callbacks directly into the Server's Express application, blending transport networking with the Server's HTTP infrastructure.
+- **Upward to Models:** All `Telegraf` contexts are mapped by `helper.util.ts` into `UnifiedEvent` structures before hitting the **Models** layer. The Engine dispatchers interacting with `wrapper.ts` methods (like `sendMessage`) have no visibility into the Telegraf library.
+- **Live Command Sync:** Leveraging `slash-sync.lib.ts`, the adapter links Web UI toggles directly to the Telegram API. When an admin enables a command, the Server modifies the Database and triggers the sync; `slash-commands.ts` immediately issues a `setMyCommands` request across all 4 broadcast scopes.
+
+---
+
 ## Key Design Decisions
 
 **Pre-launch `getMe()` validation.** `bot.launch()` in Telegraf calls `getMe()` internally as an unhandled Promise. A revoked token causes an unhandled rejection that crashes every session via `process.once('unhandledRejection')`. Calling `getMe()` explicitly before launch surfaces the error inside `start()` where `withRetry`'s `shouldRetry` classifies it as permanent auth failure and stops retrying immediately — only the affected session goes offline.

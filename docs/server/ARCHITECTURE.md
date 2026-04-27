@@ -29,6 +29,10 @@ src/server/
 │                                              serves the built React SPA from web/dist when present;
 │                                              separated from listen() to allow supertest test mounts
 │
+├── email-template/                          ← Vanilla HTML email layouts
+│   └── index.ts                             ← Layout shell and button components mapping web tokens
+│                                              to inline CSS for transactional emails
+│
 ├── lib/
 │   ├── better-auth.lib.ts                   ← Dual better-auth instance configuration
 │   │                                          auth → user portal sessions (/api/auth, cookie: better-auth.*)
@@ -45,10 +49,19 @@ src/server/
 │                                              CustomAdapter contract (create, findOne, findMany,
 │                                              update, updateMany, delete, deleteMany, count);
 │                                              shares the same store.ts (getDb/saveDb) as the rest
-│                                              of the JSON adapter layer so auth and bot tables
-│                                              coexist in one file; lives in the server package because
-│                                              it imports from better-auth/adapters (not available in
-│                                              the zero-dependency json adapter package)
+│   │                                          of the JSON adapter layer so auth and bot tables
+│   │                                          coexist in one file; lives in the server package because
+│   │                                          it imports from better-auth/adapters (not available in
+│   │                                          the zero-dependency json adapter package)
+│   │
+│   └── mailer.lib.ts                        ← Gmail SMTP Mailer Singleton
+│                                              Lazily initialized transactional email dispatcher;
+│                                              gracefully skips delivery if env vars are missing
+│
+├── middleware/
+│   └── rate-limit.middleware.ts             ← In-Memory Fixed-Window Rate Limiter
+│                                              Provides REST_LIMIT, VALIDATE_LIMIT, and ADMIN_LIMIT
+│                                              presets applied to endpoints to prevent abuse
 │
 ├── routes/
 │   └── v1/
@@ -100,7 +113,7 @@ src/server/
 │
 ├── controllers/
 │   ├── bot.controller.ts                    ← Bot session lifecycle request handlers
-│   │                                          Auth enforced per-method via better-auth getSession();
+│   │                                          Auth enforced via requireSession() from validators;
 │   │                                          delegates all business logic to botService;
 │   │                                          service layer is auth-agnostic and independently testable
 │   │
@@ -131,9 +144,10 @@ src/server/
 │   │                                          Telegram: GET /bot{token}/getMe; same retry strategy
 │   │                                          Facebook Messenger: structural JSON parse + c_user/xs cookie
 │   │                                          presence check + live fca-unofficial login verification;
-│   │                                          all three respond HTTP 200 with { valid, error? } so the
-│   │                                          React hook distinguishes network failure (throws) from
-│   │                                          credential rejection (valid: false) without branching
+│   │                                          Responds HTTP 200 with { valid, error? } so the React hook
+│   │                                          distinguishes network failure from credential rejection;
+│   │                                          also implements HMAC-signed email reset token generation,
+│   │                                          stateless verification, and email status checks
 │   │
 │   └── webhook.controller.ts                ← Facebook Page webhook metadata handler
 │                                              Returns the webhook URL, verify token, and isVerified status
@@ -239,8 +253,12 @@ src/server/
 └── utils/
     └── hash.util.ts                         ← Deterministic webhook secret utilities
                                                generateVerifyToken(userId): SHA-256 of userId+'verify'
-                                               truncated to 10 hex chars; used as the Facebook webhook
-                                               verify_token so Meta can prove ownership without storing
+│                                              truncated to 10 hex chars; used as the Facebook webhook
+│                                              verify_token so Meta can prove ownership without storing
+│
+└── validators/                              ← Cross-cutting request validation
+    ├── auth-session.validator.ts            ← Centralized requireSession and requireAdmin guards
+    └── request-headers.validator.ts         ← Normalizes Express IncomingHttpHeaders to Web API Headers
 ```
 
 ---
@@ -271,6 +289,10 @@ src/server/app.ts registration order:
 │
 ├── express.json()                 ← All routes below here safely read req.body
 │   express.urlencoded()
+│
+├── /api/v1/validate               ← VALIDATE_LIMIT (20 req / 60 s) protects credential checks
+├── /api/v1/admin                  ← ADMIN_LIMIT (60 req / 60 s) reduces admin enumeration blast radius
+├── /api/v1                        ← REST_LIMIT (120 req / 60 s) general dashboard rate limit
 │
 ├── /api/v1/facebook-page          ← Facebook Page webhook delivery
 │
@@ -325,7 +347,7 @@ app.ts mounts separately:
 
 ### Controller Layer (`controllers/`)
 
-Controllers own the auth enforcement and request/response boundary. They extract session information from the request headers, verify it against the appropriate better-auth instance, and then delegate to the service or repo layer. The service layer is intentionally auth-agnostic — auth is always enforced in the controller, never inside a service method.
+Controllers own the auth enforcement and request/response boundary. They extract session information from the request headers, verify it against the appropriate better-auth instance (via the `validators/auth-session.validator.ts` layer), and then delegate to the service or repo layer. The service layer is intentionally auth-agnostic — auth is always enforced in the controller layer, never inside a service method.
 
 The Facebook Messenger validation controller (`validation.controller.ts`) performs a live `fca-unofficial` login as the final validation step. `startBot()` authenticates via the cookie blob without calling `listenMqtt`, so no persistent MQTT connection is opened during the validation call.
 
@@ -384,6 +406,17 @@ DTOs are plain TypeScript interfaces with no runtime behavior. The discriminated
 
 ---
 
+## Web-to-Engine Synthesis
+
+The Server layer acts as the mechanical bridge translating **Web** intents into **Engine** state changes, and pushing **Engine** observability back to the **Web**:
+
+- **HTTP to Transport translation:** A `POST /api/v1/bots/:id/start` from the Web does not just flip a database row. The Server's `BotService` intercepts the request, generates a `UUID`, fetches the associated token from the raw Database, and executes `spawnDynamicSession()` in the Engine, instantly bridging the REST API to a live WebSocket/MQTT platform connection.
+- **Cross-Portal Auth Isolation:** The Server implements two separate `betterAuth` boundaries. This protects the Engine layer: compromised credentials in the user portal cannot mutate global system state or shut down the Engine, because the `AdminAuthContext` is isolated at the `ba-admin.session_token` cookie level.
+- **Socket Pipeline:** The `bot-monitor.socket.ts` directly consumes the Engine's `logRelay` and `SessionManager` state events. It pipes them into `bot:log:keyed` and `bot:status:change` WebSocket events. The Web's `useBotLogs.ts` and `useBotStatus.ts` React hooks bind directly to these channels, meaning a log printed deep within an Engine command module renders on the Web UI entirely reactively.
+- **OTP Credential Handshakes:** For Facebook Page setups, `validation.socket.ts` orchestrates a real-time OTP flow. The Web UI subscribes to this socket, while the Server's webhook endpoint intercepts raw Meta API payloads to detect the validation pin, completing the loop across Meta, the Server, and the Web UI before a formal Engine session is even instantiated.
+
+---
+
 ## Key Design Decisions
 
 **Dual better-auth instances over role-based single instance.** A single instance with role checks would share cookies — a user who gains admin role mid-session would have the same cookie accepted on both portals. Separate instances with separate cookie prefixes mean a compromised user-portal session has zero leverage on the admin portal even when the DB row shows `role: 'admin'`.
@@ -395,3 +428,7 @@ DTOs are plain TypeScript interfaces with no runtime behavior. The discriminated
 **Cache cross-invalidation via shared `SESSIONS_ALL_KEY`.** `botRepo` and `credentials.repo` are in different packages (server and engine respectively) but share the same LRU singleton. Mutating a bot session in the server layer evicts the key that the engine's session-loader uses so that a restart immediately after a dashboard write picks up the new credential state without a stale cache hit.
 
 **Fire-and-forget transport spawn on create.** `createBot` returns the new session DTO to the client immediately after the DB write succeeds. The platform transport starts concurrently. This keeps the API response time bounded by the DB write, not by Discord gateway handshake or Telegram getMe latency.
+
+**Stateless HMAC Email Reset Tokens over In-Memory Maps.** `validation.controller.ts` generates HMAC-signed payload tokens (containing email, expiry, and admin flag) rather than keeping state in a server-side `Map`. This ensures pending tokens survive process restarts and hot-reloads, with a small `Set` to track used signatures preventing replay attacks.
+
+**Centralized Request Validation.** Controllers previously duplicated auth logic; `validators/auth-session.validator.ts` now centralizes `requireSession` and `requireAdmin` checks, ensuring isolated cookie verification (user vs admin) without duplicate code.

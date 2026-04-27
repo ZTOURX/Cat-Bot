@@ -307,6 +307,16 @@ At no point in this path does a command module import from `discord.js`, `telegr
 
 ---
 
+## Systemic Integration (The Narrow Waist)
+
+The `models` layer serves as the critical "hourglass waist" of the entire Cat-Bot architecture, ensuring deep systemic decoupling:
+
+- **Upward Integration (Engine/Web):** Because `event.model.ts` and `api.model.ts` strictly define all inbound events and outbound API shapes, the Engine's `middleware` and `dispatchers` operate completely unaware of whether a message originated from Telegram or Discord. Furthermore, the Web dashboard consumes these exact normalized shapes (like Command UI descriptions and Button configurations) via Server DTOs, ensuring the UI remains platform-agnostic.
+- **Downward Integration (Platforms):** Platform adapters depend solely on `interfaces/` and `prototypes/` provided here. A platform developer mapping `fca-unofficial` or `discord.js` only targets these static shapes, isolated from the complex business rules (like rate-limiting or roles) handled in the Engine.
+- **Cross-Database Identity:** The `UnifiedUserInfo` and `UnifiedThreadInfo` shapes produced by the context factories dictate exactly what is written to the raw **Database** via the Engine's services. This creates a unified identity namespace—allowing a single database user row to fluidly link to Facebook Messenger metrics and Discord metrics simultaneously.
+
+---
+
 ## Key Design Decisions
 
 **UnifiedApi defaults to throw.** Every method on `UnifiedApi` throws a descriptive error naming the platform. Platform wrappers override only the methods their transport supports. This means an unsupported operation fails loudly with a clear message rather than silently doing nothing. Command modules that call operations not supported on a given platform surface the error through the normal error-handling path, which can then provide a user-facing message.

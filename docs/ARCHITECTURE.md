@@ -62,6 +62,18 @@ Cat-Bot/
 
 ---
 
+## Systemic End-to-End Synthesis
+
+Cat-Bot operates as a continuous reactive loop across its three packages. For example, when an administrator toggles a command on the **Web** dashboard:
+
+1. **Web → Server**: The React SPA's `useBotCommands` hook makes a REST `PUT` request to the **Server** (`bot-session-config.controller.ts`).
+2. **Server → Database**: The Server validates the request using `better-auth` (sharing the **Database** connection), and updates the `BotSessionCommand` table via the raw Database adapter.
+3. **Server → Engine**: The Server intentionally flushes the **Engine**'s in-memory LRU cache to invalidate the old command list. The Server's `BotService` then instructs the Engine's `SessionManager` to execute a dynamic slash-command synchronization.
+4. **Engine → Platform**: The Engine reads its now-empty cache, pulls the fresh enabled-set from the **Database**, processes it through the **Models** adapter layer, and dispatches the native HTTP payload to the target platform (e.g., Discord or Telegram).
+5. **Engine → Server → Web**: The Engine's Winston logger intercepts the sync success, fires it through the `logRelay` to the Server's `bot-monitor.socket.ts`, which instantly pushes the log via Socket.IO back to the Web dashboard's `useBotLogs` terminal interface.
+
+---
+
 ## Cross-Package Dependency Map
 
 `web` never imports from `database` or `cat-bot` source code. All data access goes through the `cat-bot` HTTP API, which the Vite dev server proxies same-origin.

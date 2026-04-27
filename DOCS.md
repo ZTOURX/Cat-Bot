@@ -9,6 +9,7 @@
 
 ### Setup & Core Concepts
 - [Quick Start](#quick-start)
+- [High-Level Architecture Tree](#high-level-architecture-tree)
 - [CRITICAL: Multi-Instance Data Safety Rules](#critical-multi-instance-data-safety-rules)
 - [Event Pipeline — Under the Hood](#event-pipeline--under-the-hood)
 
@@ -102,6 +103,30 @@ export const onEvent = async ({ chat, event }: AppCtx): Promise<void> => {
   }
 }
 ```
+
+## High-Level Architecture Tree
+
+Cat-Bot abstracts away the complexities of databases, platform API quirks, and server routing. When developing commands and events, you only need to understand the high-level flow of the `src/` directory. Everything below the `engine` is handled automatically.
+
+```text
+packages/cat-bot/src/
+├── app/                   ← YOUR WORKSPACE: Drop your files here
+│   ├── commands/          ← Auto-loaded command modules (e.g., ping.ts)
+│   └── events/            ← Auto-loaded event modules (e.g., join.ts)
+└── engine/                ← THE ENGINE: Abstracted runtime
+    ├── app.ts             ← Core Orchestrator (bootstraps listeners, loads modules)
+    ├── adapters/          ← Normalizes Discord, Telegram, and FB into `UnifiedEvent`
+    ├── middleware/        ← Pipeline guards (auth, rate limits, option parsing)
+    ├── controllers/       ← Dispatches events to your `app/` handlers
+    ├── lib/               ← In-memory utilities (state flows, cooldowns, caches)
+    └── agent/             ← AI subsystem (Groq-powered conversational agent)
+```
+
+**How it relates to your code:**
+1. **Adapters** catch raw events from Discord/Telegram/FB and convert them into a single format.
+2. **Middleware** checks if the user is banned, on cooldown, or lacks permissions before your command ever runs.
+3. **Controllers** look at the event type and route it to the exact `onCommand`, `onEvent`, or `onReact` function in your `app/` modules.
+4. You use **Lib** and **Database** utilities (injected via `AppCtx`) to build your logic without worrying about the underlying database or server details.
 
 ---
 
@@ -464,7 +489,7 @@ Top-level fields:
 | `parsed` | `{ name, args }` | onCommand | Parsed command name and raw args |
 | `event` | `Record<string, unknown>` | All hooks | The raw unified event (senderID, threadID, messageID, message, …) |
 | `native` | `NativeContext` | All hooks | Bot session identity — `platform` (which platform dispatched the event), `userId` (bot owner's dashboard account ID — not the message sender), `sessionId` (this bot instance's ID) |
-| `db` | `{ users, threads }` | All hooks | Per-user and per-thread data collections |
+| `db` | `{ users, threads, bot }` | All hooks | Per-user, per-thread, and per-bot-session data collections |
 | `logger` | `SessionLogger` | All hooks | Structured logger scoped to this session |
 | `prefix` | `string` | onCommand | The active command prefix (e.g. `'!'`, `'/'`) |
 | `usage` | `() => Promise<void>` | onCommand | Reply with a formatted usage guide for this command |
@@ -706,6 +731,13 @@ state.delete(session.id)    // session.id is the matched key, auto-provided in o
 
 Buttons work similarly to states but are embedded in a message as clickable components on Discord, Telegram, and Facebook Page. On Facebook Messenger (which has no native button components), the engine automatically renders a numbered text menu and routes the user's numeric reply to the appropriate `onClick` handler — your code stays identical across all platforms.
 
+> **Note: Buttons vs. Conversation State**
+> Buttons are natively embedded in the platform's UI and do not use the conversation state store (`ctx.state`). Unlike `onReply` and `onReact`, which require the bot to actively track state keys, the platform handles button rendering and routes the click back to the bot automatically.
+>
+> - **Data context:** To pass data to a button handler, use `button.createContext()`.
+> - **Data cleanup:** Use `button.deleteContext(session.id)` to clear the data (never use `state.delete()`).
+> - **Visual cleanup:** To visually remove a button from a message, omit the `button` property when calling `chat.editMessage()`.
+
 #### button.generateID
 
 Generates a fully qualified callback ID for a button. The ID must be used in two places: the `button.createContext` call and the `button` array in `chat.reply` / `chat.replyMessage`.
@@ -807,10 +839,10 @@ export const button = {
   [BUTTON_ID.confirm]: {
     label: '✅ Confirm',
     style: ButtonStyle.SUCCESS,
-    onClick: async ({ chat, session }: AppCtx) => {
+    onClick: async ({ chat, session, button: btn }: AppCtx) => {
       // session.context holds what you passed to button.createContext()
       const data = session.context as { itemName: string }
-      state.delete(session.id)
+      btn.deleteContext(session.id)
       await chat.replyMessage({
         style: MessageStyle.MARKDOWN,
         message: `Confirmed: **${data.itemName}**`,
@@ -897,7 +929,7 @@ export const onCommand = async ({ chat, button: btn }: AppCtx) => {
 
 ### Database Collections
 
-`db.users.collection(userId)` and `db.threads.collection(threadId)` give you a scoped JSON store per user or thread. Use them for per-user cooldowns, XP, preferences, and per-thread settings.
+`db.users.collection(userId)` and `db.threads.collection(threadId)` give you a scoped JSON store per user or thread. `db.bot` provides a global store scoped to the current bot instance. Use them for per-user cooldowns, XP, preferences, per-thread settings, and session-wide configurations.
 
 > **Multi-instance Safety:** `db` is pre-scoped to the running bot's
 > `(sessionOwnerUserId, platform, sessionId)` triplet before it reaches your command
@@ -933,6 +965,7 @@ export const onCommand = async ({ db, event }: AppCtx) => {
 | Method | Description |
 |---|---|
 | `get(path?)` | Read value at dot-path; no path = entire collection |
+| `getAll(path?)` | Returns the full collection object (or sub-object) in a single read |
 | `set(path, value)` | Write value |
 | `update(path, value)` | Shallow-merge objects; overwrite primitives |
 | `delete(path?)` | Delete at path; no path = clear entire collection |
@@ -940,10 +973,15 @@ export const onCommand = async ({ db, event }: AppCtx) => {
 | `decrement(path, amount?)` | Numeric subtract (default -1) |
 | `push(path, value)` | Append to array |
 | `pull(path, value)` | Remove matching element from array |
+| `unshift(path, value)` | Prepend to array |
+| `shift(path)` | Remove and return first element of array |
+| `pop(path)` | Remove and return last element of array |
+| `splice(path, index, ...items)` | Remove elements at index and insert new ones |
 | `exists(path)` | Returns `boolean` |
 | `keys(path?)` | Returns `string[]` of object keys |
 | `length(path)` | Array or object key count |
 | `clear(path?)` | Empty array or object at path |
+| `reset(path, defaultValue)` | Set value at path to defaultValue |
 | `upsert(path, value)` | Unconditional set (alias for set, clearer intent) |
 | `merge(path, value)` | Always shallow-merge into object at path |
 | `find(path, predicate)` | Filter array elements |
@@ -959,6 +997,17 @@ if (!(await threadColl.isCollectionExist('settings'))) {
 }
 const settings = await threadColl.getCollection('settings')
 await settings.set('welcomeEnabled', true)
+```
+
+**Bot-wide collections** follow the same API via `db.bot` (scoped to the current bot session, no ID argument needed):
+
+```ts
+const botColl = db.bot
+if (!(await botColl.isCollectionExist('session_settings'))) {
+  await botColl.createCollection('session_settings')
+}
+const sessionSettings = await botColl.getCollection('session_settings')
+await sessionSettings.set('adminOnlyEnabled', true)
 ```
 
 **Economy shortcut — `ctx.currencies`:**
@@ -1735,7 +1784,8 @@ The built-in middleware chains run automatically before your handler on every ev
 | `onReply` | `replyStateValidation` | Passthrough; extend here for conversation timeouts |
 | `onReact` | `reactStateValidation` | Passthrough; extend here for emoji allowlists |
 | `onButtonClick` | `enforceButtonScope` | Enforces per-user button scope ownership |
-| `onEvent` | `enforceWarnBan` | Suppresses join/leave messages during warn-ban flows |
+| `onEvent` | `enforceCommandKick` | Suppresses `leave.ts` when a member is removed via command (`kick`, `badwords`) |
+| | `enforceWarnBan` | Suppresses `join`/`leave` messages during warn-ban flows |
 
 **When to use middleware:**
 
@@ -1786,6 +1836,7 @@ use.onCommand([myGuard])
 | `use.onReply([...])` | Reply flow matched, before the step handler | Conversation timeouts, input sanitisation |
 | `use.onReact([...])` | Reaction flow matched, before the emoji handler | Emoji allowlist enforcement, per-reaction cooldowns |
 | `use.onButtonClick([...])` | Button click matched, before `onClick` | Additional ownership or feature-flag checks |
+| `use.onEvent([...])` | Event type matched, before `onEvent` handler | Event-level guards, logging, feature flags |
 
 #### Short-circuit contract
 
@@ -2445,8 +2496,9 @@ export const button = {
   [BUTTON_ID.yes]: {
     label: '✅ Yes',
     style: ButtonStyle.SUCCESS,
-    onClick: async ({ chat, session, state: _s }: AppCtx) => {
+    onClick: async ({ chat, session, button: btn }: AppCtx) => {
       const { question } = session.context as { question: string }
+      btn.deleteContext(session.id)
       await chat.editMessage({
         message_id_to_edit: session.context['messageID'] as string,
         style: MessageStyle.MARKDOWN,
@@ -2458,7 +2510,8 @@ export const button = {
   [BUTTON_ID.no]: {
     label: '❌ No',
     style: ButtonStyle.DANGER,
-    onClick: async ({ chat, session }: AppCtx) => {
+    onClick: async ({ chat, session, button: btn }: AppCtx) => {
+      btn.deleteContext(session.id)
       await chat.editMessage({
         message_id_to_edit: session.context['messageID'] as string,
         style: MessageStyle.MARKDOWN,

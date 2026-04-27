@@ -245,6 +245,16 @@ The database fallback ensures that Facebook Messenger or Telegram users whose ID
 
 ---
 
+## Systemic Integration
+
+The Discord adapter functions as the mechanical edge of the system, integrating with the rest of Cat-Bot's architecture as follows:
+
+- **Server to Transport Pipeline:** When a user creates a Discord bot via the **Web** dashboard, the **Server** passes the credentials to the Engine's `SessionManager`. The `SessionManager` instantiates this adapter's `client.ts`, initiating the Discord Gateway connection entirely programmatically.
+- **Upward to Models:** Every Discord `messageCreate` or `interactionCreate` is immediately sanitized by `utils/normalizers.util.ts` into a `UnifiedEvent`. It then passes up into the **Models** layer, shedding all Discord-specific `discord.js` class data before entering the Engine's `message.handler.ts`.
+- **Live Slash-Sync:** The adapter registers a callback via `slash-sync.lib.ts`. When a user toggles a command on the Web UI, the Server updates the database and invokes this callback, triggering `slash-commands.ts` to push an HTTP PUT update to the Discord API without dropping the active Gateway connection.
+
+---
+
 ## Key Design Decisions
 
 **Modular `lib/` extraction over a monolithic wrapper class.** Each lib function accepts only the discord.js objects it strictly needs, making them independently testable. `wrapper.ts` is a thin composition layer that supplies closures; it never contains Discord API logic itself.

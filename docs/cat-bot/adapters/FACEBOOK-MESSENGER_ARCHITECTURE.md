@@ -302,6 +302,16 @@ The database is populated with display names as messages arrive — the handler 
 
 ---
 
+## Systemic Integration
+
+The Facebook Messenger adapter bridges unofficial MQTT protocols to Cat-Bot's centralized architecture:
+
+- **Server to Transport Pipeline:** When a Web user uploads a Facebook `appstate` JSON, the **Server** writes it to the Database and triggers the Engine's `SessionManager`. `login.ts` evaluates the `appstate`, and if successful, opens the MQTT connection. If the state is expired, `isAuthError` immediately signals the Server's database to mark the session inactive.
+- **Log Streaming:** Because `login.ts` intercepts `fcaInstances()` with `emitLogger: true`, raw MQTT diagnostic logs bypass standard `stderr` and route into the Engine's `session-logger`. These are immediately piped through the Server's Socket.IO relay, allowing Web dashboard operators to debug connection drops in real time.
+- **Upward to Models:** Raw MQTT payloads are caught by `event-router.ts`, stripped of `fca-unofficial` specific formats, mapped to `UnifiedEvent` shapes, and routed upward to the **Models** layer to execute generic bot logic.
+
+---
+
 ## Key Design Decisions
 
 **Dynamic import of `wrapper.ts` inside `start()`.** All `lib/` modules are transitively evaluated when `wrapper.ts` is imported. A module-level error in any lib file — for example a missing native dependency — would crash the entire process at application startup if imported statically. Deferring to `start()` isolates the failure to the session's boot phase, where `startSessionWithRetry` can classify it and leave other platform sessions unaffected.
