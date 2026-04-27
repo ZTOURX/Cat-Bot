@@ -1,113 +1,109 @@
 /**
- * Lyrics Search Command
+ * /lyrics — Song Lyrics Lookup
  *
- * Searches for song lyrics using the free kuroneko (danzy.web.id) Lyrics API.
- * Returns the best match with title, artist, album, duration and full plain lyrics.
+ * Fetches song lyrics from the PopCat /v2/lyrics endpoint. Displays the
+ * album art alongside the title and artist. If the lyrics exceed the safe
+ * message length threshold, the art card and lyrics are sent as two separate
+ * messages to avoid truncation.
  *
- * Usage:
- *   !lyrics nobela
- *   !lyrics perfect - ed sheeran
- *   !lyrics bahala na
+ * Usage: !lyrics <song name>
+ *
+ * ⚠️  `createUrl` registry name 'popcat' is assumed — confirm with the
+ *     Cat Bot engine team that this registry key exists.
  */
+
 import type { AppCtx } from '@/engine/types/controller.types.js';
 import { Role } from '@/engine/constants/role.constants.js';
 import { MessageStyle } from '@/engine/constants/message-style.constants.js';
 import { createUrl } from '@/engine/utils/api.util.js';
 import type { CommandConfig } from '@/engine/types/module-config.types.js';
 
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+/**
+ * Maximum character count for lyrics before they are split into a second
+ * message. Keeps the combined payload under platform message size limits.
+ */
+const LYRICS_SPLIT_THRESHOLD = 1000;
+
+// ── Command Config ────────────────────────────────────────────────────────────
+
 export const config: CommandConfig = {
   name: 'lyrics',
-  aliases: ['lyric', 'lirik', 'lyriks'] as string[],
+  aliases: ['lyric'] as string[],
   version: '1.0.0',
   role: Role.ANYONE,
   author: 'AjiroDesu',
-  description:
-    'Search for song lyrics and get the full plain lyrics of the best match.',
-  category: 'Music',
-  usage: '<song title or artist>',
+  description: 'Look up lyrics for a song.',
+  category: 'utility',
+  usage: '<song name>',
   cooldown: 5,
   hasPrefix: true,
 };
 
-interface LyricsSong {
-  trackName: string;
-  artistName: string;
-  albumName?: string;
-  duration?: number;
-  plainLyrics: string;
-  syncedLyrics?: string | null;
-}
+// ── Command Handler ───────────────────────────────────────────────────────────
 
-interface LyricsResponse {
-  status: boolean;
-  creator: string;
-  result: LyricsSong[];
-}
+export const onCommand = async ({ chat, args, usage }: AppCtx): Promise<void> => {
+  const song = args.join(' ').trim();
+  if (!song) return usage();
 
-export const onCommand = async ({
-  args,
-  chat,
-  usage,
-}: AppCtx): Promise<void> => {
-  if (!args.length) return usage();
-
-  const query = args.join(' ');
-
-  // Build the URL using the centralised api.util registry
-  // (kuroneko baseURL = https://api.danzy.web.id is already registered)
-  const url = createUrl('kuroneko', '/api/search/lyrics', { q: query });
-  if (!url) {
-    await chat.replyMessage({
-      style: MessageStyle.MARKDOWN,
-      message: '❌ Failed to build the Lyrics API request URL.',
-    });
-    return;
-  }
-
-  let data: LyricsResponse;
   try {
-    const res = await fetch(url);
+    const base = createUrl('popcat', '/v2/lyrics');
+    if (!base) throw new Error('Failed to build Lyrics API URL.');
+
+    const apiUrl = `${base}?song=${encodeURIComponent(song)}`;
+    const res = await fetch(apiUrl);
     if (!res.ok) throw new Error(`API responded with status ${res.status}`);
-    data = (await res.json()) as LyricsResponse;
+
+    const json = await res.json() as {
+      error: boolean;
+      message: {
+        title: string;
+        image: string;
+        artist: string;
+        lyrics: string;
+        url: string;
+      };
+    };
+
+    if (json.error) throw new Error('Song not found or API returned an error.');
+
+    const { title, image, artist, lyrics, url } = json.message;
+
+    // Strip the contributor prefix Genius prepends (e.g. "15 ContributorsNobela Lyrics")
+    const cleanLyrics = lyrics.replace(/^\d+\s+Contributors.+?Lyrics/s, '').trim();
+
+    const header = [
+      `🎵 **${title}**`,
+      `👤 ${artist}`,
+      `🔗 ${url}`,
+    ].join('\n');
+
+    if (cleanLyrics.length <= LYRICS_SPLIT_THRESHOLD) {
+      // ── Short lyrics: single message with art + full lyrics ──────────────
+      await chat.replyMessage({
+        style: MessageStyle.MARKDOWN,
+        message: `${header}\n\n${cleanLyrics}`,
+        attachment_url: [{ name: `${title}.png`, url: image }],
+      });
+    } else {
+      // ── Long lyrics: art card first, then lyrics as a follow-up ──────────
+      await chat.replyMessage({
+        style: MessageStyle.MARKDOWN,
+        message: header,
+        attachment_url: [{ name: `${title}.png`, url: image }],
+      });
+
+      await chat.replyMessage({
+        style: MessageStyle.MARKDOWN,
+        message: cleanLyrics,
+      });
+    }
   } catch (err) {
     const error = err as { message?: string };
     await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
-      message: `❌ Failed to reach the lyrics API.\n\`${error.message ?? 'Unknown error'}\``,
+      message: `⚠️ **Error:** ${error.message ?? 'Unknown error'}`,
     });
-    return;
   }
-
-  if (!data?.status || !data?.result?.length) {
-    await chat.replyMessage({
-      style: MessageStyle.MARKDOWN,
-      message: `🔍 No lyrics found for **${query}**.`,
-    });
-    return;
-  }
-
-  // Take the first (best) result
-  const song = data.result[0]!;
-
-  // Format duration (seconds → MM:SS)
-  const duration = song.duration
-    ? (() => {
-        const min = Math.floor(song.duration / 60);
-        const sec = song.duration % 60;
-        return `${min}:${sec.toString().padStart(2, '0')}`;
-      })()
-    : 'N/A';
-
-  const caption =
-    `🎵 **${song.trackName}**\n` +
-    `👤 **${song.artistName}**\n` +
-    (song.albumName ? `💿 Album: ${song.albumName}\n` : '') +
-    `⏱ Duration: ${duration}\n\n` +
-    `**Lyrics:**\n\n` +
-    `${song.plainLyrics || '*No lyrics available*'}`;
-
-  await chat.replyMessage({
-    style: MessageStyle.MARKDOWN,
-    message: caption,
-  });
 };
