@@ -1,3 +1,5 @@
+import type { Readable } from 'node:stream';
+
 /**
  * Command Result Store — In-Memory Lookup for Intercepted Agent Command Outputs
  *
@@ -11,7 +13,7 @@
  * into what execute_command would actually send before it was already sent.
  *
  * Key format: `${hash}:${autoIncrement}`
- * A lightweight non-cryptographic hash (DJB2) of the session identity replaces the 
+ * A lightweight non-cryptographic hash (DJB2) of the session and event identity replaces the
  * long string to minimize token usage and LLM output length, while preserving uniqueness.
  *
  * Intentionally in-memory — agent turn results are transient and tied to a single
@@ -49,6 +51,16 @@ export interface InterceptedCall {
   sourceCommand?: string;
 }
 
+/**
+ * A Buffer-based attachment extracted from an intercepted call BEFORE normalizeToJson
+ * replaces it with BUFFER_SENTINEL. Stored under `${key}:bin` so send_result can replay
+ * it as a real file attachment stream rather than silently dropping it.
+ */
+export interface BinaryAttachment {
+  name: string;
+  stream: Buffer | Readable;
+}
+
 // ── Sentinel strings for non-serializable binary values ───────────────────────
 // Stable exported constants so send_result can detect and skip binary fields
 // when rebuilding replay options — avoids passing corrupt string values to platform APIs.
@@ -58,7 +70,7 @@ export const BUFFER_SENTINEL =
   '[Buffer: binary content — consumed during test, cannot be replayed]';
 
 // ── Per-prefix autoincrement counters ─────────────────────────────────────────
-// Tracks last-issued counter per `${sessionUserId}:${platform}:${sessionId}` prefix.
+// Tracks last-issued counter per `${sessionUserId}:${platform}:${sessionId}:${threadID}:${messageID}:${commandName}` prefix.
 // Monotonically increasing within a process lifetime — no reset between agent turns.
 const counters = new Map<string, number>();
 
@@ -83,6 +95,11 @@ const buttonResultStore = new Map<
   string,
   Array<Array<Array<Record<string, unknown>>>>
 >();
+
+// ── Binary attachment store ────────────────────────────────────────────────────
+// Actual Buffer payloads captured BEFORE normalizeToJson — stored under `${baseKey}:bin`.
+// Allows send_result to replay buffer-based file attachments rather than dropping them.
+const binaryAttachmentStore = new Map<string, BinaryAttachment[]>();
 
 // ============================================================================
 // NORMALIZER
@@ -149,8 +166,12 @@ export const commandResultStore = {
     sessionUserId: string,
     platform: string,
     sessionId: string,
+    threadID: string,
+    messageID: string,
+    commandName: string,
   ): string {
-    const prefix = `${sessionUserId}:${platform}:${sessionId}`;
+    // Composite prefix for robust collision prevention across concurrent agent actions
+    const prefix = `${sessionUserId}:${platform}:${sessionId}:${threadID}:${messageID}:${commandName}`;
     const n = (counters.get(prefix) ?? 0) + 1;
     counters.set(prefix, n);
 
@@ -225,5 +246,21 @@ export const commandResultStore = {
   /** Deletes the button entry — called by send_result after stacking rows into the reply. */
   deleteButtons(key: string): void {
     buttonResultStore.delete(key);
+  },
+
+  // ── Binary attachment methods ──────────────────────────────────────────────
+  // Stored under `${baseKey}:bin` by test_command; consumed and deleted by send_result.
+  // Holds the actual Buffer bytes captured before normalizeToJson so send_result can
+  // forward them as real file attachment streams instead of BUFFER_SENTINEL placeholders.
+  setBinaryAttachments(key: string, attachments: BinaryAttachment[]): void {
+    binaryAttachmentStore.set(key, attachments);
+  },
+  /** Returns stored binary attachments, or null when key is absent or already consumed. */
+  getBinaryAttachments(key: string): BinaryAttachment[] | null {
+    return binaryAttachmentStore.get(key) ?? null;
+  },
+  /** Deletes the binary entry — called by send_result after forwarding bytes to the platform. */
+  deleteBinaryAttachments(key: string): void {
+    binaryAttachmentStore.delete(key);
   },
 };
