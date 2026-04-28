@@ -25,6 +25,8 @@
     "noUncheckedSideEffectImports": true,
 
     /* Path Aliases */
+    /* baseUrl required alongside paths in bundler moduleResolution mode */
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }
