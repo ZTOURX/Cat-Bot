@@ -17,7 +17,7 @@ import type { FcaApi, StartBotConfig, StartBotResult } from './types.js';
 import type { SessionLogger } from '@/engine/modules/logger/logger.lib.js'; // Relocated module
 
 // fca-unofficial's default export is the CJS module.exports object — the login function with
-// fcaInstances attached as a property. Import as default to access the full surface.
+// fcaInstance attached as a property. Import as default to access the full surface.
 // @ts-expect-error - no published @types package
 import fca from '@johnlester-0369/fca-unofficial';
 
@@ -48,12 +48,12 @@ export async function startBot(
     );
   }
 
-  // Obtain the login fn and EventEmitter logger from fcaInstances. emitLogger:true routes all
+  // Obtain the login fn and EventEmitter logger from fcaInstance. emitLogger:true routes all
   // fca internal output through fcaLogger events instead of raw stderr — keeps process output
   // clean and ensures fca login/MQTT messages flow to the dashboard console via SessionLogger.
   const { login, fcaLogger } = (
     fca as {
-      fcaInstances: (opts: { emitLogger?: boolean }) => {
+      fcaInstance: (opts: { emitLogger?: boolean }) => {
         login: (
           opts: { appState: unknown },
           cb: (err: unknown, api: FcaApi) => void,
@@ -66,7 +66,7 @@ export async function startBot(
         };
       };
     }
-  ).fcaInstances({ emitLogger: true });
+  ).fcaInstance({ emitLogger: true });
   // Bridge fca structured log entries ({level, message}) to the session-scoped logger so the
   // dashboard console receives the full fca login sequence and MQTT lifecycle output.
   fcaLogger.on('info', (l) =>

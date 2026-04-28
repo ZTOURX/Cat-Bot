@@ -34,7 +34,7 @@ src/engine/adapters/platform/facebook-messenger/
 │                                       side effects
 │
 ├── login.ts                          — Authentication: handles the fca-unofficial login flow using the
-│                                       appstate JSON loaded from the database; calls fcaInstances()
+│                                       appstate JSON loaded from the database; calls fcaInstance()
 │                                       with emitLogger:true to route all fca internal log output
 │                                       through the session-scoped logger instead of raw stderr;
 │                                       performs an explicit refreshFb_dtsg() call post-login as a
@@ -201,7 +201,7 @@ The `reconnecting` flag is a concurrency guard. fca-unofficial's MQTT connection
 
 `startBot()` is the single place that interacts with `fca-unofficial`'s login surface. It is deliberately separated from the listener lifecycle so it can be reused independently (integration tests call it directly to obtain a raw fca api handle) and so the login flow can be tested without constructing a full MQTT listener.
 
-The `emitLogger: true` option passed to `fcaInstances()` reroutes all fca internal console output through the session-scoped logger. Without this, fca's login sequence and MQTT lifecycle messages would write directly to stderr, bypassing the structured logging pipeline and the web dashboard's console relay.
+The `emitLogger: true` option passed to `fcaInstance()` reroutes all fca internal console output through the session-scoped logger. Without this, fca's login sequence and MQTT lifecycle messages would write directly to stderr, bypassing the structured logging pipeline and the web dashboard's console relay.
 
 The secondary `refreshFb_dtsg()` validation call is a defensive check. Some appstates pass fca's initial login handshake but lack a valid `fb_dtsg` CSRF token — these sessions would fail silently on the first message send. The explicit check surfaces the failure at startup before the MQTT listener is activated, so the session never enters a state where it appears online but cannot send messages.
 
@@ -307,7 +307,7 @@ The database is populated with display names as messages arrive — the handler 
 The Facebook Messenger adapter bridges unofficial MQTT protocols to Cat-Bot's centralized architecture:
 
 - **Server to Transport Pipeline:** When a Web user uploads a Facebook `appstate` JSON, the **Server** writes it to the Database and triggers the Engine's `SessionManager`. `login.ts` evaluates the `appstate`, and if successful, opens the MQTT connection. If the state is expired, `isAuthError` immediately signals the Server's database to mark the session inactive.
-- **Log Streaming:** Because `login.ts` intercepts `fcaInstances()` with `emitLogger: true`, raw MQTT diagnostic logs bypass standard `stderr` and route into the Engine's `session-logger`. These are immediately piped through the Server's Socket.IO relay, allowing Web dashboard operators to debug connection drops in real time.
+- **Log Streaming:** Because `login.ts` intercepts `fcaInstance()` with `emitLogger: true`, raw MQTT diagnostic logs bypass standard `stderr` and route into the Engine's `session-logger`. These are immediately piped through the Server's Socket.IO relay, allowing Web dashboard operators to debug connection drops in real time.
 - **Upward to Models:** Raw MQTT payloads are caught by `event-router.ts`, stripped of `fca-unofficial` specific formats, mapped to `UnifiedEvent` shapes, and routed upward to the **Models** layer to execute generic bot logic.
 
 ---
