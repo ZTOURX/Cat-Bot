@@ -3,25 +3,24 @@
  *
  * Alternative to /help. Presents all commands grouped by category.
  *
- * Flow:
- *   1. /menu → Category list — one button per category, rendered in a 2-column grid
- *   2. [Category button] → Category detail — lists commands in that category
+ * Flow — button platforms (Discord, Telegram):
+ *   1. /menu → Category list with one button per category in a 2-column grid
+ *   2. [Category button] → Category detail with a ◀️ Back button
  *   3. [Back button] → Returns to category list in-place
+ *
+ * Flow — reply platforms (Facebook Messenger, Facebook Page):
+ *   1. /menu → Numbered category list; bot message ID is registered with state
+ *   2. User replies to bot's message with a number → Category detail is sent
+ *      and a NEW numbered category list is sent with its own state registered
+ *   3. User can reply to the latest numbered list at any time (unlimited)
  *
  * Filtering: mirrors /help exactly —
  *   • Commands disabled via the dashboard are hidden
  *   • Commands restricted to other platforms are hidden
  *   • Commands whose role level exceeds the invoker's privileges are hidden
  *
- * Button strategy:
- *   • BUTTON_ID.cat  — one generated ID per category; context stores { category: string }
- *   • BUTTON_ID.back — single generated ID; navigates back to category list
- *
- * Grid layout: category buttons are arranged in rows of 2 (string[][])
- * using the engine's native multi-row button support from ReplyMessageOptions.
- *
- * On platforms without native buttons (FB Messenger), the engine's built-in
- * numbered text-menu fallback is used automatically.
+ * prefix is always sourced from AppCtx — it is the live session prefix set by
+ * the bot admin and is never hardcoded.
  */
 
 import type { CommandMap, AppCtx } from '@/engine/types/controller.types.js';
@@ -42,7 +41,7 @@ import type { CommandConfig } from '@/engine/types/module-config.types.js';
 export const config: CommandConfig = {
   name: 'menu',
   aliases: ['commands', 'cmds'] as string[],
-  version: '1.0.0',
+  version: '2.0.0',
   role: Role.ANYONE,
   author: 'AjiroDesu',
   description: 'Browse all commands by category.',
@@ -52,19 +51,33 @@ export const config: CommandConfig = {
   hasPrefix: true,
 };
 
-/** Crops a string to max characters, appending ellipsis when truncated. */
-function crop(text: string, max: number): string {
-  return text.length <= max ? text : `${text.slice(0, max - 1)}…`;
+// ── State keys (reply-nav platforms only) ─────────────────────────────────────
+
+const STATE = {
+  awaiting_category: 'awaiting_category',
+} as const;
+
+// ── Platform helper ───────────────────────────────────────────────────────────
+
+/**
+ * Returns true for platforms that do not support native buttons and must use
+ * the numbered-reply navigation flow instead.
+ */
+function isReplyNavPlatform(platform: string): boolean {
+  return (
+    platform === Platforms.FacebookMessenger ||
+    platform === Platforms.FacebookPage
+  );
 }
+
+// ── Utility helpers ───────────────────────────────────────────────────────────
 
 /** Converts any category text into a clean Title Case display label. */
 function formatCategory(value: string): string {
   const cleaned = String(value ?? 'Uncategorized')
     .trim()
     .replace(/\s+/g, ' ');
-
   if (!cleaned) return 'Uncategorized';
-
   return cleaned
     .split(' ')
     .map((word) =>
@@ -81,10 +94,7 @@ function categoryKey(value: string): string {
     .toLowerCase();
 }
 
-/**
- * Chunks a flat array into rows of `size`.
- * Used to build the 2-column button grid from a flat category ID list.
- */
+/** Chunks a flat array into rows of `size` for the 2-column button grid. */
 function chunk<T>(arr: T[], size: number): T[][] {
   const rows: T[][] = [];
   for (let i = 0; i < arr.length; i += size) {
@@ -93,7 +103,7 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return rows;
 }
 
-// ── Filtering — exact mirror of help.ts ───────────────────────────────────────
+// ── Filtering ─────────────────────────────────────────────────────────────────
 
 async function buildDisabledNames(
   commands: CommandMap,
@@ -199,10 +209,7 @@ function getVisibleMods(
   return result;
 }
 
-/**
- * Groups visible modules by category, case-insensitive.
- * "utility", "Utility", and "UTILITY" all become one group: "Utility".
- */
+/** Groups visible modules by category, case-insensitive. */
 function groupByCategory(
   mods: Array<Record<string, unknown>>,
 ): Array<[string, Array<Record<string, unknown>>]> {
@@ -211,10 +218,8 @@ function groupByCategory(
   for (const mod of mods) {
     const cfg = mod['config'] as Record<string, unknown> | undefined;
     const rawCategory = String(cfg?.['category'] ?? 'Uncategorized');
-
     const key = categoryKey(rawCategory);
     const label = formatCategory(rawCategory);
-
     const entry = map.get(key);
     if (!entry) {
       map.set(key, { label, mods: [mod] });
@@ -228,7 +233,36 @@ function groupByCategory(
     .map(({ label, mods }) => [label, mods]);
 }
 
-// ── View: Category List ───────────────────────────────────────────────────────
+// ── View: Category Detail (shared by both flows) ──────────────────────────────
+
+/**
+ * Builds the category detail lines used by both the button flow and the
+ * reply-nav flow. Pure function — no side effects.
+ */
+function buildCategoryLines(
+  catMods: Array<Record<string, unknown>>,
+  targetCategory: string,
+  prefix: string,
+): string[] {
+  const lines: string[] = [
+    `**${targetCategory.toUpperCase()} COMMAND CENTER**`,
+    ``,
+  ];
+
+  for (const mod of catMods) {
+    const cfg = mod['config'] as Record<string, unknown> | undefined;
+    const name = String(cfg?.['name'] ?? '');
+    const desc = String(cfg?.['description'] ?? '');
+    lines.push(`▫️ ${prefix}${name}`);
+    lines.push(`  ↳ ${desc}`);
+    lines.push(``);
+  }
+
+  lines.push(`💡 ${prefix}help <command> for details`);
+  return lines;
+}
+
+// ── View: Category List — Button Platforms ────────────────────────────────────
 
 async function renderCategoryList(ctx: AppCtx): Promise<void> {
   const { chat, commands, native, event, button, prefix = '' } = ctx;
@@ -236,10 +270,6 @@ async function renderCategoryList(ctx: AppCtx): Promise<void> {
   const disabledNames = await buildDisabledNames(commands, native, event);
   const visibleMods = getVisibleMods(commands, disabledNames);
   const categories = groupByCategory(visibleMods);
-
-  const useNativeButtons =
-    hasNativeButtons(native.platform) &&
-    native.platform !== Platforms.FacebookPage;
 
   const flatButtonIds: string[] = [];
   for (const [cat] of categories) {
@@ -256,18 +286,16 @@ async function renderCategoryList(ctx: AppCtx): Promise<void> {
   const buttonGrid: string[][] = chunk(flatButtonIds, 2);
 
   const message = [
-    `▫️**Command Menu**`,
+    `▫️ **Command Menu**`,
     ``,
-    useNativeButtons
-      ? `Select a category below`
-      : `Reply with a number to choose a category`,
-    `${prefix}help <command> for command details`,
+    `Select a category below`,
+    `💡 ${prefix}help <command> for command details`,
   ].join('\n');
 
   const payload = {
     style: MessageStyle.MARKDOWN,
     message,
-    ...(useNativeButtons && buttonGrid.length > 0 ? { button: buttonGrid } : {}),
+    ...(buttonGrid.length > 0 ? { button: buttonGrid } : {}),
   };
 
   if (event['type'] === 'button_action') {
@@ -280,7 +308,7 @@ async function renderCategoryList(ctx: AppCtx): Promise<void> {
   }
 }
 
-// ── View: Category Detail ─────────────────────────────────────────────────────
+// ── View: Category Commands — Button Platforms ────────────────────────────────
 
 async function renderCategoryCommands(
   ctx: AppCtx,
@@ -298,46 +326,21 @@ async function renderCategoryCommands(
   if (!catEntry || catEntry[1].length === 0) {
     await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
-      message: `**${targetCategory}**\nNo visible commands in this category.`,
+      message: `**${targetCategory} COMMAND CENTER**\nNo visible commands in this category.`,
     });
     return;
   }
 
   const [, catMods] = catEntry;
-
-  const maxNameLen = Math.max(
-    ...catMods.map((mod) => {
-      const cfg = mod['config'] as Record<string, unknown> | undefined;
-      return String(cfg?.['name'] ?? '').length;
-    }),
-  );
-
-  const cmdLines = catMods.map((mod) => {
-    const cfg = mod['config'] as Record<string, unknown> | undefined;
-    const name = String(cfg?.['name'] ?? '');
-    const desc = String(cfg?.['description'] ?? '');
-    const cmd = `${prefix}${name}`.padEnd(maxNameLen + prefix.length + 1, ' ');
-    return `• \`${cmd}\`  ${crop(desc, 30)}`;
-  });
-
-  const useNativeButtons =
-    hasNativeButtons(native.platform) &&
-    native.platform !== Platforms.FacebookPage;
+  const lines = buildCategoryLines(catMods, targetCategory, prefix);
 
   const backId = button.generateID({ id: BUTTON_ID.back, public: true });
   const backGrid: string[][] = [[backId]];
 
-  const message = [
-    `**${targetCategory}**`,
-    ...cmdLines,
-    ``,
-    `${prefix}help <command> for command details`,
-  ].join('\n');
-
   const payload = {
     style: MessageStyle.MARKDOWN,
-    message,
-    ...(useNativeButtons ? { button: backGrid } : {}),
+    message: lines.join('\n'),
+    button: backGrid,
   };
 
   if (event['type'] === 'button_action') {
@@ -350,7 +353,91 @@ async function renderCategoryCommands(
   }
 }
 
-// ── Button definitions ────────────────────────────────────────────────────────
+// ── View: Numbered Category List — Reply-Nav Platforms ────────────────────────
+
+/**
+ * Sends a numbered category list and registers a reply state keyed to the
+ * returned message ID. The state context stores the ordered category name
+ * array so onReply can map a user-typed number directly to a category.
+ *
+ * Called both from onCommand (first invocation) and from onReply (re-send
+ * after each category selection) to create the unlimited-reply loop.
+ */
+async function sendNumberedCategoryList(ctx: AppCtx): Promise<void> {
+  const { chat, commands, native, event, state, prefix = '' } = ctx;
+
+  const disabledNames = await buildDisabledNames(commands, native, event);
+  const visibleMods = getVisibleMods(commands, disabledNames);
+  const categories = groupByCategory(visibleMods);
+
+  const categoryNames = categories.map(([cat]) => cat);
+
+  const lines: string[] = [
+    `▫️ **Command Menu**`,
+    ``,
+    `Reply with a number to choose a category:`,
+    ``,
+    ...categoryNames.map((cat, i) => `${i + 1}. ${cat}`),
+    ``,
+    `💡 ${prefix}help <command> for details`,
+  ];
+
+  const messageID = await chat.replyMessage({
+    style: MessageStyle.MARKDOWN,
+    message: lines.join('\n'),
+  });
+
+  if (!messageID) return;
+
+  // Register state so the user's reply to this specific message is routed here.
+  // context.categories carries the ordered list so onReply can resolve the number
+  // without re-computing the full category list.
+  state.create({
+    id: state.generateID({ id: String(messageID) }),
+    state: STATE.awaiting_category,
+    context: { categories: categoryNames },
+  });
+}
+
+// ── View: Category Commands — Reply-Nav Platforms ─────────────────────────────
+
+/**
+ * Sends the category detail for reply-nav platforms (plain text, no buttons).
+ * After sending the detail, re-sends the numbered category list and registers
+ * a fresh state entry — this is the mechanism that makes the loop unlimited.
+ */
+async function sendCategoryCommandsForReplyNav(
+  ctx: AppCtx,
+  category: string,
+): Promise<void> {
+  const { chat, commands, native, event, prefix = '' } = ctx;
+
+  const disabledNames = await buildDisabledNames(commands, native, event);
+  const visibleMods = getVisibleMods(commands, disabledNames);
+  const grouped = groupByCategory(visibleMods);
+
+  const targetCategory = formatCategory(category);
+  const catEntry = grouped.find(([cat]) => cat === targetCategory);
+
+  if (!catEntry || catEntry[1].length === 0) {
+    await chat.replyMessage({
+      style: MessageStyle.MARKDOWN,
+      message: `**${targetCategory} COMMAND CENTER**\nNo visible commands in this category.`,
+    });
+  } else {
+    const [, catMods] = catEntry;
+    const lines = buildCategoryLines(catMods, targetCategory, prefix);
+    await chat.replyMessage({
+      style: MessageStyle.MARKDOWN,
+      message: lines.join('\n'),
+    });
+  }
+
+  // Re-send the numbered list and register new state — creates the unlimited loop.
+  await sendNumberedCategoryList(ctx);
+}
+
+// ── Button definitions (button platforms only) ────────────────────────────────
 
 const BUTTON_ID = { cat: 'cat', back: 'back' } as const;
 
@@ -366,7 +453,7 @@ export const button = {
   },
 
   [BUTTON_ID.back]: {
-    label: '← Back',
+    label: '◀️ Back',
     style: ButtonStyle.SECONDARY,
     onClick: async (ctx: AppCtx): Promise<void> => {
       await renderCategoryList(ctx);
@@ -374,11 +461,55 @@ export const button = {
   },
 };
 
+// ── onReply (reply-nav platforms only) ───────────────────────────────────────
+
+export const onReply = {
+  /**
+   * Fired when the user replies to the bot's numbered category list message.
+   *
+   * - Deletes the consumed state first so no stale entry remains.
+   * - Parses the user's reply as a 1-based category index.
+   * - Shows the category commands, then re-sends the numbered list with fresh
+   *   state — this is what makes the loop unlimited.
+   * - Invalid input (non-number, out-of-range) re-sends the menu with a hint
+   *   rather than silently ignoring the reply.
+   */
+  [STATE.awaiting_category]: async (ctx: AppCtx): Promise<void> => {
+    const { chat, event, state, session, prefix = '' } = ctx;
+
+    const input = String(event['message'] ?? '').trim();
+    const categoryNames = (session.context['categories'] as string[] | undefined) ?? [];
+
+    // Consume the state before doing anything else — prevents a stale entry
+    // from matching a second reply to the same message.
+    state.delete(session.id);
+
+    const num = parseInt(input, 10);
+
+    if (isNaN(num) || num < 1 || num > categoryNames.length) {
+      await chat.replyMessage({
+        style: MessageStyle.MARKDOWN,
+        message: `⚠️ Please reply with a number between 1 and ${categoryNames.length}.`,
+      });
+      // Re-send the menu so the user still has something to reply to.
+      await sendNumberedCategoryList(ctx);
+      return;
+    }
+
+    const selectedCategory = categoryNames[num - 1]!;
+    await sendCategoryCommandsForReplyNav(ctx, selectedCategory);
+  },
+};
+
 // ── Command entry point ───────────────────────────────────────────────────────
 
 export const onCommand = async (ctx: AppCtx): Promise<void> => {
   try {
-    await renderCategoryList(ctx);
+    if (isReplyNavPlatform(ctx.native.platform)) {
+      await sendNumberedCategoryList(ctx);
+    } else {
+      await renderCategoryList(ctx);
+    }
   } catch (err) {
     const error = err as { message?: string };
     await ctx.chat.replyMessage({

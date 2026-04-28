@@ -53,7 +53,7 @@ export const config: CommandConfig = {
   role: Role.ANYONE,
   author: 'AjiroDesu',
   description: 'Get a random fun fact about dogs.',
-  category: 'fun',
+  category: 'random',
   usage: '',
   cooldown: 5,
   hasPrefix: true,
