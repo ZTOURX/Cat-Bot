@@ -66,6 +66,10 @@ async function main(): Promise<void> {
     verifications,
     botSessions,
     botAdmins,
+    botPremiums,
+    botDiscordServers,
+    botDiscordChannels,
+    botDiscordServerSessions,
     botCredentialDiscord,
     botCredentialTelegram,
     botCredentialFacebookPage,
@@ -81,6 +85,7 @@ async function main(): Promise<void> {
     botSessionEvents,
     botUserBanned,
     botThreadBanned,
+    systemAdmins,
   ] = await Promise.all([
     safeFind(prisma.user.findMany()),
     safeFind(prisma.session.findMany()),
@@ -88,6 +93,17 @@ async function main(): Promise<void> {
     safeFind(prisma.verification.findMany()),
     safeFind(prisma.botSession.findMany()),
     safeFind(prisma.botAdmin.findMany()),
+    safeFind(prisma.botPremium.findMany()),
+    safeFind(
+      prisma.botDiscordServer.findMany({
+        include: {
+          participants: { select: { id: true } },
+          admins: { select: { id: true } },
+        },
+      }),
+    ),
+    safeFind(prisma.botDiscordChannel.findMany()),
+    safeFind(prisma.botDiscordServerSession.findMany()),
     safeFind(prisma.botCredentialDiscord.findMany()),
     safeFind(prisma.botCredentialTelegram.findMany()),
     safeFind(prisma.botCredentialFacebookPage.findMany()),
@@ -108,6 +124,7 @@ async function main(): Promise<void> {
     safeFind(prisma.botSessionEvent.findMany()),
     safeFind(prisma.botUserBanned.findMany()),
     safeFind(prisma.botThreadBanned.findMany()),
+    safeFind(prisma.systemAdmin.findMany()),
   ]);
 
   // Flatten Prisma M:M relation objects → plain string[] so the JSON file matches
@@ -125,18 +142,33 @@ async function main(): Promise<void> {
     admins: t.admins.map((a) => a.id),
   }));
 
+  const mappedBotDiscordServers = botDiscordServers.map((s) => ({
+    id: s.id,
+    name: s.name,
+    avatarUrl: s.avatarUrl,
+    memberCount: s.memberCount,
+    createdAt: s.createdAt,
+    updatedAt: s.updatedAt,
+    participants: s.participants.map((p) => p.id),
+    admins: s.admins.map((a) => a.id),
+  }));
+
   const db = {
     // better-auth core tables
     user: users,
     session: sessions,
     account: accounts,
     verification: verifications,
+    systemAdmin: systemAdmins,
     // bot identity
     botUser: botUsers,
     botThread: mappedBotThreads,
+    botDiscordServer: mappedBotDiscordServers,
+    botDiscordChannel: botDiscordChannels,
     // per-session config
     botSession: botSessions,
     botAdmin: botAdmins,
+    botPremium: botPremiums,
     botCredentialDiscord,
     botCredentialTelegram,
     botCredentialFacebookPage,
@@ -144,6 +176,7 @@ async function main(): Promise<void> {
     // session tracking join tables
     botUserSession: botUserSessions,
     botThreadSession: botThreadSessions,
+    botDiscordServerSession: botDiscordServerSessions,
     // webhooks
     fbPageWebhook: fbPageWebhooks,
     // command / event overrides

@@ -2,7 +2,7 @@
  * migrate-sqlite-to-neondb
  * Direct migration from Prisma/SQLite to NeonDB/Postgres.
  */
-import '../scripts/load-env.js';
+import './load-env.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -14,8 +14,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const dbRoot = path.resolve(__dirname, '..');
 
-const rawUrl =
-  process.env['SQLITE_DATABASE_URL'] ?? process.env['DATABASE_URL'];
+const rawUrl = process.env['SQLITE_DATABASE_URL'] ?? process.env['DATABASE_URL'];
 const DB_SQLITE_FILE = rawUrl
   ? rawUrl.replace(/^file:/, '')
   : path.resolve(dbRoot, 'database/database.sqlite');
@@ -118,6 +117,34 @@ const tablesDef = [
     },
   },
   {
+    jsonKey: 'botDiscordServer',
+    table: 'bot_discord_server',
+    cols: {
+      id: 'id',
+      name: 'name',
+      avatarUrl: 'avatar_url',
+      memberCount: 'member_count',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+    },
+  },
+  {
+    jsonKey: 'botDiscordChannel',
+    table: 'bot_discord_channel',
+    cols: { threadId: 'thread_id', serverId: 'server_id' },
+  },
+  {
+    jsonKey: 'botDiscordServerSession',
+    table: 'bot_discord_server_session',
+    cols: {
+      userId: 'user_id',
+      sessionId: 'session_id',
+      botServerId: 'bot_server_id',
+      lastUpdatedAt: 'last_updated_at',
+      data: 'data',
+    },
+  },
+  {
     jsonKey: 'botSession',
     table: 'bot_session',
     cols: {
@@ -127,6 +154,7 @@ const tablesDef = [
       nickname: 'nickname',
       prefix: 'prefix',
       isRunning: 'is_running',
+      data: 'data',
     },
   },
   {
@@ -277,6 +305,7 @@ async function main() {
   console.log(`  Source : ${DB_SQLITE_FILE}`);
 
   const adapter = new PrismaBetterSqlite3({ url: `file:${DB_SQLITE_FILE}` });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const prisma = new PrismaClient({ adapter } as any);
 
   const safeFind = <T>(p: Promise<T>): Promise<T> =>
@@ -294,6 +323,9 @@ async function main() {
     botSession,
     botAdmin,
     botPremium,
+    botDiscordServers,
+    botDiscordChannel,
+    botDiscordServerSession,
     botCredentialDiscord,
     botCredentialTelegram,
     botCredentialFacebookPage,
@@ -316,6 +348,16 @@ async function main() {
     safeFind(prisma.botSession.findMany()),
     safeFind(prisma.botAdmin.findMany()),
     safeFind(prisma.botPremium.findMany()),
+    safeFind(
+      prisma.botDiscordServer.findMany({
+        include: {
+          participants: { select: { id: true } },
+          admins: { select: { id: true } },
+        },
+      }),
+    ),
+    safeFind(prisma.botDiscordChannel.findMany()),
+    safeFind(prisma.botDiscordServerSession.findMany()),
     safeFind(prisma.botCredentialDiscord.findMany()),
     safeFind(prisma.botCredentialTelegram.findMany()),
     safeFind(prisma.botCredentialFacebookPage.findMany()),
@@ -352,6 +394,18 @@ async function main() {
     admins: t.admins.map((a) => a.id),
   }));
 
+  const botDiscordServer = botDiscordServers.map((s) => ({
+    id: s.id,
+    name: s.name,
+    avatarUrl: s.avatarUrl,
+    memberCount: s.memberCount,
+    createdAt: s.createdAt,
+    updatedAt: s.updatedAt,
+    participants: s.participants.map((p) => p.id),
+    admins: s.admins.map((a) => a.id),
+  }));
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db: Record<string, any[]> = {
     user,
     session,
@@ -359,6 +413,8 @@ async function main() {
     verification,
     botUser,
     botThread,
+    botDiscordServer,
+    botDiscordChannel,
     botSession,
     botAdmin,
     botPremium,
@@ -368,6 +424,7 @@ async function main() {
     botCredentialFacebookMessenger,
     botUserSession,
     botThreadSession,
+    botDiscordServerSession,
     fbPageWebhook,
     botSessionCommand,
     botSessionEvent,
@@ -379,10 +436,11 @@ async function main() {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+
     console.log('Truncating tables in NeonDB...');
     try {
       await client.query(
-        `TRUNCATE TABLE "user", bot_users, bot_threads, system_admin CASCADE`,
+        `TRUNCATE TABLE "user", bot_users, bot_threads, bot_discord_server, system_admin CASCADE`,
       );
     } catch (e: any) {
       console.warn(`[WARN] Truncate failed: ${e.message}`);
@@ -419,12 +477,11 @@ async function main() {
           }
           placeholders.push(`(${rowPlaceholders.join(', ')})`);
         }
+
+        const query = `INSERT INTO ${def.table} (${colNames.join(', ')}) VALUES ${placeholders.join(', ')} ON CONFLICT DO NOTHING`;
         try {
           await client.query('SAVEPOINT batch_insert');
-          await client.query(
-            `INSERT INTO ${def.table} (${colNames.join(', ')}) VALUES ${placeholders.join(', ')} ON CONFLICT DO NOTHING`,
-            values,
-          );
+          await client.query(query, values);
           await client.query('RELEASE SAVEPOINT batch_insert');
         } catch (e: any) {
           await client.query('ROLLBACK TO SAVEPOINT batch_insert');
@@ -434,42 +491,62 @@ async function main() {
       console.log(`  ${def.jsonKey.padEnd(34)} ${rows.length}`);
 
       if (def.jsonKey === 'botThread') {
-        const pData = [],
-          aData = [];
+        const participantsData = [];
+        const adminsData = [];
         for (const t of rows) {
-          for (const p of t.participants || [])
-            pData.push({ thread_id: t.id, user_id: p });
-          for (const a of t.admins || [])
-            aData.push({ thread_id: t.id, user_id: a });
+          for (const p of t.participants || []) participantsData.push({ thread_id: t.id, user_id: p });
+          for (const a of t.admins || []) adminsData.push({ thread_id: t.id, user_id: a });
         }
-        if (pData.length > 0) {
-          const pValues = pData
-            .map((p) => `('${p.thread_id}', '${p.user_id}')`)
-            .join(', ');
+
+        if (participantsData.length > 0) {
+          const pValues = participantsData.map((p) => `('${p.thread_id}', '${p.user_id}')`).join(', ');
           try {
             await client.query('SAVEPOINT p_insert');
-            await client.query(
-              `INSERT INTO bot_thread_participants (thread_id, user_id) VALUES ${pValues} ON CONFLICT DO NOTHING`,
-            );
+            await client.query(`INSERT INTO bot_thread_participants (thread_id, user_id) VALUES ${pValues} ON CONFLICT DO NOTHING`);
             await client.query('RELEASE SAVEPOINT p_insert');
           } catch (e: any) {
             await client.query('ROLLBACK TO SAVEPOINT p_insert');
             console.warn(`[WARN] ${e.message}`);
           }
         }
-        if (aData.length > 0) {
-          const aValues = aData
-            .map((a) => `('${a.thread_id}', '${a.user_id}')`)
-            .join(', ');
+        if (adminsData.length > 0) {
+          const aValues = adminsData.map((a) => `('${a.thread_id}', '${a.user_id}')`).join(', ');
           try {
             await client.query('SAVEPOINT a_insert');
-            await client.query(
-              `INSERT INTO bot_thread_admins (thread_id, user_id) VALUES ${aValues} ON CONFLICT DO NOTHING`,
-            );
+            await client.query(`INSERT INTO bot_thread_admins (thread_id, user_id) VALUES ${aValues} ON CONFLICT DO NOTHING`);
             await client.query('RELEASE SAVEPOINT a_insert');
           } catch (e: any) {
             await client.query('ROLLBACK TO SAVEPOINT a_insert');
             console.warn(`[WARN] ${e.message}`);
+          }
+        }
+      }
+
+      if (def.jsonKey === 'botDiscordServer') {
+        const participantsData = [];
+        const adminsData = [];
+        for (const t of rows) {
+          for (const p of t.participants || []) participantsData.push({ server_id: t.id, user_id: p });
+          for (const a of t.admins || []) adminsData.push({ server_id: t.id, user_id: a });
+        }
+        if (participantsData.length > 0) {
+          const pValues = participantsData.map((p) => `('${p.server_id}', '${p.user_id}')`).join(', ');
+          try {
+            await client.query('SAVEPOINT p_insert_ds');
+            await client.query(`INSERT INTO bot_discord_server_participants (server_id, user_id) VALUES ${pValues} ON CONFLICT DO NOTHING`);
+            await client.query('RELEASE SAVEPOINT p_insert_ds');
+          } catch (e: any) {
+            await client.query('ROLLBACK TO SAVEPOINT p_insert_ds');
+          }
+        }
+        if (adminsData.length > 0) {
+          const aValues = adminsData.map((a) => `('${a.server_id}', '${a.user_id}')`).join(', ');
+          try {
+            await client.query('SAVEPOINT a_insert_ds');
+            await client.query(`INSERT INTO bot_discord_server_admins (server_id, user_id) VALUES ${aValues} ON CONFLICT DO NOTHING`);
+            await client.query('RELEASE SAVEPOINT a_insert_ds');
+          } catch (e: any) {
+            await client.query('ROLLBACK TO SAVEPOINT a_insert_ds');
           }
         }
       }
@@ -487,7 +564,7 @@ async function main() {
   }
 }
 
-main().catch((err) => {
+main().catch((err: unknown) => {
   console.error('Migration failed:', err);
   process.exit(1);
 });

@@ -39,6 +39,8 @@ const collectionsMap: Record<string, string> = {
   systemAdmin: 'systemAdmin',
   botThreadSession: 'botThreadSessions',
   botUserSession: 'botUserSessions',
+  botDiscordChannel: 'botDiscordChannels',
+  botDiscordServerSession: 'botDiscordServerSessions',
   botUserBanned: 'botUserBanned',
   botThreadBanned: 'botThreadBanned',
   user: 'user',
@@ -107,6 +109,25 @@ async function main(): Promise<void> {
   } catch (e: any) {
     console.warn(`[WARN] Skipping botThreads: ${e.message}`);
     outDb.botThread = [];
+  }
+
+  // ── botDiscordServer requires mapping participantIDs -> participants
+  try {
+    const servers = await mongoDb.collection('botDiscordServers').find({}).toArray();
+    outDb.botDiscordServer = servers.map((t) => {
+      const converted = deepConvert(t);
+      if (converted._id && !converted.id) converted.id = converted._id;
+      delete converted._id;
+      const { participantIDs, adminIDs, ...rest } = converted;
+      return {
+        ...rest,
+        participants: participantIDs || [],
+        admins: adminIDs || [],
+      };
+    });
+  } catch (e: any) {
+    console.warn(`[WARN] Skipping botDiscordServers: ${e.message}`);
+    outDb.botDiscordServer = [];
   }
 
   await fs.mkdir(path.dirname(DB_JSON_FILE), { recursive: true });

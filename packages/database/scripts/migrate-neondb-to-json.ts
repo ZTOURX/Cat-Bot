@@ -125,6 +125,34 @@ const tables = [
   },
 
   {
+    jsonKey: 'botDiscordServer',
+    table: 'bot_discord_server',
+    cols: {
+      id: 'id',
+      name: 'name',
+      avatarUrl: 'avatar_url',
+      memberCount: 'member_count',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+    },
+  },
+  {
+    jsonKey: 'botDiscordChannel',
+    table: 'bot_discord_channel',
+    cols: { threadId: 'thread_id', serverId: 'server_id' },
+  },
+  {
+    jsonKey: 'botDiscordServerSession',
+    table: 'bot_discord_server_session',
+    cols: {
+      userId: 'user_id',
+      sessionId: 'session_id',
+      botServerId: 'bot_server_id',
+      lastUpdatedAt: 'last_updated_at',
+      data: 'data',
+    },
+  },
+  {
     jsonKey: 'botSession',
     table: 'bot_session',
     cols: {
@@ -134,6 +162,7 @@ const tables = [
       nickname: 'nickname',
       prefix: 'prefix',
       isRunning: 'is_running',
+      data: 'data',
     },
   },
   {
@@ -353,6 +382,31 @@ async function main(): Promise<void> {
     }
 
     outDb.botThread = Array.from(threadMap.values());
+
+    // ── Append M:M botDiscordServer junctions
+    const servers = outDb.botDiscordServer || [];
+    const dsParticipantsData = await client
+      .query('SELECT server_id, user_id FROM bot_discord_server_participants')
+      .catch((e: any) => {
+        console.warn(`[WARN] ${e.message}`);
+        return { rows: [] };
+      });
+    const dsAdminsData = await client
+      .query('SELECT server_id, user_id FROM bot_discord_server_admins')
+      .catch((e: any) => {
+        console.warn(`[WARN] ${e.message}`);
+        return { rows: [] };
+      });
+
+    const serverMap = new Map<string, any>();
+    for (const t of servers) serverMap.set(t.id, { ...t, participants: [], admins: [] });
+    for (const p of dsParticipantsData.rows) {
+      serverMap.get(p.server_id)?.participants.push(p.user_id);
+    }
+    for (const a of dsAdminsData.rows) {
+      serverMap.get(a.server_id)?.admins.push(a.user_id);
+    }
+    outDb.botDiscordServer = Array.from(serverMap.values());
 
     await fs.mkdir(path.dirname(DB_JSON_FILE), { recursive: true });
     await fs.writeFile(DB_JSON_FILE, JSON.stringify(outDb, null, 2), 'utf-8');

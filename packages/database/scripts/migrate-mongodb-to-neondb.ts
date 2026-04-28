@@ -21,6 +21,8 @@ const collectionsMap: Record<string, string> = {
   systemAdmin: 'systemAdmin',
   botThreadSession: 'botThreadSessions',
   botUserSession: 'botUserSessions',
+  botDiscordChannel: 'botDiscordChannels',
+  botDiscordServerSession: 'botDiscordServerSessions',
   botUserBanned: 'botUserBanned',
   botThreadBanned: 'botThreadBanned',
   user: 'user',
@@ -127,6 +129,34 @@ const tablesDef = [
     },
   },
   {
+    jsonKey: 'botDiscordServer',
+    table: 'bot_discord_server',
+    cols: {
+      id: 'id',
+      name: 'name',
+      avatarUrl: 'avatar_url',
+      memberCount: 'member_count',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+    },
+  },
+  {
+    jsonKey: 'botDiscordChannel',
+    table: 'bot_discord_channel',
+    cols: { threadId: 'thread_id', serverId: 'server_id' },
+  },
+  {
+    jsonKey: 'botDiscordServerSession',
+    table: 'bot_discord_server_session',
+    cols: {
+      userId: 'user_id',
+      sessionId: 'session_id',
+      botServerId: 'bot_server_id',
+      lastUpdatedAt: 'last_updated_at',
+      data: 'data',
+    },
+  },
+  {
     jsonKey: 'botSession',
     table: 'bot_session',
     cols: {
@@ -136,6 +166,7 @@ const tablesDef = [
       nickname: 'nickname',
       prefix: 'prefix',
       isRunning: 'is_running',
+      data: 'data',
     },
   },
   {
@@ -268,49 +299,58 @@ const tablesDef = [
     },
   },
   {
-    botThreadBanned: 'botThreadBanned',
-    user: 'user',
-    session: 'session',
-    account: 'account',
-    verification: 'verification',
+    jsonKey: 'botThreadBanned',
+    table: 'bot_threads_session_banned',
+    cols: {
+      userId: 'user_id',
+      platformId: 'platform_id',
+      sessionId: 'session_id',
+      botThreadId: 'bot_thread_id',
+      isBanned: 'is_banned',
+      reason: 'reason',
+    },
   },
 ];
 
-// Deeply traverse objects and convert MongoDB native ObjectIds to 24-character strings
-// This ensures relational FK columns (e.g. userId in session table) receive strings
-// instead of a serialized BSON object shape `{"_bsontype":"ObjectID","id":"..."}`
-function deepConvert(obj: any): any {
-  if (obj === null || obj === undefined) return obj;
-  if (typeof obj === 'object') {
+// Safely stringify MongoDB ObjectIDs into standard strings so NeonDB accepts them as TEXT PKs
+const isoDateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
+function convertDates(obj: any): any {
+  if (typeof obj === 'string' && isoDateRegex.test(obj)) return new Date(obj);
+  if (Array.isArray(obj)) return obj.map(convertDates);
+  if (obj !== null && typeof obj === 'object') {
     if (obj instanceof Date) return obj;
     if (
       obj._bsontype === 'ObjectID' ||
       (obj.toHexString && typeof obj.toHexString === 'function')
     )
       return obj.toString();
-    if (Array.isArray(obj)) return obj.map(deepConvert);
     const out: any = {};
-    for (const [k, v] of Object.entries(obj)) out[k] = deepConvert(v);
+    for (const [k, v] of Object.entries(obj)) out[k] = convertDates(v);
     return out;
   }
-  return obj;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function deepConvert(obj: any): any {
+  return convertDates(obj);
 }
 
 async function main() {
   console.log(`mongodb-to-neondb migration`);
 
   const mongoDb = getMongoDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db: Record<string, any[]> = {};
 
   console.log('Reading from MongoDB...');
   for (const [jsonKey, mongoCol] of Object.entries(collectionsMap)) {
-    // Fetch full doc to capture native _id mapping from better-auth
     try {
       const docs = await mongoDb.collection(mongoCol).find({}).toArray();
       db[jsonKey] = docs.map((d) => {
         const converted = deepConvert(d);
+        // Map _id to id so better-auth tables have string PKs matching NeonDB schema
         if (converted._id && !converted.id) converted.id = converted._id;
-        delete converted._id; // Strip to prevent leaking native ObjectIds to NeonDB
+        delete converted._id;
         return converted;
       });
     } catch (e: any) {
@@ -318,11 +358,9 @@ async function main() {
       db[jsonKey] = [];
     }
   }
+
   try {
-    const rawThreads = await mongoDb
-      .collection('botThreads')
-      .find({})
-      .toArray();
+    const rawThreads = await mongoDb.collection('botThreads').find({}).toArray();
     db.botThread = rawThreads.map((t) => {
       const converted = deepConvert(t);
       if (converted._id && !converted.id) converted.id = converted._id;
@@ -339,13 +377,31 @@ async function main() {
     db.botThread = [];
   }
 
+  try {
+    const rawServers = await mongoDb.collection('botDiscordServers').find({}).toArray();
+    db.botDiscordServer = rawServers.map((t) => {
+      const converted = deepConvert(t);
+      if (converted._id && !converted.id) converted.id = converted._id;
+      delete converted._id;
+      const { participantIDs, adminIDs, ...rest } = converted;
+      return {
+        ...rest,
+        participants: participantIDs || [],
+        admins: adminIDs || [],
+      };
+    });
+  } catch (e: any) {
+    console.warn(`[WARN] Skipping botDiscordServers: ${e.message}`);
+    db.botDiscordServer = [];
+  }
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     console.log('Truncating tables in NeonDB...');
     try {
       await client.query(
-        `TRUNCATE TABLE "user", bot_users, bot_threads, system_admin CASCADE`,
+        `TRUNCATE TABLE "user", bot_users, bot_threads, bot_discord_server, system_admin CASCADE`,
       );
     } catch (e: any) {
       console.warn(`[WARN] Truncate failed: ${e.message}`);
@@ -359,6 +415,7 @@ async function main() {
       const colNames = Object.values(def.cols);
       const jsonKeys = Object.keys(def.cols);
 
+      // Insert in batches of 100 to avoid hitting PostgreSQL parameter limits
       for (let i = 0; i < rows.length; i += 100) {
         const batch = rows.slice(i, i + 100);
         const placeholders = [];
@@ -396,19 +453,16 @@ async function main() {
       }
       console.log(`  ${def.jsonKey.padEnd(34)} ${rows.length}`);
 
+      // Handle the manual M:M junction tables for botThread
       if (def.jsonKey === 'botThread') {
         const pData = [],
           aData = [];
         for (const t of rows) {
-          for (const p of t.participants || [])
-            pData.push({ thread_id: t.id, user_id: p });
-          for (const a of t.admins || [])
-            aData.push({ thread_id: t.id, user_id: a });
+          for (const p of t.participants || []) pData.push({ thread_id: t.id, user_id: p });
+          for (const a of t.admins || []) aData.push({ thread_id: t.id, user_id: a });
         }
         if (pData.length > 0) {
-          const pValues = pData
-            .map((p) => `('${p.thread_id}', '${p.user_id}')`)
-            .join(', ');
+          const pValues = pData.map((p) => `('${p.thread_id}', '${p.user_id}')`).join(', ');
           try {
             await client.query('SAVEPOINT p_insert');
             await client.query(
@@ -421,9 +475,7 @@ async function main() {
           }
         }
         if (aData.length > 0) {
-          const aValues = aData
-            .map((a) => `('${a.thread_id}', '${a.user_id}')`)
-            .join(', ');
+          const aValues = aData.map((a) => `('${a.thread_id}', '${a.user_id}')`).join(', ');
           try {
             await client.query('SAVEPOINT a_insert');
             await client.query(
@@ -433,6 +485,40 @@ async function main() {
           } catch (e: any) {
             await client.query('ROLLBACK TO SAVEPOINT a_insert');
             console.warn(`[WARN] ${e.message}`);
+          }
+        }
+      }
+
+      // Handle the manual M:M junction tables for botDiscordServer
+      if (def.jsonKey === 'botDiscordServer') {
+        const pData = [],
+          aData = [];
+        for (const t of rows) {
+          for (const p of t.participants || []) pData.push({ server_id: t.id, user_id: p });
+          for (const a of t.admins || []) aData.push({ server_id: t.id, user_id: a });
+        }
+        if (pData.length > 0) {
+          const pValues = pData.map((p) => `('${p.server_id}', '${p.user_id}')`).join(', ');
+          try {
+            await client.query('SAVEPOINT p_insert_ds');
+            await client.query(
+              `INSERT INTO bot_discord_server_participants (server_id, user_id) VALUES ${pValues} ON CONFLICT DO NOTHING`,
+            );
+            await client.query('RELEASE SAVEPOINT p_insert_ds');
+          } catch (e: any) {
+            await client.query('ROLLBACK TO SAVEPOINT p_insert_ds');
+          }
+        }
+        if (aData.length > 0) {
+          const aValues = aData.map((a) => `('${a.server_id}', '${a.user_id}')`).join(', ');
+          try {
+            await client.query('SAVEPOINT a_insert_ds');
+            await client.query(
+              `INSERT INTO bot_discord_server_admins (server_id, user_id) VALUES ${aValues} ON CONFLICT DO NOTHING`,
+            );
+            await client.query('RELEASE SAVEPOINT a_insert_ds');
+          } catch (e: any) {
+            await client.query('ROLLBACK TO SAVEPOINT a_insert_ds');
           }
         }
       }
@@ -450,7 +536,7 @@ async function main() {
   }
 }
 
-main().catch((err) => {
+main().catch((err: unknown) => {
   console.error('Migration failed:', err);
   process.exit(1);
 });

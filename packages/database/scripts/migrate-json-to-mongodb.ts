@@ -40,6 +40,8 @@ const collectionsMap: Record<string, string> = {
   systemAdmin: 'systemAdmin',
   botThreadSession: 'botThreadSessions',
   botUserSession: 'botUserSessions',
+  botDiscordChannel: 'botDiscordChannels',
+  botDiscordServerSession: 'botDiscordServerSessions',
   botUserBanned: 'botUserBanned',
   botThreadBanned: 'botThreadBanned',
   user: 'user',
@@ -130,6 +132,31 @@ async function main(): Promise<void> {
       console.warn(`[WARN] Insert failed for botThreads: ${e.message}`);
     }
     console.log(`  ${'botThread'.padEnd(34)} ${threads.length}`);
+  }
+
+  // ── botDiscordServer requires special mapping for participantIDs / adminIDs
+  await mongoDb
+    .collection('botDiscordServers')
+    .deleteMany({})
+    .catch((e: any) =>
+      console.warn(`[WARN] Delete failed for botDiscordServers: ${e.message}`),
+    );
+  const serverRows = db.botDiscordServer;
+  if (serverRows && serverRows.length > 0) {
+    const servers = serverRows.map((t) => {
+      const { participants, admins, ...rest } = t;
+      return convertDates({
+        ...rest,
+        participantIDs: participants || [],
+        adminIDs: admins || [],
+      });
+    });
+    try {
+      await mongoDb.collection('botDiscordServers').insertMany(servers);
+    } catch (e: any) {
+      console.warn(`[WARN] Insert failed for botDiscordServers: ${e.message}`);
+    }
+    console.log(`  ${'botDiscordServer'.padEnd(34)} ${servers.length}`);
   }
 
   console.log('\nMigration complete.');

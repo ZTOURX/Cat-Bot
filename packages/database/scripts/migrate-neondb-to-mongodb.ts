@@ -104,6 +104,34 @@ const tablesDef = [
     },
   },
   {
+    jsonKey: 'botDiscordServer',
+    table: 'bot_discord_server',
+    cols: {
+      id: 'id',
+      name: 'name',
+      avatarUrl: 'avatar_url',
+      memberCount: 'member_count',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+    },
+  },
+  {
+    jsonKey: 'botDiscordChannel',
+    table: 'bot_discord_channel',
+    cols: { threadId: 'thread_id', serverId: 'server_id' },
+  },
+  {
+    jsonKey: 'botDiscordServerSession',
+    table: 'bot_discord_server_session',
+    cols: {
+      userId: 'user_id',
+      sessionId: 'session_id',
+      botServerId: 'bot_server_id',
+      lastUpdatedAt: 'last_updated_at',
+      data: 'data',
+    },
+  },
+  {
     jsonKey: 'botSession',
     table: 'bot_session',
     cols: {
@@ -113,6 +141,7 @@ const tablesDef = [
       nickname: 'nickname',
       prefix: 'prefix',
       isRunning: 'is_running',
+      data: 'data',
     },
   },
   {
@@ -273,6 +302,8 @@ const collectionsMap: Record<string, string> = {
   systemAdmin: 'systemAdmin',
   botThreadSession: 'botThreadSessions',
   botUserSession: 'botUserSessions',
+  botDiscordChannel: 'botDiscordChannels',
+  botDiscordServerSession: 'botDiscordServerSessions',
   botUserBanned: 'botUserBanned',
   botThreadBanned: 'botThreadBanned',
   user: 'user',
@@ -342,6 +373,25 @@ async function main() {
     for (const a of adminsData.rows)
       threadMap.get(a.thread_id)?.admins.push(a.user_id);
     db.botThread = Array.from(threadMap.values());
+
+    const servers = db.botDiscordServer || [];
+    const dsParticipantsData = await client
+      .query('SELECT server_id, user_id FROM bot_discord_server_participants')
+      .catch((e: any) => { return { rows: [] }; });
+    const dsAdminsData = await client
+      .query('SELECT server_id, user_id FROM bot_discord_server_admins')
+      .catch((e: any) => { return { rows: [] }; });
+    const serverMap = new Map();
+    for (const t of servers)
+      serverMap.set(t.id, { ...t, participants: [], admins: [] });
+    for (const p of dsParticipantsData.rows) {
+      serverMap.get(p.server_id)?.participants.push(p.user_id);
+    }
+    for (const a of dsAdminsData.rows) {
+      serverMap.get(a.server_id)?.admins.push(a.user_id);
+    }
+    db.botDiscordServer = Array.from(serverMap.values());
+
   } finally {
     client.release();
     await pool.end();
@@ -401,6 +451,25 @@ async function main() {
       console.warn(`[WARN] Insert failed for botThreads: ${e.message}`);
     }
     console.log(`  ${'botThread'.padEnd(34)} ${threadDocs.length}`);
+  }
+
+  await mongoDb.collection('botDiscordServers').deleteMany({}).catch(() => {});
+  const servers = db.botDiscordServer;
+  if (servers && servers.length > 0) {
+    const serverDocs = servers.map((t) => {
+      const { participants, admins, ...rest } = t;
+      return convertDates({
+        ...rest,
+        participantIDs: participants || [],
+        adminIDs: admins || [],
+      });
+    });
+    try {
+      await mongoDb.collection('botDiscordServers').insertMany(serverDocs);
+    } catch (e: any) {
+      console.warn(`[WARN] Insert failed for botDiscordServers: ${e.message}`);
+    }
+    console.log(`  ${'botDiscordServer'.padEnd(34)} ${serverDocs.length}`);
   }
 
   console.log('\nMigration complete.');

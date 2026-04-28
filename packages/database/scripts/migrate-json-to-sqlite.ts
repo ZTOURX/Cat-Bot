@@ -48,7 +48,11 @@ const DEFAULT_DB: Record<string, unknown[]> = {
   botCredentialFacebookMessenger: [],
   botSession: [],
   botAdmin: [],
+  botPremium: [],
   botThread: [],
+  botDiscordServer: [],
+  botDiscordChannel: [],
+  botDiscordServerSession: [],
   botUser: [],
   fbPageWebhook: [],
   botThreadSession: [],
@@ -59,6 +63,7 @@ const DEFAULT_DB: Record<string, unknown[]> = {
   session: [],
   account: [],
   verification: [],
+  systemAdmin: [],
 };
 
 // Narrow helper so array items can be used as Prisma createMany data
@@ -116,12 +121,16 @@ async function main(): Promise<void> {
   await safeExec(prisma.botSessionEvent.deleteMany());
   await safeExec(prisma.botUserSession.deleteMany());
   await safeExec(prisma.botThreadSession.deleteMany());
+  await safeExec(prisma.botDiscordChannel.deleteMany());
+  await safeExec(prisma.botDiscordServerSession.deleteMany());
+  await safeExec(prisma.botDiscordServer.deleteMany());
   await safeExec(prisma.fbPageWebhook.deleteMany());
   await safeExec(prisma.botCredentialDiscord.deleteMany());
   await safeExec(prisma.botCredentialTelegram.deleteMany());
   await safeExec(prisma.botCredentialFacebookPage.deleteMany());
   await safeExec(prisma.botCredentialFacebookMessenger.deleteMany());
   await safeExec(prisma.botAdmin.deleteMany());
+  await safeExec(prisma.botPremium.deleteMany());
   await safeExec(prisma.botSession.deleteMany());
   await safeExec(prisma.botThread.deleteMany());
   await safeExec(prisma.botUser.deleteMany());
@@ -129,6 +138,7 @@ async function main(): Promise<void> {
   await safeExec(prisma.account.deleteMany());
   await safeExec(prisma.session.deleteMany());
   await safeExec(prisma.user.deleteMany());
+  await safeExec(prisma.systemAdmin.deleteMany());
 
   // ── Phase 2: Insert in topological FK order ──────────────────────────────────
   console.log('Inserting data…');
@@ -160,6 +170,15 @@ async function main(): Promise<void> {
   const verifRows = rows<VerifRow>(db, 'verification');
   if (verifRows.length)
     await safeExec(prisma.verification.createMany({ data: verifRows }));
+
+  // 1.5. System Admin — no FK dependencies
+  type SystemAdminRow = Parameters<
+    typeof prisma.systemAdmin.createMany
+  >[0]['data'][number];
+
+  const systemAdminRows = rows<SystemAdminRow>(db, 'systemAdmin');
+  if (systemAdminRows.length)
+    await safeExec(prisma.systemAdmin.createMany({ data: systemAdminRows }));
 
   // 2. BotUser — referenced by BotThread (M:M), BotUserSession, BotUserBanned
   type BotUserRow = Parameters<
@@ -204,12 +223,48 @@ async function main(): Promise<void> {
     );
   }
 
-  // 4. BotSession, BotAdmin — FK to user (onDelete: Cascade)
+  // 3.5. BotDiscordServer and Channels
+  type JsonDiscordServer = {
+    id: string;
+    name: string | null;
+    avatarUrl: string | null;
+    memberCount: number | null;
+    createdAt?: Date;
+    updatedAt?: Date;
+    participants?: string[];
+    admins?: string[];
+  };
+  const botDiscordServerRows = rows<JsonDiscordServer>(db, 'botDiscordServer');
+  for (const s of botDiscordServerRows) {
+    const { participants = [], admins = [], ...serverScalars } = s;
+    await safeExec(
+      prisma.botDiscordServer.create({
+        data: {
+          ...serverScalars,
+          participants: participants.length
+            ? { connect: participants.map((id) => ({ id })) }
+            : undefined,
+          admins: admins.length
+            ? { connect: admins.map((id) => ({ id })) }
+            : undefined,
+        },
+      }),
+    );
+  }
+  const botDiscordChannelRows = rows<any>(db, 'botDiscordChannel');
+  if (botDiscordChannelRows.length) await safeExec(prisma.botDiscordChannel.createMany({ data: botDiscordChannelRows }));
+  const botDiscordServerSessionRows = rows<any>(db, 'botDiscordServerSession');
+  if (botDiscordServerSessionRows.length) await safeExec(prisma.botDiscordServerSession.createMany({ data: botDiscordServerSessionRows }));
+
+  // 4. BotSession, BotAdmin, BotPremium — FK to user (onDelete: Cascade)
   type BotSessionRow = Parameters<
     typeof prisma.botSession.createMany
   >[0]['data'][number];
   type BotAdminRow = Parameters<
     typeof prisma.botAdmin.createMany
+  >[0]['data'][number];
+  type BotPremiumRow = Parameters<
+    typeof prisma.botPremium.createMany
   >[0]['data'][number];
 
   const botSessionRows = rows<BotSessionRow>(db, 'botSession');
@@ -219,6 +274,10 @@ async function main(): Promise<void> {
   const botAdminRows = rows<BotAdminRow>(db, 'botAdmin');
   if (botAdminRows.length)
     await safeExec(prisma.botAdmin.createMany({ data: botAdminRows }));
+
+  const botPremiumRows = rows<BotPremiumRow>(db, 'botPremium');
+  if (botPremiumRows.length)
+    await safeExec(prisma.botPremium.createMany({ data: botPremiumRows }));
 
   // 5. Credentials — FK to user (onDelete: Cascade)
   type DiscordCredRow = Parameters<

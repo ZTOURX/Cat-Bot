@@ -36,6 +36,8 @@ const collectionsMap: Record<string, string> = {
   systemAdmin: 'systemAdmin',
   botThreadSession: 'botThreadSessions',
   botUserSession: 'botUserSessions',
+  botDiscordChannel: 'botDiscordChannels',
+  botDiscordServerSession: 'botDiscordServerSessions',
   botUserBanned: 'botUserBanned',
   botThreadBanned: 'botThreadBanned',
   user: 'user',
@@ -78,6 +80,10 @@ async function main() {
     verification,
     botSession,
     botAdmin,
+    botPremium,
+    botDiscordServers,
+    botDiscordChannel,
+    botDiscordServerSession,
     botCredentialDiscord,
     botCredentialTelegram,
     botCredentialFacebookPage,
@@ -99,6 +105,17 @@ async function main() {
     safeFind(prisma.verification.findMany()),
     safeFind(prisma.botSession.findMany()),
     safeFind(prisma.botAdmin.findMany()),
+    safeFind(prisma.botPremium.findMany()),
+    safeFind(
+      prisma.botDiscordServer.findMany({
+        include: {
+          participants: { select: { id: true } },
+          admins: { select: { id: true } },
+        },
+      }),
+    ),
+    safeFind(prisma.botDiscordChannel.findMany()),
+    safeFind(prisma.botDiscordServerSession.findMany()),
     safeFind(prisma.botCredentialDiscord.findMany()),
     safeFind(prisma.botCredentialTelegram.findMany()),
     safeFind(prisma.botCredentialFacebookPage.findMany()),
@@ -135,6 +152,17 @@ async function main() {
     admins: t.admins.map((a) => a.id),
   }));
 
+  const botDiscordServer = botDiscordServers.map((s) => ({
+    id: s.id,
+    name: s.name,
+    avatarUrl: s.avatarUrl,
+    memberCount: s.memberCount,
+    createdAt: s.createdAt,
+    updatedAt: s.updatedAt,
+    participants: s.participants.map((p) => p.id),
+    admins: s.admins.map((a) => a.id),
+  }));
+
   const db: Record<string, any[]> = {
     user,
     session,
@@ -142,15 +170,18 @@ async function main() {
     verification,
     botUser,
     botThread,
+    botDiscordServer,
+    botDiscordChannel,
     botSession,
     botAdmin,
-    botPremium: [],
+    botPremium,
     botCredentialDiscord,
     botCredentialTelegram,
     botCredentialFacebookPage,
     botCredentialFacebookMessenger,
     botUserSession,
     botThreadSession,
+    botDiscordServerSession,
     fbPageWebhook,
     botSessionCommand,
     botSessionEvent,
@@ -213,6 +244,25 @@ async function main() {
       console.warn(`[WARN] Insert failed for botThreads: ${e.message}`);
     }
     console.log(`  ${'botThread'.padEnd(34)} ${threadDocs.length}`);
+  }
+
+  await mongoDb.collection('botDiscordServers').deleteMany({}).catch(() => {});
+  const servers = db.botDiscordServer;
+  if (servers && servers.length > 0) {
+    const serverDocs = servers.map((t) => {
+      const { participants, admins, ...rest } = t;
+      return convertDates({
+        ...rest,
+        participantIDs: participants || [],
+        adminIDs: admins || [],
+      });
+    });
+    try {
+      await mongoDb.collection('botDiscordServers').insertMany(serverDocs);
+    } catch (e: any) {
+      console.warn(`[WARN] Insert failed for botDiscordServers: ${e.message}`);
+    }
+    console.log(`  ${'botDiscordServer'.padEnd(34)} ${serverDocs.length}`);
   }
 
   console.log('\nMigration complete.');

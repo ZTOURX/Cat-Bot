@@ -125,6 +125,34 @@ const tables = [
       updatedAt: 'updated_at',
     },
   },
+  {
+    jsonKey: 'botDiscordServer',
+    table: 'bot_discord_server',
+    cols: {
+      id: 'id',
+      name: 'name',
+      avatarUrl: 'avatar_url',
+      memberCount: 'member_count',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+    },
+  },
+  {
+    jsonKey: 'botDiscordChannel',
+    table: 'bot_discord_channel',
+    cols: { threadId: 'thread_id', serverId: 'server_id' },
+  },
+  {
+    jsonKey: 'botDiscordServerSession',
+    table: 'bot_discord_server_session',
+    cols: {
+      userId: 'user_id',
+      sessionId: 'session_id',
+      botServerId: 'bot_server_id',
+      lastUpdatedAt: 'last_updated_at',
+      data: 'data',
+    },
+  },
 
   {
     jsonKey: 'botSession',
@@ -136,6 +164,7 @@ const tables = [
       nickname: 'nickname',
       prefix: 'prefix',
       isRunning: 'is_running',
+      data: 'data',
     },
   },
   {
@@ -307,7 +336,7 @@ async function main(): Promise<void> {
     try {
       // Cascade handles FK hierarchies automatically.
       await client.query(
-        `TRUNCATE TABLE "user", bot_users, bot_threads, system_admin CASCADE`,
+        `TRUNCATE TABLE "user", bot_users, bot_threads, bot_discord_server, system_admin CASCADE`,
       );
     } catch (e: any) {
       console.warn(`[WARN] Truncate failed: ${e.message}`);
@@ -399,6 +428,46 @@ async function main(): Promise<void> {
           } catch (e: any) {
             await client.query('ROLLBACK TO SAVEPOINT a_insert');
             console.warn(`[WARN] ${e.message}`);
+          }
+        }
+      }
+
+      // Handle the manual M:M junction tables for botDiscordServer
+      if (def.jsonKey === 'botDiscordServer') {
+        const participantsData = [];
+        const adminsData = [];
+        for (const t of rows) {
+          for (const p of t.participants || [])
+            participantsData.push({ server_id: t.id, user_id: p });
+          for (const a of t.admins || [])
+            adminsData.push({ server_id: t.id, user_id: a });
+        }
+        if (participantsData.length > 0) {
+          const pValues = participantsData
+            .map((p) => `('${p.server_id}', '${p.user_id}')`)
+            .join(', ');
+          try {
+            await client.query('SAVEPOINT p_insert_ds');
+            await client.query(
+              `INSERT INTO bot_discord_server_participants (server_id, user_id) VALUES ${pValues} ON CONFLICT DO NOTHING`,
+            );
+            await client.query('RELEASE SAVEPOINT p_insert_ds');
+          } catch (e: any) {
+            await client.query('ROLLBACK TO SAVEPOINT p_insert_ds');
+          }
+        }
+        if (adminsData.length > 0) {
+          const aValues = adminsData
+            .map((a) => `('${a.server_id}', '${a.user_id}')`)
+            .join(', ');
+          try {
+            await client.query('SAVEPOINT a_insert_ds');
+            await client.query(
+              `INSERT INTO bot_discord_server_admins (server_id, user_id) VALUES ${aValues} ON CONFLICT DO NOTHING`,
+            );
+            await client.query('RELEASE SAVEPOINT a_insert_ds');
+          } catch (e: any) {
+            await client.query('ROLLBACK TO SAVEPOINT a_insert_ds');
           }
         }
       }
