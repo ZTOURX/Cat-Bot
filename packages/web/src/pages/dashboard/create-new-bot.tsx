@@ -85,13 +85,13 @@ export default function NewBotPage() {
 
   const isStep1Valid =
     form.botNickname.trim() !== '' &&
-    form.botPrefix.trim() !== '' &&
-    form.botAdmins.some((a) => a.trim() !== '')
+    form.botPrefix.trim() !== ''
 
   // Step 2 requires an explicit successful verification — the user cannot skip by
   // typing credentials and clicking Next; they must click Verify first.
   const isStep2Valid =
-    form.platform !== '' && verificationStatus.phase === 'success'
+    form.platform !== '' && verificationStatus.phase === 'success' &&
+    (form.platform === Platforms.FacebookPage || form.botAdmins.some((a) => a.trim() !== ''))
 
   const handleStepChange = (step: number) => {
     if (step <= currentStep) {
@@ -245,13 +245,14 @@ export default function NewBotPage() {
     void createBot({
       botNickname: form.botNickname,
       botPrefix: form.botPrefix,
-      botAdmins: form.botAdmins.filter((a) => a.trim() !== ''),
+      botAdmins: form.platform === Platforms.FacebookPage ? [] : form.botAdmins.filter((a) => a.trim() !== ''),
       credentials,
     })
   }
 
   // ── Derived state ────────────────────────────────────────────────────────
 
+  const isFbPage = form.platform === Platforms.FacebookPage
   const platformLabelName = form.platform
     ? getPlatformLabel(form.platform)
     : form.platform
@@ -315,7 +316,7 @@ export default function NewBotPage() {
               <Steps.Indicator index={0} />
               <div className="flex flex-col">
                 <Steps.Title>Identity</Steps.Title>
-                <Steps.Description>Nickname & admins</Steps.Description>
+                <Steps.Description>Nickname & prefix</Steps.Description>
               </div>
             </Steps.Trigger>
           </Steps.Item>
@@ -377,59 +378,6 @@ export default function NewBotPage() {
                   onChange={(e) => handleTopField('botPrefix', e.target.value)}
                 />
               </Field.Root>
-
-              {/* Admin section — grouped in a tinted container so the repeating
-                  inputs feel like a coherent list rather than floating fields */}
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-label-md font-medium text-on-surface">
-                      Bot Admins
-                    </p>
-                    <p className="text-label-sm text-on-surface-variant mt-0.5">
-                      User IDs with admin privileges
-                    </p>
-                  </div>
-                  <Button
-                    variant="text"
-                    color="primary"
-                    size="sm"
-                    leftIcon={<Plus className="h-3.5 w-3.5" />}
-                    onClick={handleAddAdmin}
-                    aria-label="Add another admin user ID"
-                  >
-                    Add
-                  </Button>
-                </div>
-
-                {/* Tinted container distinguishes the admin list */}
-                <div className="flex flex-col gap-2 rounded-lg">
-                  {form.botAdmins.map((adminId, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <div className="flex-1">
-                        <Input
-                          placeholder={`Admin user ID ${index + 1}`}
-                          value={adminId}
-                          onChange={(e) =>
-                            handleAdminChange(index, e.target.value)
-                          }
-                          aria-label={`Admin user ID ${index + 1}`}
-                        />
-                      </div>
-                      {form.botAdmins.length > 1 && (
-                        <Button
-                          variant="text"
-                          color="error"
-                          iconOnly
-                          onClick={() => handleRemoveAdmin(index)}
-                          aria-label={`Remove admin user ID ${index + 1}`}
-                          leftIcon={<Trash2 className="h-4 w-4" />}
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
 
             {/* Card.Footer keeps action buttons inside the card boundary */}
@@ -494,6 +442,67 @@ export default function NewBotPage() {
                     fields={form.platformFields}
                     onChange={handlePlatformField}
                   />
+
+                  {!isFbPage ? (
+                    <>
+                      <Divider spacing="none" />
+                      <div className="flex flex-col gap-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-label-md font-medium text-on-surface">
+                              Bot Admins
+                            </p>
+                            <p className="text-label-sm text-on-surface-variant mt-0.5">
+                              User IDs with admin privileges
+                            </p>
+                          </div>
+                          <Button
+                            variant="text"
+                            color="primary"
+                            size="sm"
+                            leftIcon={<Plus className="h-3.5 w-3.5" />}
+                            onClick={handleAddAdmin}
+                            aria-label="Add another admin user ID"
+                          >
+                            Add
+                          </Button>
+                        </div>
+
+                        <div className="flex flex-col gap-2 rounded-lg">
+                          {form.botAdmins.map((adminId, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <div className="flex-1">
+                                <Input
+                                  placeholder={`Admin user ID ${index + 1}`}
+                                  value={adminId}
+                                  onChange={(e) => handleAdminChange(index, e.target.value)}
+                                  aria-label={`Admin user ID ${index + 1}`}
+                                />
+                              </div>
+                              {form.botAdmins.length > 1 && (
+                                <Button
+                                  variant="text" color="error" iconOnly
+                                  onClick={() => handleRemoveAdmin(index)}
+                                  aria-label={`Remove admin user ID ${index + 1}`}
+                                  leftIcon={<Trash2 className="h-4 w-4" />}
+                                />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Divider spacing="none" />
+                      <Alert
+                        variant="tonal"
+                        color="info"
+                        title="Admin Roles"
+                        message="Admin IDs are not needed for Facebook Pages. Access is automatically and securely managed through your Meta Page roles using PSIDs."
+                      />
+                    </>
+                  )}
                 </div>
               )}
 
@@ -577,23 +586,25 @@ export default function NewBotPage() {
                       {form.botPrefix}
                     </DataList.ItemValue>
                   </DataList.Item>
-                  <DataList.Item>
-                    <DataList.ItemLabel width="140px">
-                      Admins ({filledAdmins.length})
-                    </DataList.ItemLabel>
-                    <DataList.ItemValue>
-                      <div className="flex flex-wrap gap-1.5">
-                        {filledAdmins.map((id, i) => (
-                          <span
-                            key={i}
-                            className="inline-block rounded-md bg-surface-container-high px-2 py-0.5 text-body-sm text-on-surface font-mono"
-                          >
-                            {id}
-                          </span>
-                        ))}
-                      </div>
-                    </DataList.ItemValue>
-                  </DataList.Item>
+                  {!isFbPage && (
+                    <DataList.Item>
+                      <DataList.ItemLabel width="140px">
+                        Admins ({filledAdmins.length})
+                      </DataList.ItemLabel>
+                      <DataList.ItemValue>
+                        <div className="flex flex-wrap gap-1.5">
+                          {filledAdmins.map((id, i) => (
+                            <span
+                              key={i}
+                              className="inline-block rounded-md bg-surface-container-high px-2 py-0.5 text-body-sm text-on-surface font-mono"
+                            >
+                              {id}
+                            </span>
+                          ))}
+                        </div>
+                      </DataList.ItemValue>
+                    </DataList.Item>
+                  )}
                   <DataList.Item>
                     <DataList.ItemLabel width="140px">
                       Platform
