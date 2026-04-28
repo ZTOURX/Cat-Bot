@@ -2,13 +2,14 @@
  * /shoti — Random TikTok Girl Video
  *
  * Fetches a random TikTok girl video from the BetaDash Shoti API and sends
- * it as a Buffer attachment. A "More Shoti" button swaps the video in-place
- * on every click without spamming new messages.
+ * it as an mp4 video Buffer attachment. A "More Shoti" button swaps the
+ * video in-place on every click without spamming new messages.
  *
  * ⚠️  `createUrl` registry name 'betadash' is assumed — confirm with the
  *     Cat Bot engine team that this registry key exists.
  */
 
+import axios from 'axios';
 import type { AppCtx } from '@/engine/types/controller.types.js';
 import { Role } from '@/engine/constants/role.constants.js';
 import { MessageStyle } from '@/engine/constants/message-style.constants.js';
@@ -42,20 +43,31 @@ async function fetchShoti(): Promise<{ data: ShotiResult; buffer: Buffer }> {
   const base = createUrl('betadash', '/shoti');
   if (!base) throw new Error('Failed to build Shoti API URL.');
 
-  const metaRes = await fetch(base);
-  if (!metaRes.ok) throw new Error(`Shoti API responded with status ${metaRes.status}`);
-
-  const json = (await metaRes.json()) as ShotiResponse;
+  // Step 1 — fetch metadata JSON
+  const { data: json } = await axios.get<ShotiResponse>(base);
   if (!json.status || !json.result) {
     throw new Error('Shoti API returned an unsuccessful response.');
   }
 
   const data = json.result;
 
-  const videoRes = await fetch(data.shotiurl);
-  if (!videoRes.ok) throw new Error(`Failed to download video (status ${videoRes.status})`);
+  // Step 2 — download the actual video as a raw binary Buffer
+  const { data: videoData } = await axios.get<Buffer>(data.shotiurl, {
+    responseType: 'arraybuffer',          // ensures raw binary, not string
+    headers: {
+      // Mimic a browser so TikTok CDN doesn't reject the request
+      'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
+        '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      'Referer': 'https://www.tiktok.com/',
+      'Accept': 'video/mp4,video/*;q=0.9,*/*;q=0.8',
+    },
+    maxContentLength: Infinity,           // no size cap on the video download
+    maxBodyLength: Infinity,
+  });
 
-  const buffer = Buffer.from(await videoRes.arrayBuffer());
+  const buffer = Buffer.from(videoData);  // guarantees a proper Node.js Buffer
+
   return { data, buffer };
 }
 
@@ -111,7 +123,7 @@ export const button = {
           message_id_to_edit: event['messageID'] as string,
           style: MessageStyle.MARKDOWN,
           message: buildCaption(data, newCount),
-          attachment: [{ name: 'shoti.mp4', stream: buffer }],
+          attachment: [{ name: 'shoti.mp4', stream: buffer }],  // .mp4 forces video MIME
           button: [session.id],
         });
       } catch (err) {
@@ -138,7 +150,7 @@ export const onCommand = async ({ chat, button: btn }: AppCtx): Promise<void> =>
     await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
       message: buildCaption(data, 1),
-      attachment: [{ name: 'shoti.mp4', stream: buffer }],
+      attachment: [{ name: 'shoti.mp4', stream: buffer }],  // .mp4 forces video MIME
       button: [moreId],
     });
   } catch (err) {
