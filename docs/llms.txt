@@ -1451,6 +1451,8 @@ export const onCommand = async ({ native, chat }: AppCtx) => {
 
 **Checking whether a platform supports native button components:**
 
+> **Why use `hasNativeButtons`?** Platforms like Facebook Messenger do not support native UI buttons. If you provide a `button` array without conditionally checking `hasNativeButtons`, the engine (specifically inside `createChatContext` in `packages/cat-bot/src/engine/adapters/models/context.model.ts`) automatically falls back to generating a numbered text menu appended to your message and registers an internal `onReply` fallback state to route the user's numeric choice. Conditionally omitting the `button` array using `hasNativeButtons(native.platform)` ensures this text menu fallback isn't rendered, keeping standard text responses clean when native buttons are unsupported.
+
 ```ts
 import { hasNativeButtons } from '@/engine/utils/ui-capabilities.util.js'
 
