@@ -47,10 +47,10 @@ export const config: CommandConfig = {
 // Exclusive to Facebook Page non-admin users.
 // Page admins and other platform users do not need to follow these steps.
 
-export const nonAdminGuide: string = [
-  '🖼️ **How to use /caption (FB Page non-admin only):**',
+export const nonAdminGuide = (prefix: string): string => [
+  `🖼️ **How to use /${config.name} (FB Page non-admin only):**`,
   '1️⃣  Send a photo in the conversation (tap the photo/camera icon).',
-  '2️⃣  Reply to that photo with the command: `!caption <text>`',
+  `2️⃣  Reply to that photo with the command: \`${prefix}${config.name} <text>\``,
   '3️⃣  The bot will apply the effect to your uploaded photo and reply with the result.',
   '',
   '⚠️ You must reply directly to the photo message — typing the command',
