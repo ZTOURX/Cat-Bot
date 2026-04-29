@@ -49,19 +49,20 @@ The platform transport layer absorbs every SDK difference (discord.js gateway, T
 2. [What Cat-Bot Provides](#what-cat-bot-provides)
 3. [Philosophy](#philosophy)
 4. [Platform API Comparison: Native vs Unified](#platform-api-comparison-native-vs-unified)
-5. [Screenshots](#screenshots)
-6. [Features](#features)
-7. [Architecture](#architecture)
-8. [Production Setup](#production-setup)
-9. [Writing Commands](#writing-commands)
-10. [Converting Existing Commands](#converting-existing-commands)
-11. [Writing Event Handlers](#writing-event-handlers)
-12. [Constants & Type Safety](#constants--type-safety)
-13. [Developer Reference](#developer-reference)
-14. [Database Adapters](#database-adapters)
-15. [Environment Variables](#environment-variables)
-16. [npm Scripts](#npm-scripts)
-17. [Authors](#authors)
+5. [Demo](#demo)
+6. [Screenshots](#screenshots)
+7. [Features](#features)
+8. [Architecture](#architecture)
+9. [Production Setup](#production-setup)
+10. [Writing Commands](#writing-commands)
+11. [Converting Existing Commands](#converting-existing-commands)
+12. [Writing Event Handlers](#writing-event-handlers)
+13. [Constants & Type Safety](#constants--type-safety)
+14. [Developer Reference](#developer-reference)
+15. [Database Adapters](#database-adapters)
+16. [Environment Variables](#environment-variables)
+17. [npm Scripts](#npm-scripts)
+18. [Authors](#authors)
 
 ---
 
@@ -1050,6 +1051,18 @@ discord.js v14  /  Telegraf v4  /  fca-unofficial  /  Facebook Graph API
 ```
 
 Your command module never imports `discord.js`. Your button handler never calls `ctx.answerCbQuery()`. Your reply handler never pushes to a global array. The adapter layer absorbs every platform difference and presents a uniform surface to your code.
+
+---
+
+## Demo
+
+### Admin Demo
+
+[▶ Watch Admin Demo](https://drive.google.com/file/d/1i5Eqv3_t_DfvAPLRFE1EMSBYbERKhRKD/view?usp=sharing)
+
+### User Demo
+
+[▶ Watch User Demo](https://drive.google.com/file/d/1ALlApNwCwm06_SPqk-NRamr5ylguHt0W/view?usp=sharing)
 
 ---
 
