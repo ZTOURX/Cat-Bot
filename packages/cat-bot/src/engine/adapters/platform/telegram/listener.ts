@@ -136,7 +136,13 @@ export function createTelegramListener(
       );
 
       // Step 2: Attach all update handlers — must happen before bot.launch()
-      attachHandlers(activeBot, emitter, prefix, config.userId, config.sessionId);
+      attachHandlers(
+        activeBot,
+        emitter,
+        prefix,
+        config.userId,
+        config.sessionId,
+      );
 
       // Catch errors thrown inside any Telegraf middleware or handler.
       // Without this, handler rejections surface as unhandledRejection which crashes
@@ -188,7 +194,8 @@ export function createTelegramListener(
           })
           .catch((err: unknown) => {
             // "Bot is stopped!" is emitted during graceful stop() — not an error condition.
-            if (err instanceof Error && err.message === 'Bot is stopped!') return;
+            if (err instanceof Error && err.message === 'Bot is stopped!')
+              return;
             if (isAuthError(err)) {
               sessionLogger.error(
                 '[telegram] Session offline — bot token revoked during active polling',

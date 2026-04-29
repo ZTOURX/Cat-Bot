@@ -89,7 +89,8 @@ export function createFacebookPageListener(
       // covers credential-update auto-restarts triggered via the dashboard.
       const botDetail = await botRepo.getById(config.userId, config.sessionId);
       const pageAccessToken = botDetail
-        ? ((botDetail.credentials as any).fbAccessToken ?? config.pageAccessToken)
+        ? ((botDetail.credentials as any).fbAccessToken ??
+          config.pageAccessToken)
         : config.pageAccessToken;
       const pageId = botDetail
         ? ((botDetail.credentials as any).fbPageId ?? config.pageId)

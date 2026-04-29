@@ -118,15 +118,11 @@ export function createDiscordListener(config: DiscordConfig): EventEmitter & {
       sessionLogger.info('[discord] Starting Listener...');
 
       // Phase 1: Create and boot the Discord.js client (intents, login, ready event)
-      activeClient = await createDiscordClient(
-        token,
-        sessionLogger,
-        (_err) => {
-          // Marks the session offline in the dashboard when Discord gateway rejects
-          // the token post-boot (e.g. token rotated while the session was running).
-          void sessionManager.markInactive(smKey);
-        },
-      );
+      activeClient = await createDiscordClient(token, sessionLogger, (_err) => {
+        // Marks the session offline in the dashboard when Discord gateway rejects
+        // the token post-boot (e.g. token rotated while the session was running).
+        void sessionManager.markInactive(smKey);
+      });
 
       // Phase 2: Register or clear slash commands based on the active prefix
       await registerSlashCommands({

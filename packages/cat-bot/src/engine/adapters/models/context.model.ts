@@ -28,7 +28,10 @@ import {
   ButtonStyle,
   type ButtonStyleValue,
 } from '@/engine/constants/button-style.constants.js';
-import { createUnifiedThreadInfo, type UnifiedThreadInfo } from './thread.model.js';
+import {
+  createUnifiedThreadInfo,
+  type UnifiedThreadInfo,
+} from './thread.model.js';
 
 // Re-export interfaces for backward compatibility
 export type {

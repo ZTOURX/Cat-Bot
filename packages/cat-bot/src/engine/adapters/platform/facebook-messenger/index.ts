@@ -157,7 +157,10 @@ export function createFacebookMessengerListener(
       // WHY: Refresh credentials before every attempt so credential-update
       // auto-restarts always use the latest appstate from the database.
       const refreshConfig = async () => {
-        const botDetail = await botRepo.getById(config.userId, config.sessionId);
+        const botDetail = await botRepo.getById(
+          config.userId,
+          config.sessionId,
+        );
         if (botDetail) {
           appstate = (botDetail.credentials as any).appstate ?? appstate;
           prefix = botDetail.prefix ?? prefix;
@@ -205,100 +208,100 @@ export function createFacebookMessengerListener(
 
       const listen = (fcaApi: FcaApi): Promise<void> => {
         return new Promise<void>((resolve, reject) => {
-        listenerInstances = fcaApi.listenMqtt((err, rawEvent, state) => {
-          if (err) {
-            sessionLogger.error('[facebook-messenger] MQTT error', {
-              error: err,
-            });
+          listenerInstances = fcaApi.listenMqtt((err, rawEvent, state) => {
+            if (err) {
+              sessionLogger.error('[facebook-messenger] MQTT error', {
+                error: err,
+              });
 
-            // Auth errors are unrecoverable — the same appstate will fail again.
-            // Flag the session invalid so the next boot() triggers a fresh login.
-            if (isAuthError(err)) {
-              sessionLogger.error(
-                '[facebook-messenger] Session offline — MQTT auth error (appstate may be expired)',
-                { error: err },
+              // Auth errors are unrecoverable — the same appstate will fail again.
+              // Flag the session invalid so the next boot() triggers a fresh login.
+              if (isAuthError(err)) {
+                sessionLogger.error(
+                  '[facebook-messenger] Session offline — MQTT auth error (appstate may be expired)',
+                  { error: err },
+                );
+                isInvalidSession = true;
+                persistState();
+                void sessionManager.markInactive(smKey);
+                // Auth errors are permanent — connect will never fire for a revoked appstate.
+                // Reject immediately so the runner classifies this as a non-retryable failure.
+                reject(err);
+                return;
+              }
+
+              // Burst-error guard — only one reconnect attempt in flight at a time.
+              if (reconnecting) return;
+              reconnecting = true;
+
+              sessionLogger.info(
+                '[facebook-messenger] MQTT error — triggering managed restart...',
               );
-              isInvalidSession = true;
-              persistState();
-              void sessionManager.markInactive(smKey);
-              // Auth errors are permanent — connect will never fire for a revoked appstate.
-              // Reject immediately so the runner classifies this as a non-retryable failure.
-              reject(err);
+
+              // Stop the stale MQTT connection then re-enter the centralized runner.
+              // The runner provides exponential backoff with isRetrying / isLocked guards —
+              // no nested withRetry needed here, eliminating the zombie-listener risk.
+              const prev = listenerInstances;
+              listenerInstances = null;
+              void (async () => {
+                try {
+                  if (prev) await prev.stopListeningAsync();
+                } catch {
+                  /* non-fatal — proceed to restart regardless */
+                }
+                reconnecting = false;
+                // Pre-connect error: the Promise is still pending and void emitter.start()
+                // would be silently dropped (isRetrying = true). Reject boot() so the runner's
+                // retry loop picks it up with backoff from a clean state.
+                // Post-connect: MQTT disconnected after a live session — re-enter the runner
+                // for normal reconnection as before.
+                if (!mqttConnected) {
+                  reject(err);
+                } else {
+                  void emitter.start();
+                }
+              })();
               return;
             }
 
-            // Burst-error guard — only one reconnect attempt in flight at a time.
-            if (reconnecting) return;
-            reconnecting = true;
-
-            sessionLogger.info(
-              '[facebook-messenger] MQTT error — triggering managed restart...',
-            );
-
-            // Stop the stale MQTT connection then re-enter the centralized runner.
-            // The runner provides exponential backoff with isRetrying / isLocked guards —
-            // no nested withRetry needed here, eliminating the zombie-listener risk.
-            const prev = listenerInstances;
-            listenerInstances = null;
-            void (async () => {
-              try {
-                if (prev) await prev.stopListeningAsync();
-              } catch {
-                /* non-fatal — proceed to restart regardless */
+            // MQTT lifecycle state changes (connect, disconnect, close, error) are delivered
+            // as the third argument — log for operational visibility and return.
+            if (state) {
+              sessionLogger.info(
+                `[facebook-messenger] MQTT state: ${state.type}`,
+                { mqttState: state },
+              );
+              // Resolve once MQTT confirms the connection is live — boot() returns only after
+              // the transport is established, making the session startup strictly sequential.
+              // runManagedSession calls markActive AFTER boot() resolves, so the dashboard
+              // never shows the session as online before events can actually flow.
+              if (state.type === 'connect') {
+                mqttConnected = true;
+                resolve();
               }
-              reconnecting = false;
-              // Pre-connect error: the Promise is still pending and void emitter.start()
-              // would be silently dropped (isRetrying = true). Reject boot() so the runner's
-              // retry loop picks it up with backoff from a clean state.
-              // Post-connect: MQTT disconnected after a live session — re-enter the runner
-              // for normal reconnection as before.
-              if (!mqttConnected) {
-                reject(err);
-              } else {
-                void emitter.start();
-              }
-            })();
-            return;
-          }
-
-          // MQTT lifecycle state changes (connect, disconnect, close, error) are delivered
-          // as the third argument — log for operational visibility and return.
-          if (state) {
-            sessionLogger.info(
-              `[facebook-messenger] MQTT state: ${state.type}`,
-              { mqttState: state },
-            );
-            // Resolve once MQTT confirms the connection is live — boot() returns only after
-            // the transport is established, making the session startup strictly sequential.
-            // runManagedSession calls markActive AFTER boot() resolves, so the dashboard
-            // never shows the session as online before events can actually flow.
-            if (state.type === 'connect') {
-              mqttConnected = true;
-              resolve();
+              return;
             }
-            return;
-          }
 
-          const apiWrapper = createFacebookApi(fcaApi, config.sessionId);
-          const native = {
-            userId: config.userId,
-            sessionId: config.sessionId,
-            platform: Platforms.FacebookMessenger,
-            api: fcaApi,
-            event: rawEvent,
-          };
+            const apiWrapper = createFacebookApi(fcaApi, config.sessionId);
+            const native = {
+              userId: config.userId,
+              sessionId: config.sessionId,
+              platform: Platforms.FacebookMessenger,
+              api: fcaApi,
+              event: rawEvent,
+            };
 
-          // Guard routeRawEvent so a malformed payload never throws through fca-unofficial's
-          // synchronous callback and silently kills the entire MQTT connection.
-          try {
-            routeRawEvent(rawEvent, apiWrapper, native, emitter, prefix);
-          } catch (routeErr) {
-            sessionLogger.error(
-              '[facebook-messenger] routeRawEvent failed (event dropped)',
-              { error: routeErr },
-            );
-          }
-        });
+            // Guard routeRawEvent so a malformed payload never throws through fca-unofficial's
+            // synchronous callback and silently kills the entire MQTT connection.
+            try {
+              routeRawEvent(rawEvent, apiWrapper, native, emitter, prefix);
+            } catch (routeErr) {
+              sessionLogger.error(
+                '[facebook-messenger] routeRawEvent failed (event dropped)',
+                { error: routeErr },
+              );
+            }
+          });
         }); // closes new Promise<void>((resolve, reject))
       };
 

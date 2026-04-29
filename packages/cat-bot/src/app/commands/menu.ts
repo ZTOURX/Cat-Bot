@@ -89,7 +89,9 @@ function isReplyNavPlatform(platform: string): boolean {
 // ── Utility helpers ───────────────────────────────────────────────────────────
 
 function formatCategory(value: string): string {
-  const cleaned = String(value ?? 'Uncategorized').trim().replace(/\s+/g, ' ');
+  const cleaned = String(value ?? 'Uncategorized')
+    .trim()
+    .replace(/\s+/g, ' ');
   if (!cleaned) return 'Uncategorized';
   return cleaned
     .split(' ')
@@ -98,7 +100,10 @@ function formatCategory(value: string): string {
 }
 
 function categoryKey(value: string): string {
-  return String(value ?? 'Uncategorized').trim().replace(/\s+/g, ' ').toLowerCase();
+  return String(value ?? 'Uncategorized')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
 }
 
 function chunk<T>(arr: T[], size: number): T[][] {
@@ -139,17 +144,24 @@ async function buildDisabledNames(
 
   if (sessionUserId && sessionId) {
     try {
-      const rows = await findSessionCommands(sessionUserId, native.platform, sessionId);
+      const rows = await findSessionCommands(
+        sessionUserId,
+        native.platform,
+        sessionId,
+      );
       for (const r of rows as { isEnable: boolean; commandName: string }[]) {
         if (!r.isEnable) disabledNames.add(r.commandName);
       }
-    } catch { /* fail-open */ }
+    } catch {
+      /* fail-open */
+    }
   }
 
   for (const mod of commands.values()) {
     const cfg = mod['config'] as Record<string, unknown> | undefined;
     const name = (cfg?.['name'] as string | undefined)?.toLowerCase();
-    if (name && !isPlatformAllowed(mod, native.platform)) disabledNames.add(name);
+    if (name && !isPlatformAllowed(mod, native.platform))
+      disabledNames.add(name);
   }
 
   const senderID = (event['senderID'] ?? event['userID'] ?? '') as string;
@@ -165,13 +177,23 @@ async function buildDisabledNames(
         accessibleRoles.add(Role.PREMIUM);
         accessibleRoles.add(Role.SYSTEM_ADMIN);
       } else {
-        const isAdmin = await isBotAdmin(sessionUserId, native.platform, sessionId, senderID);
+        const isAdmin = await isBotAdmin(
+          sessionUserId,
+          native.platform,
+          sessionId,
+          senderID,
+        );
         if (isAdmin) {
           accessibleRoles.add(Role.THREAD_ADMIN);
           accessibleRoles.add(Role.BOT_ADMIN);
           accessibleRoles.add(Role.PREMIUM);
         } else {
-          const isPremium = await isBotPremium(sessionUserId, native.platform, sessionId, senderID);
+          const isPremium = await isBotPremium(
+            sessionUserId,
+            native.platform,
+            sessionId,
+            senderID,
+          );
           if (isPremium) {
             accessibleRoles.add(Role.THREAD_ADMIN);
             accessibleRoles.add(Role.PREMIUM);
@@ -181,13 +203,17 @@ async function buildDisabledNames(
           }
         }
       }
-    } catch { /* fail-open */ }
+    } catch {
+      /* fail-open */
+    }
   }
 
   for (const mod of commands.values()) {
     const cfg = mod['config'] as Record<string, unknown> | undefined;
     const name = (cfg?.['name'] as string | undefined)?.toLowerCase();
-    const cmdRole = Number((cfg?.['role'] as number | undefined) ?? Role.ANYONE);
+    const cmdRole = Number(
+      (cfg?.['role'] as number | undefined) ?? Role.ANYONE,
+    );
     if (name && !accessibleRoles.has(cmdRole)) disabledNames.add(name);
   }
 
@@ -210,8 +236,12 @@ function getVisibleMods(
   }
 
   result.sort((a, b) => {
-    const an = String((a['config'] as Record<string, unknown> | undefined)?.['name'] ?? '');
-    const bn = String((b['config'] as Record<string, unknown> | undefined)?.['name'] ?? '');
+    const an = String(
+      (a['config'] as Record<string, unknown> | undefined)?.['name'] ?? '',
+    );
+    const bn = String(
+      (b['config'] as Record<string, unknown> | undefined)?.['name'] ?? '',
+    );
     return an.localeCompare(bn);
   });
 
@@ -221,7 +251,10 @@ function getVisibleMods(
 function groupByCategory(
   mods: Array<Record<string, unknown>>,
 ): Array<[string, Array<Record<string, unknown>>]> {
-  const map = new Map<string, { label: string; mods: Array<Record<string, unknown>> }>();
+  const map = new Map<
+    string,
+    { label: string; mods: Array<Record<string, unknown>> }
+  >();
 
   for (const mod of mods) {
     const cfg = mod['config'] as Record<string, unknown> | undefined;
@@ -245,7 +278,10 @@ function buildCategoryLines(
   targetCategory: string,
   prefix: string,
 ): string[] {
-  const lines: string[] = [`**${targetCategory.toUpperCase()} COMMAND CENTER**`, ``];
+  const lines: string[] = [
+    `**${targetCategory.toUpperCase()} COMMAND CENTER**`,
+    ``,
+  ];
 
   for (const mod of catMods) {
     const cfg = mod['config'] as Record<string, unknown> | undefined;
@@ -290,17 +326,15 @@ async function renderCategoryList(ctx: AppCtx): Promise<void> {
       : discordChunkSize(flatButtonIds.length);
   const buttonGrid: string[][] = chunk(flatButtonIds, chunkSize);
 
-  const messageLines = [
-    `▫️ **Command Menu**`,
-    ``,
-    `Select a category below`,
-  ];
+  const messageLines = [`▫️ **Command Menu**`, ``, `Select a category below`];
 
   if (overflowCategories.length > 0) {
     messageLines.push(
       ``,
       `_Additional categories (use \`${prefix}help\`):_`,
-      ...overflowCategories.map(([cat], i) => `${buttonableCategories.length + i + 1}. ${cat}`),
+      ...overflowCategories.map(
+        ([cat], i) => `${buttonableCategories.length + i + 1}. ${cat}`,
+      ),
     );
   }
 
@@ -313,7 +347,10 @@ async function renderCategoryList(ctx: AppCtx): Promise<void> {
   };
 
   if (event['type'] === 'button_action') {
-    await chat.editMessage({ ...payload, message_id_to_edit: event['messageID'] as string });
+    await chat.editMessage({
+      ...payload,
+      message_id_to_edit: event['messageID'] as string,
+    });
   } else {
     await chat.replyMessage(payload);
   }
@@ -321,7 +358,10 @@ async function renderCategoryList(ctx: AppCtx): Promise<void> {
 
 // ── Button Platforms: Category Commands ───────────────────────────────────────
 
-async function renderCategoryCommands(ctx: AppCtx, category: string): Promise<void> {
+async function renderCategoryCommands(
+  ctx: AppCtx,
+  category: string,
+): Promise<void> {
   const { chat, commands, native, event, button, prefix = '' } = ctx;
 
   const disabledNames = await buildDisabledNames(commands, native, event);
@@ -351,7 +391,10 @@ async function renderCategoryCommands(ctx: AppCtx, category: string): Promise<vo
   };
 
   if (event['type'] === 'button_action') {
-    await chat.editMessage({ ...payload, message_id_to_edit: event['messageID'] as string });
+    await chat.editMessage({
+      ...payload,
+      message_id_to_edit: event['messageID'] as string,
+    });
   } else {
     await chat.replyMessage(payload);
   }
@@ -470,7 +513,8 @@ export const onReply = {
     const { chat, event, state, session } = ctx;
 
     const input = String(event['message'] ?? '').trim();
-    const categoryNames = (session.context['categories'] as string[] | undefined) ?? [];
+    const categoryNames =
+      (session.context['categories'] as string[] | undefined) ?? [];
     const currentStateId = session.id;
     const currentContext = session.context;
 

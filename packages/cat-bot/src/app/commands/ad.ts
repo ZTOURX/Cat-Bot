@@ -32,8 +32,8 @@ export const config: CommandConfig = {
   usage: [
     '(reply to uploaded photo)  ← FB Page non-admin: upload a photo then reply to it with this command',
     '<self>                      ← uses your own avatar',
-    '@mention                    ← uses the mentioned user\'s avatar',
-    '(reply to user\'s message)  ← uses the replied user\'s avatar',
+    "@mention                    ← uses the mentioned user's avatar",
+    "(reply to user's message)  ← uses the replied user's avatar",
   ],
   cooldown: 5,
   hasPrefix: true,
@@ -43,15 +43,16 @@ export const config: CommandConfig = {
 // Exclusive to Facebook Page non-admin users.
 // Page admins and other platform users do not need to follow these steps.
 
-export const nonAdminGuide = (prefix: string): string => [
-  `📢 **How to use /${config.name} (FB Page non-admin only):**`,
-  '1️⃣  Send a photo in the conversation (tap the photo/camera icon).',
-  `2️⃣  Reply to that photo with the command: \`${prefix}${config.name}\``,
-  '3️⃣  The bot will apply the effect to your uploaded photo and reply with the result.',
-  '',
-  '⚠️ You must reply directly to the photo message — typing the command',
-  '   in a new message without replying to a photo will not work.',
-].join('\n');
+export const nonAdminGuide = (prefix: string): string =>
+  [
+    `📢 **How to use /${config.name} (FB Page non-admin only):**`,
+    '1️⃣  Send a photo in the conversation (tap the photo/camera icon).',
+    `2️⃣  Reply to that photo with the command: \`${prefix}${config.name}\``,
+    '3️⃣  The bot will apply the effect to your uploaded photo and reply with the result.',
+    '',
+    '⚠️ You must reply directly to the photo message — typing the command',
+    '   in a new message without replying to a photo will not work.',
+  ].join('\n');
 
 // ── Command Handler ───────────────────────────────────────────────────────────
 
@@ -87,7 +88,13 @@ export const onCommand = async ({
     } else {
       const targetID = mentionIDs[0] ?? repliedSenderID ?? senderID;
       const avatar = await user.getAvatarUrl(targetID);
-      if (!avatar) { await chat.replyMessage({ style: MessageStyle.MARKDOWN, message: nonAdminGuide(prefix) }); return; }
+      if (!avatar) {
+        await chat.replyMessage({
+          style: MessageStyle.MARKDOWN,
+          message: nonAdminGuide(prefix),
+        });
+        return;
+      }
       imageUrl = avatar;
     }
 
