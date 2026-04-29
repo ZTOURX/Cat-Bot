@@ -38,7 +38,7 @@ export const lruCache = {
     return raw as T;
   },
 
-  set(key: string, value: unknown): void {
+  set(key: string, value: unknown, ttlMs?: number): void {
     // lru-cache v11 throws for undefined — silently skip to prevent uncaught exceptions
     // from propagating into the message-handling pipeline on accidental undefined writes.
     if (value === undefined) return;
@@ -47,6 +47,9 @@ export const lruCache = {
     cache.set(
       key,
       value === null ? NULL_SENTINEL : (value as NonNullable<unknown>),
+      // Per-entry TTL override: callers supply a platform-specific expiry (e.g. 3 h for
+      // Facebook Messenger getInfo). Falls back to the instance-wide default when omitted.
+      ttlMs !== undefined ? { ttl: ttlMs } : undefined,
     );
   },
 
