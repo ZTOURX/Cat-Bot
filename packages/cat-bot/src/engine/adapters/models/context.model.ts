@@ -53,6 +53,7 @@ import { Platforms } from '@/engine/modules/platform/platform.constants.js';
 export function createThreadContext(
   api: UnifiedApi,
   event: Record<string, unknown>,
+  native?: { userId?: string; platform?: string; sessionId?: string },
 ): import('./interfaces/index.js').ThreadContext {
   const defaultThreadID = event['threadID'] as string;
   logger.debug('[context.model] createThreadContext called', {
@@ -646,6 +647,7 @@ export function createBotContext(
  */
 export function createUserContext(
   api: UnifiedApi,
+  native?: { userId?: string; platform?: string; sessionId?: string },
 ): import('./interfaces/index.js').UserContext {
   logger.debug('[context.model] createUserContext called');
   return {
