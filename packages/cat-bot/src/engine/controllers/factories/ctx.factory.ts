@@ -57,12 +57,12 @@ export function buildBaseCtx(
 ): BaseCtx {
   // WHY: Capturing execution start time as early as possible (at factory creation) ensures latency metrics cover the entire dispatcher/middleware pipeline.
   const startTime = Date.now();
-  const thread = createThreadContext(api, event);
+  const thread = createThreadContext(api, event, native);
   // Generic chat context — handlers that need a command-aware variant (button callbacks,
   // slash-command dispatch) override ctx.chat after calling this factory.
   const chat = createChatContext(api, event);
   const bot = createBotContext(api);
-  const user = createUserContext(api);
+  const user = createUserContext(api, native);
   const logger = createLogger({
     userId: native.userId ?? '',
     platformId:
