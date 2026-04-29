@@ -22,6 +22,7 @@ import { sessionManager } from '@/engine/modules/session/session-manager.lib.js'
 import { hasNativeButtons } from '@/engine/utils/ui-capabilities.util.js';
 import type { CommandConfig } from '@/engine/types/module-config.types.js';
 import type { UnifiedUserInfo } from '@/engine/adapters/models/user.model.js';
+import { Platforms } from '@/engine/modules/platform/platform.constants.js';
 
 // ── Command Config ────────────────────────────────────────────────────────────
 
@@ -36,6 +37,11 @@ export const config: CommandConfig = {
   usage: '',
   cooldown: 5,
   hasPrefix: true,
+  platform: [
+    Platforms.Discord,
+    Platforms.Telegram,
+    Platforms.FacebookMessenger,
+  ],
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
