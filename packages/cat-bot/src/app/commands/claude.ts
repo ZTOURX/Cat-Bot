@@ -8,17 +8,6 @@
  *   !claude apa itu evangelion?
  *   (reply to any message) !claude
  *
- * Coin cost: 5 per use.
- *
- * ── Conversion gaps flagged ──────────────────────────────────────────────────
- * ❌ ctx.text || ctx.quoted?.text   → args.join(' ') for direct text;
- *                                    event['messageReply']?.['message'] for quoted.
- * ❌ richResponse: [{ text }]       → No Cat-Bot equivalent. Plain message string used.
- * ❌ tools.msg.generateInstruction  → No equivalent. usage() used.
- * ❌ tools.cmd.handleError          → No equivalent. Standard try/catch used.
- * ❌ formatter.bold()               → **Markdown** used directly.
- * ❌ permissions: { coin: 5 }       → Not a config field. Enforced via currencies manually.
- *
  * API provider:
  *   lexcode  /api/ai/claude-3-haiku
  */
@@ -56,12 +45,8 @@ export const onCommand = async ({
   args,
   chat,
   event,
-  currencies,
   usage,
 }: AppCtx): Promise<void> => {
-  // ── Resolve input ──────────────────────────────────────────────────────────
-  // ctx.text → args.join(' ') for the typed message after the command name
-  // ctx.quoted?.text → event['messageReply']?.['message'] for quoted messages
   const directText = args.join(' ').trim();
   const quotedText = (
     (event['messageReply'] as Record<string, unknown> | undefined)?.[
@@ -72,18 +57,6 @@ export const onCommand = async ({
   const input = directText || quotedText;
 
   if (!input) return usage();
-
-  // ── Coin gate (5 coins per use) ────────────────────────────────────────────
-  const senderID = event['senderID'] as string;
-  const balance = await currencies.getMoney(senderID);
-  if (balance < 5) {
-    await chat.replyMessage({
-      style: MessageStyle.MARKDOWN,
-      message: `⚠️ You need at least **5 coins** to use this command.\nYour balance: **${balance} coins**`,
-    });
-    return;
-  }
-  await currencies.decreaseMoney({ user_id: senderID, money: 5 });
 
   // ── API call ───────────────────────────────────────────────────────────────
   const url = createUrl('lexcode', '/api/ai/claude-3-haiku', { prompt: input });
@@ -102,7 +75,6 @@ export const onCommand = async ({
     const data = (await res.json()) as LexcodeClaudeResponse;
     if (!data?.result) throw new Error('API returned an empty response.');
 
-    // richResponse: [{ text }] has no Cat-Bot equivalent — send as plain message
     await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
       message: data.result,

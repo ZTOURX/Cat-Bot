@@ -23,7 +23,7 @@ export const config: CommandConfig = {
   role: Role.ANYONE,
   author: 'AjiroDesu',
   description: 'Generate a Supreme-style logo with your text.',
-  category: 'fun',
+  category: 'maker',
   usage: '<text>',
   cooldown: 5,
   hasPrefix: true,

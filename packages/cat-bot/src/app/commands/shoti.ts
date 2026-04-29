@@ -94,7 +94,7 @@ export const config: CommandConfig = {
   role: Role.ANYONE,
   author: 'AjiroDesu',
   description: 'Get a random TikTok girl video.',
-  category: 'fun',
+  category: 'random',
   usage: '',
   cooldown: 5,
   hasPrefix: true,

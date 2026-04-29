@@ -127,7 +127,6 @@ export const onCommand = async ({
   args,
   chat,
   event,
-  currencies,
   usage,
 }: AppCtx): Promise<void> => {
   // ── Guard: require input ────────────────────────────────────────────────────
@@ -143,18 +142,6 @@ export const onCommand = async ({
     return;
   }
 
-  // ── Coin gate (5 coins per use) ────────────────────────────────────────────
-  // permissions: { coin: 5 } has no Config-level equivalent in Cat-Bot.
-  const senderID = event['senderID'] as string;
-  const balance = await currencies.getMoney(senderID);
-  if (balance < 5) {
-    await chat.replyMessage({
-      style: MessageStyle.MARKDOWN,
-      message: `⚠️ You need at least **5 coins** to use this command.\nYour balance: **${balance} coins**`,
-    });
-    return;
-  }
-  await currencies.decreaseMoney({ user_id: senderID, money: 5 });
 
   // ── Loading indicator ──────────────────────────────────────────────────────
   const waitId = await chat.replyMessage({

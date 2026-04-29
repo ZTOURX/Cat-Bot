@@ -8,7 +8,7 @@
  * Usage:
  *   !deepgen anime girl with short blue hair
  *
- * Coin cost: 5 per use.
+ * 
  * Button: 🔁 Generate Again — re-runs the same prompt on click.
  *
  * ── Conversion gaps flagged ──────────────────────────────────────────────────
@@ -69,22 +69,8 @@ export const button = {
 };
 
 async function generateAndSend(ctx: AppCtx, prompt: string): Promise<void> {
-  const { chat, native, event, button: btn, session, currencies } = ctx;
+  const { chat, native, event, button: btn, session } = ctx;
   const isButtonAction = event['type'] === 'button_action';
-
-  // Coin gate only on fresh command, not on button re-trigger
-  if (!isButtonAction) {
-    const senderID = event['senderID'] as string;
-    const balance = await currencies.getMoney(senderID);
-    if (balance < 5) {
-      await chat.replyMessage({
-        style: MessageStyle.MARKDOWN,
-        message: `⚠️ You need at least **5 coins** to use this command.\nYour balance: **${balance} coins**`,
-      });
-      return;
-    }
-    await currencies.decreaseMoney({ user_id: senderID, money: 5 });
-  }
 
   let loadingId: string | undefined;
   if (!isButtonAction) {

@@ -23,7 +23,7 @@ export const config: CommandConfig = {
   role: Role.ANYONE,
   author: 'AjiroDesu',
   description: 'Get a random car image.',
-  category: 'fun',
+  category: 'media',
   usage: '',
   cooldown: 5,
   hasPrefix: true,

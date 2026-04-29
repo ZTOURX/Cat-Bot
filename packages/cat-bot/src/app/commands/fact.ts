@@ -25,7 +25,7 @@ export const config: CommandConfig = {
   role: Role.ANYONE,
   author: 'AjiroDesu',
   description: 'Get a random fun fact.',
-  category: 'fun',
+  category: 'random',
   usage: '',
   cooldown: 5,
   hasPrefix: true,
