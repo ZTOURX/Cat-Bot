@@ -110,10 +110,16 @@ export function createPageApi(
           if (isAuthError(err)) {
             onAuthError?.(err);
           }
-          logError('❌ sendMessage (page) failed', {
-            error: axiosErr?.response?.data || axiosErr.message,
+
+          // Log the error without throwing — fca-unofficial compat
+          logError('sendMessage ❌', {
+            error: axiosErr.response?.data || axiosErr.message,
           });
-          if (callback) callback(err, null);
+
+          // Callback with error to match fca-unofficial's error handling pattern
+          if (callback) {
+            callback(err, null);
+          }
         }
       };
       doSend();
@@ -128,27 +134,63 @@ export function createPageApi(
     getUserInfo(
       userIds: string[],
       callback: (
-        err: unknown,
+        err: null,
         users: Record<string, { name: string }> | null,
       ) => void,
     ): void {
-      // Graph API has no batch user endpoint — fetch sequentially.
-      // Parallel requests risk hitting rate limits on large arrays.
+      // WHY conversations endpoint: GET /{PSID}?fields=name targets the User node
+      // directly and fails with GraphMethodException error_subcode 33 — it requires
+      // "Business Asset User Profile Access" (App Review). The documented Messenger
+      // Platform approach for reading a sender's name is:
+      //   GET /{page-id}/conversations?user_id={PSID}&fields=participants
+      // which only requires pages_messaging + pages_read_engagement — same permissions
+      // already needed for the bot to receive and send messages.
       const fetchAll = async () => {
         try {
           const results: Record<string, { name: string }> = {};
           for (const uid of userIds) {
-            const res = await axios.get<{ name: string }>(
-              `${FB_API_BASE}/${uid}`,
-              {
-                params: { fields: 'name', access_token: pageAccessToken },
-              },
-            );
-            results[uid] = { name: res.data.name };
+            try {
+              const res = await axios.get<{
+                data: Array<{
+                  participants?: {
+                    data?: Array<{ id: string; name?: string }>;
+                  };
+                }>;
+              }>(`${FB_API_BASE}/${pageId}/conversations`, {
+                params: {
+                  user_id: uid,
+                  fields: 'participants',
+                  access_token: pageAccessToken,
+                },
+              });
+              // Participants includes both the Page and the user — match by PSID
+              // to extract the human sender's display name specifically
+              const conv = res.data.data[0];
+              const participant = conv?.participants?.data?.find(
+                (p) => p.id === uid,
+              );
+              results[uid] = { name: participant?.name ?? `User ${uid}` };
+            } catch (uidErr) {
+              const typedErr = uidErr as {
+                response?: { data?: unknown };
+                message?: string;
+              };
+              logError(`[facebook-page] getUserInfo failed for ${uid}`, {
+                error: typedErr?.response?.data ?? typedErr?.message,
+              });
+              results[uid] = { name: `User ${uid}` };
+            }
           }
           callback(null, results);
         } catch (err) {
-          callback(err, null);
+          const typedErr = err as {
+            response?: { data?: unknown };
+            message?: string;
+          };
+          logError('[facebook-page] getUserInfo outer failure', {
+            error: typedErr?.response?.data ?? typedErr?.message,
+          });
+          callback(null, {});
         }
       };
       fetchAll();
@@ -222,23 +264,48 @@ export function createPageApi(
 
     async getAvatarUrl(userID: string): Promise<string | null> {
       try {
-        const res = await axios.get<{ profile_pic?: string }>(
-          `${FB_API_BASE}/${userID}`,
-          {
-            params: { fields: 'profile_pic', access_token: pageAccessToken },
+        // WHY /picture edge: The ?fields=profile_pic User Profile API endpoint
+        // requires "Business Asset User Profile Access" (App Review) per official
+        // Meta documentation — most standard Page bots are never approved for it.
+        // The /picture edge (Graph API v25.0) requires only a Page access token for
+        // PSIDs — no App Review needed. redirect=0 (integer, not boolean false) forces
+        // a JSON response instead of the default 302 redirect to the CDN binary.
+        // Axios serialises JS `false` as the string "false" in query params, which the
+        // Graph API may treat as truthy and still return a 302 — so the param is
+        // embedded directly in the URL path as redirect=0 to guarantee correct behaviour.
+        // Response shape: { data: { url, is_silhouette, width, height } }
+        const res = await axios.get<{
+          data?: { url?: string; is_silhouette?: boolean };
+        }>(`${FB_API_BASE}/${userID}/picture?redirect=0`, {
+          params: {
+            type: 'large',
+            access_token: pageAccessToken,
           },
-        );
-        // Profile pic might be undefined if user doesn't have one or permission denied
-        return res.data.profile_pic ?? null;
+        });
+        // is_silhouette = true: user has no profile picture; return null so callers
+        // can render a generic placeholder rather than the FB grey silhouette CDN image
+        if (res.data.data?.is_silhouette) return null;
+        return res.data.data?.url ?? null;
       } catch (err) {
         const axiosErr = err as {
-          response?: { data: unknown };
+          response?: { data?: { error?: { code?: number; message?: string } } };
           message?: string;
         };
         if (isAuthError(err)) onAuthError?.(err);
-        // Graph API errors on profile_pic usually mean the PSID doesn't support it or the user blocked the app
+        // FB error 2018218: Messenger account created with a phone number — the Graph
+        // API User Profile endpoint explicitly does not support these accounts. This is
+        // a permanent platform limitation, not a transient failure; log distinctly so
+        // developers do not spend time debugging a mis-configured credential.
+        const fbCode = axiosErr.response?.data?.error?.code;
+        if (fbCode === 2018218) {
+          logError(
+            `[facebook-page] getAvatarUrl: phone-number Messenger account — profile picture unavailable (FB error 2018218)`,
+            { userID },
+          );
+          return null;
+        }
         logError('❌ getAvatarUrl (page) failed', {
-          error: axiosErr?.response?.data || axiosErr.message,
+          error: axiosErr.response?.data || axiosErr.message,
         });
         return null;
       }
