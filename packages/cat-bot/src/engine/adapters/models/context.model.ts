@@ -16,6 +16,8 @@
 // stateStore is a runtime value from lib/ — cannot use `import type`
 import { stateStore } from '@/engine/lib/state.lib.js';
 import { buttonContextLib } from '@/engine/lib/button-context.lib.js';
+import { lruCache } from '@/engine/lib/lru-cache.lib.js';
+import type { UnifiedUserInfo } from './user.model.js';
 
 // UnifiedApi is a class defined in api.model, not in the interfaces barrel.
 // ButtonItem is used locally in resolveButtons(); others are referenced only in re-exported types.
@@ -26,7 +28,7 @@ import {
   ButtonStyle,
   type ButtonStyleValue,
 } from '@/engine/constants/button-style.constants.js';
-import { createUnifiedThreadInfo } from './thread.model.js';
+import { createUnifiedThreadInfo, type UnifiedThreadInfo } from './thread.model.js';
 
 // Re-export interfaces for backward compatibility
 export type {
@@ -41,6 +43,22 @@ export type {
 } from './interfaces/index.js';
 
 import { Platforms } from '@/engine/modules/platform/platform.constants.js';
+
+// ── getInfo cache TTL — platform-specific expiry for full thread/user info ─────
+// Facebook Messenger's high-frequency GraphQL API access risks triggering account
+// bans; we cache aggressively (3 h) to minimise API call frequency. Discord and
+// Telegram have generous rate-limits, so 30 min balances freshness with efficiency.
+// Facebook Page sits in between at 1 h — less ban-sensitive but still cost-aware.
+const GETINFO_TTL_MS: Record<string, number> = {
+  [Platforms.Discord]: 30 * 60 * 1000,
+  [Platforms.Telegram]: 30 * 60 * 1000,
+  [Platforms.FacebookPage]: 60 * 60 * 1000,
+  [Platforms.FacebookMessenger]: 3 * 60 * 60 * 1000,
+};
+function getInfoCacheTTL(platform: string): number {
+  // Default to 5 min for unrecognised platforms — matches the base lruCache instance TTL.
+  return GETINFO_TTL_MS[platform] ?? 5 * 60 * 1000;
+}
 
 // ============================================================================
 // FACTORIES
@@ -164,7 +182,7 @@ export function createThreadContext(
      * Fetch rich structured information about a thread / group / server.
      * Defaults to the current event thread; pass a different ID to query any accessible thread.
      */
-    getInfo: async (targetThreadID) => {
+    getInfo: async (targetThreadID): Promise<UnifiedThreadInfo> => {
       const target =
         typeof targetThreadID === 'object' && targetThreadID !== null
           ? getThreadID(targetThreadID)
@@ -172,6 +190,19 @@ export function createThreadContext(
       logger.debug('[context.model] ThreadContext.getInfo called', {
         threadID: target,
       });
+
+      // Scope cache to (sessionOwner, platform, session, thread) — same composite key
+      // structure used by threads.repo.ts to isolate per-session data.
+      const nativeUserId = native?.userId ?? '';
+      const nativePlatform = native?.platform ?? api.platform;
+      const nativeSessionId = native?.sessionId ?? '';
+      const cacheEnabled = Boolean(nativeUserId && nativeSessionId);
+      if (cacheEnabled) {
+        const cached = lruCache.get<UnifiedThreadInfo>(
+          `${nativeUserId}:${nativePlatform}:${nativeSessionId}:thread:fullInfo:${target as string}`,
+        );
+        if (cached !== undefined) return cached;
+      }
 
       // Fallback for 1:1 threads where getFullThreadInfo might not be supported natively.
       // By mapping user metadata to the thread schema, we avoid breaking repository layers.
@@ -186,7 +217,7 @@ export function createThreadContext(
             event['userID'] ??
             target) as string;
           const userInfo = await api.getFullUserInfo(targetUserID);
-          return createUnifiedThreadInfo({
+          const info = createUnifiedThreadInfo({
             platform: api.platform,
             threadID: target as string,
             name: userInfo.name,
@@ -197,6 +228,14 @@ export function createThreadContext(
             avatarUrl: userInfo.avatarUrl,
             serverID: null,
           });
+          if (cacheEnabled) {
+            lruCache.set(
+              `${nativeUserId}:${nativePlatform}:${nativeSessionId}:thread:fullInfo:${target as string}`,
+              info,
+              getInfoCacheTTL(nativePlatform),
+            );
+          }
+          return info;
         } catch (err: unknown) {
           logger.warn(
             '[context.model] Fallback user.getInfo failed for 1:1 thread, proceeding to getFullThreadInfo',
@@ -207,7 +246,15 @@ export function createThreadContext(
         }
       }
 
-      return api.getFullThreadInfo(target as string);
+      const result = await api.getFullThreadInfo(target as string);
+      if (cacheEnabled) {
+        lruCache.set(
+          `${nativeUserId}:${nativePlatform}:${nativeSessionId}:thread:fullInfo:${target as string}`,
+          result,
+          getInfoCacheTTL(nativePlatform),
+        );
+      }
+      return result;
     },
     /**
      * Cache-first (Discord/Telegram) or DB-backed (FB) display name lookup.
@@ -655,9 +702,28 @@ export function createUserContext(
      * Fetch rich structured information about a user on this platform.
      * Returns a UnifiedUserInfo (see models/user.model.ts).
      */
-    getInfo: (userID) => {
+    getInfo: async (userID): Promise<UnifiedUserInfo> => {
       logger.debug('[context.model] UserContext.getInfo called', { userID });
-      return api.getFullUserInfo(userID);
+      // Scope cache to session identity — same composite key structure as thread.fullInfo
+      // to keep namespace conventions consistent across the engine layer.
+      const nativeUserId = native?.userId ?? '';
+      const nativePlatform = native?.platform ?? api.platform;
+      const nativeSessionId = native?.sessionId ?? '';
+      if (nativeUserId && nativeSessionId) {
+        const cached = lruCache.get<UnifiedUserInfo>(
+          `${nativeUserId}:${nativePlatform}:${nativeSessionId}:user:fullInfo:${userID}`,
+        );
+        if (cached !== undefined) return cached;
+      }
+      const info = await api.getFullUserInfo(userID);
+      if (nativeUserId && nativeSessionId) {
+        lruCache.set(
+          `${nativeUserId}:${nativePlatform}:${nativeSessionId}:user:fullInfo:${userID}`,
+          info,
+          getInfoCacheTTL(nativePlatform),
+        );
+      }
+      return info;
     },
     // Cache-first (Discord/Telegram) or DB-backed (FB) — no external API round-trip on supported platforms
     getName: (userID) => {
