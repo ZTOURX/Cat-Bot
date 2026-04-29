@@ -26,7 +26,8 @@ export class BotController {
       !Array.isArray(dto.botAdmins) ||
       // Facebook Page does not utilize botAdmins since roles are inherited from Page admin roles;
       // all other platforms require at least one bot admin ID to be securely provisioned.
-      (dto.credentials?.platform !== Platforms.FacebookPage && dto.botAdmins.length === 0) ||
+      (dto.credentials?.platform !== Platforms.FacebookPage &&
+        dto.botAdmins.length === 0) ||
       typeof dto.credentials?.platform !== 'string' ||
       !dto.credentials.platform
     ) {
@@ -92,7 +93,8 @@ export class BotController {
       !dto.botPrefix ||
       !Array.isArray(dto.botAdmins) ||
       // Validation parity with creation: ensure admins are supplied for non-FB-Page platforms
-      (dto.credentials?.platform !== Platforms.FacebookPage && dto.botAdmins.length === 0) ||
+      (dto.credentials?.platform !== Platforms.FacebookPage &&
+        dto.botAdmins.length === 0) ||
       typeof dto.credentials?.platform !== 'string' ||
       !dto.credentials.platform
     ) {

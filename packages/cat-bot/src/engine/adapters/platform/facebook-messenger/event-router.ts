@@ -19,7 +19,10 @@ import { Platforms } from '@/engine/modules/platform/platform.constants.js';
 import type { EventEmitter } from 'events';
 import type { UnifiedApi } from '@/engine/adapters/models/api.model.js';
 import { formatEvent } from '@/engine/adapters/models/event.model.js';
-import { normalizeMessageEvent, normalizeE2eeMessageEvent } from './utils/index.js';
+import {
+  normalizeMessageEvent,
+  normalizeE2eeMessageEvent,
+} from './utils/index.js';
 import { E2EEApiProxy } from './lib/e2ee.js';
 import type { FcaApi } from './types.js';
 
@@ -82,15 +85,23 @@ export function routeRawEvent(
       // extract from e2ee metadata (always present) or derive from the raw threadID.
       const e2eePayload = rawEvent['e2ee'] as { chatJid?: string } | undefined;
       const chatJid =
-        e2eePayload?.chatJid ??
-        `${rawEvent['threadID'] as string}@msgr`;
+        e2eePayload?.chatJid ?? `${rawEvent['threadID'] as string}@msgr`;
       const normalizedEvent = normalizeE2eeMessageEvent(rawEvent);
       // 'message' or 'message_reply' — determined by e2ee.replyTo !== null inside normalizer
       const emitType = normalizedEvent['type'] as string;
       // Wrap the session-level UnifiedApi with E2EE send overrides scoped to this chatJid.
       // E2EEApiProxy is per-event and not held beyond this call — no shared mutable state.
-      const e2eeApi = new E2EEApiProxy(apiWrapper, native.api as FcaApi, chatJid);
-      emitter.emit(emitType, { api: e2eeApi, event: normalizedEvent, native, prefix });
+      const e2eeApi = new E2EEApiProxy(
+        apiWrapper,
+        native.api as FcaApi,
+        chatJid,
+      );
+      emitter.emit(emitType, {
+        api: e2eeApi,
+        event: normalizedEvent,
+        native,
+        prefix,
+      });
       break;
     }
 
@@ -114,7 +125,12 @@ export function routeRawEvent(
         offlineThreadingID: '',
         isE2EE: true,
       };
-      emitter.emit('message_reaction', { api: apiWrapper, event, native, prefix });
+      emitter.emit('message_reaction', {
+        api: apiWrapper,
+        event,
+        native,
+        prefix,
+      });
       break;
     }
 

@@ -28,7 +28,6 @@ class SessionManager extends EventEmitter {
   // a new retry sequence before the old one fully unwinds.
   readonly #retrying = new Map<string, { abort: () => void; token: symbol }>();
 
-  
   markLocked(key: string): void {
     // WHY: Support reentrant locks so nested calls increment a counter instead of unlocking prematurely
     const count = this.#locked.get(key) ?? 0;

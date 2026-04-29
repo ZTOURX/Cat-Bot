@@ -28,8 +28,15 @@ export const config: CommandConfig = {
   hasPrefix: true,
 };
 
-export const onCommand = async ({ chat, args, usage }: AppCtx): Promise<void> => {
-  const parts = args.join(' ').split('|').map(s => s.trim());
+export const onCommand = async ({
+  chat,
+  args,
+  usage,
+}: AppCtx): Promise<void> => {
+  const parts = args
+    .join(' ')
+    .split('|')
+    .map((s) => s.trim());
   const text1 = parts[0] ?? '';
   const text2 = parts[1] ?? '';
 

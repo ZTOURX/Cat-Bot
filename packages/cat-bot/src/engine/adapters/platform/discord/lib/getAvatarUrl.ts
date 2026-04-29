@@ -39,11 +39,23 @@ export async function getAvatarUrl(
       // displayAvatarURL() returns the default avatar when no custom one is set
       // extension: 'png' — explicitly request PNG per ALLOWED_EXTENSIONS (webp is the silent default).
       // forceStatic: true — without this flag discord.js still returns a GIF URL for animated avatars.
-      return cached.displayAvatarURL({ extension: 'png', size: 256, forceStatic: true }) ?? null;
+      return (
+        cached.displayAvatarURL({
+          extension: 'png',
+          size: 256,
+          forceStatic: true,
+        }) ?? null
+      );
     }
     try {
       const member = await guild.members.fetch(userID);
-      return member.displayAvatarURL({ extension: 'png', size: 256, forceStatic: true }) ?? null;
+      return (
+        member.displayAvatarURL({
+          extension: 'png',
+          size: 256,
+          forceStatic: true,
+        }) ?? null
+      );
     } catch {
       // Member not in this guild (e.g. DM context) — fall through to global user lookup
     }
@@ -52,10 +64,23 @@ export async function getAvatarUrl(
   if (client) {
     // Global user cache — no guild-specific avatar, but always available for cached users
     const cachedUser = client.users.cache.get(userID);
-    if (cachedUser) return cachedUser.displayAvatarURL({ extension: 'png', size: 256, forceStatic: true }) ?? null;
+    if (cachedUser)
+      return (
+        cachedUser.displayAvatarURL({
+          extension: 'png',
+          size: 256,
+          forceStatic: true,
+        }) ?? null
+      );
     try {
       const user = await client.users.fetch(userID);
-      return user.displayAvatarURL({ extension: 'png', size: 256, forceStatic: true }) ?? null;
+      return (
+        user.displayAvatarURL({
+          extension: 'png',
+          size: 256,
+          forceStatic: true,
+        }) ?? null
+      );
     } catch {
       return null;
     }

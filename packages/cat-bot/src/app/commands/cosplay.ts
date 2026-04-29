@@ -26,7 +26,6 @@ import type { CommandConfig } from '@/engine/types/module-config.types.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-
 // ── Video Fetcher ─────────────────────────────────────────────────────────────
 
 /**
@@ -154,9 +153,7 @@ export const onCommand = async (ctx: AppCtx): Promise<void> => {
     }
 
     // ── Compose caption ───────────────────────────────────────────────────
-    const caption = [
-      '👗 **Random Cosplay**',
-        ].join('\n');
+    const caption = ['👗 **Random Cosplay**'].join('\n');
 
     // Reuse the active instance ID when refreshing via button so the button
     // slot is updated in-place and never disappears between clicks.

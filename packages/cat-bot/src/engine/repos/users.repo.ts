@@ -139,7 +139,10 @@ export async function getUserAvatar(userId: string): Promise<string | null> {
   return _getUserAvatar(userId);
 }
 
-export async function updateUserAvatar(userId: string, avatarUrl: string): Promise<void> {
+export async function updateUserAvatar(
+  userId: string,
+  avatarUrl: string,
+): Promise<void> {
   await _updateUserAvatar(userId, avatarUrl);
 }
 

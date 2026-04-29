@@ -12,7 +12,11 @@
 
 import type { BaseCtx } from '@/engine/types/controller.types.js';
 import { toBotUserData } from '@/engine/models/users.model.js';
-import { upsertUser, upsertUserSession, userExists } from '@/engine/repos/users.repo.js';
+import {
+  upsertUser,
+  upsertUserSession,
+  userExists,
+} from '@/engine/repos/users.repo.js';
 import { logger } from '@/engine/modules/logger/logger.lib.js'; // Relocated module
 
 /**

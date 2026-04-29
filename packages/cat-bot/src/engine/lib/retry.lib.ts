@@ -31,8 +31,8 @@ export interface RetryOptions {
   /**
    * Optional guard — return false to abort retrying immediately without sleeping.
    * Designed for auth/credential errors where every additional attempt is futile.
-  * When absent, all errors are retried up to maxAttempts (existing behaviour).
-  */
+   * When absent, all errors are retried up to maxAttempts (existing behaviour).
+   */
   shouldRetry?: (err: unknown, attempt: number) => boolean;
   /**
    * Optional AbortSignal — when aborted, the retry loop exits immediately without
@@ -49,9 +49,15 @@ export interface RetryOptions {
 // out the full back-off delay, which can be up to 120 s at maximum backoff.
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (signal?.aborted) { reject(new Error('Retry aborted')); return; }
+    if (signal?.aborted) {
+      reject(new Error('Retry aborted'));
+      return;
+    }
     let id: ReturnType<typeof setTimeout>;
-    const handler = () => { clearTimeout(id); reject(new Error('Retry aborted')); };
+    const handler = () => {
+      clearTimeout(id);
+      reject(new Error('Retry aborted'));
+    };
     id = setTimeout(() => {
       signal?.removeEventListener('abort', handler);
       resolve();

@@ -46,12 +46,20 @@ export const config: CommandConfig = {
 
 // ── Command Handler ───────────────────────────────────────────────────────────
 
-export const onCommand = async ({ chat, event, usage }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  chat,
+  event,
+  usage,
+}: AppCtx): Promise<void> => {
   // ── Resolve audio URL ───────────────────────────────────────────────────────
   // Priority: direct attachment → quoted attachment
   const attachments = (event['attachments'] as Record<string, unknown>[]) ?? [];
-  const messageReply = event['messageReply'] as Record<string, unknown> | null | undefined;
-  const quotedAttachments = (messageReply?.['attachments'] as Record<string, unknown>[]) ?? [];
+  const messageReply = event['messageReply'] as
+    | Record<string, unknown>
+    | null
+    | undefined;
+  const quotedAttachments =
+    (messageReply?.['attachments'] as Record<string, unknown>[]) ?? [];
 
   const directAudio = attachments.find(
     (att) => (att['type'] as string) === 'audio',
@@ -60,7 +68,9 @@ export const onCommand = async ({ chat, event, usage }: AppCtx): Promise<void> =
     (att) => (att['type'] as string) === 'audio',
   );
 
-  const audioUrl = (directAudio?.['url'] ?? quotedAudio?.['url']) as string | undefined;
+  const audioUrl = (directAudio?.['url'] ?? quotedAudio?.['url']) as
+    | string
+    | undefined;
 
   if (!audioUrl) {
     return usage();

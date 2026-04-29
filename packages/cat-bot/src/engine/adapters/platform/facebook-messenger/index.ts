@@ -135,7 +135,9 @@ export function createFacebookMessengerListener(
 
     // Claim retry slot synchronously so a rapid second call sees isRetrying = true.
     const controller = new AbortController();
-    const retryToken = sessionManager.markRetrying(smKey, () => controller.abort());
+    const retryToken = sessionManager.markRetrying(smKey, () =>
+      controller.abort(),
+    );
 
     // Signal the dashboard offline immediately; markActive fires on successful boot only.
     void sessionManager.markInactive(smKey);
@@ -244,7 +246,9 @@ export function createFacebookMessengerListener(
                   if (reconnecting) return;
                   reconnecting = true;
 
-                  sessionLogger.info('[facebook-messenger] Restarting Listener...');
+                  sessionLogger.info(
+                    '[facebook-messenger] Restarting Listener...',
+                  );
                   void listenerInstances
                     ?.stopListeningAsync()
                     .catch(() => undefined)

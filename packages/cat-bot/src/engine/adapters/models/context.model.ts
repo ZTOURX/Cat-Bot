@@ -176,7 +176,9 @@ export function createThreadContext(
       // By mapping user metadata to the thread schema, we avoid breaking repository layers.
       if (target === defaultThreadID && event['isGroup'] === false) {
         try {
-          const targetUserID = (event['senderID'] ?? event['userID'] ?? target) as string;
+          const targetUserID = (event['senderID'] ??
+            event['userID'] ??
+            target) as string;
           const userInfo = await api.getFullUserInfo(targetUserID);
           return createUnifiedThreadInfo({
             platform: api.platform,
@@ -190,9 +192,12 @@ export function createThreadContext(
             serverID: null,
           });
         } catch (err: unknown) {
-          logger.warn('[context.model] Fallback user.getInfo failed for 1:1 thread, proceeding to getFullThreadInfo', {
-            error: err instanceof Error ? err.message : String(err),
-          });
+          logger.warn(
+            '[context.model] Fallback user.getInfo failed for 1:1 thread, proceeding to getFullThreadInfo',
+            {
+              error: err instanceof Error ? err.message : String(err),
+            },
+          );
         }
       }
 

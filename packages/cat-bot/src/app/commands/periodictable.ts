@@ -62,7 +62,11 @@ function buildElementCard(m: ElementMessage): string {
 
 // ── Command Handler ───────────────────────────────────────────────────────────
 
-export const onCommand = async ({ chat, args, usage }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  chat,
+  args,
+  usage,
+}: AppCtx): Promise<void> => {
   const element = args.join(' ').trim();
   if (!element) return usage();
 
@@ -73,8 +77,12 @@ export const onCommand = async ({ chat, args, usage }: AppCtx): Promise<void> =>
     const res = await fetch(`${base}?element=${encodeURIComponent(element)}`);
     if (!res.ok) throw new Error(`API responded with status ${res.status}`);
 
-    const json = await res.json() as { error: boolean; message: ElementMessage };
-    if (json.error) throw new Error('Element not found or API returned an error.');
+    const json = (await res.json()) as {
+      error: boolean;
+      message: ElementMessage;
+    };
+    if (json.error)
+      throw new Error('Element not found or API returned an error.');
 
     const m = json.message;
 

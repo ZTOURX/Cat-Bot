@@ -68,7 +68,10 @@ export const onCommand = async ({ chat }: AppCtx): Promise<void> => {
     const res = await fetch(base);
     if (!res.ok) throw new Error(`API responded with status ${res.status}`);
 
-    const json = await res.json() as { error: boolean; message: ElementMessage };
+    const json = (await res.json()) as {
+      error: boolean;
+      message: ElementMessage;
+    };
     if (json.error) throw new Error('API returned an error.');
 
     const m = json.message;

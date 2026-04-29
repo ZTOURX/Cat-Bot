@@ -31,11 +31,20 @@ export const config: CommandConfig = {
   hasPrefix: true,
 };
 
-export const onCommand = async ({ chat, user, event, args, usage }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  chat,
+  user,
+  event,
+  args,
+  usage,
+}: AppCtx): Promise<void> => {
   const senderID = event['senderID'] as string;
   const mentions = event['mentions'] as Record<string, string> | undefined;
   const mentionIDs = Object.keys(mentions ?? {});
-  const messageReply = event['messageReply'] as Record<string, unknown> | null | undefined;
+  const messageReply = event['messageReply'] as
+    | Record<string, unknown>
+    | null
+    | undefined;
   const repliedSenderID = messageReply?.['senderID'] as string | undefined;
   const targetID = mentionIDs[0] ?? repliedSenderID ?? senderID;
 
@@ -43,7 +52,15 @@ export const onCommand = async ({ chat, user, event, args, usage }: AppCtx): Pro
   const mentionTexts = Object.values(mentions ?? {});
   const cleanArgs = args
     .join(' ')
-    .replace(new RegExp(mentionTexts.map(m => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'g'), '')
+    .replace(
+      new RegExp(
+        mentionTexts
+          .map((m) => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+          .join('|'),
+        'g',
+      ),
+      '',
+    )
     .trim();
 
   const deg = parseInt(cleanArgs, 10);
@@ -71,7 +88,9 @@ export const onCommand = async ({ chat, user, event, args, usage }: AppCtx): Pro
     await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
       message: `🎨 **Hue Rotated (${deg}°)**`,
-      attachment: [{ name: 'huerotate.png', stream: Buffer.from(await res.arrayBuffer()) }],
+      attachment: [
+        { name: 'huerotate.png', stream: Buffer.from(await res.arrayBuffer()) },
+      ],
     });
   } catch (err) {
     const error = err as { message?: string };

@@ -90,7 +90,9 @@ export function createTelegramListener(
 
     // Claim retry slot synchronously so a rapid second call sees isRetrying = true.
     const controller = new AbortController();
-    const retryToken = sessionManager.markRetrying(smKey, () => controller.abort());
+    const retryToken = sessionManager.markRetrying(smKey, () =>
+      controller.abort(),
+    );
 
     // Signal the dashboard offline immediately; markActive fires on successful boot only.
     void sessionManager.markInactive(smKey);
@@ -106,10 +108,16 @@ export function createTelegramListener(
           if (!isFirstAttempt) {
             try {
               unregisterSlashSync(smKey);
-              unregisterTelegramWebhookHandler(`${config.userId}:${config.sessionId}`);
+              unregisterTelegramWebhookHandler(
+                `${config.userId}:${config.sessionId}`,
+              );
               activeCommands = null;
               if (activeBot) {
-                try { activeBot.stop('Restarting'); } catch { /* suppress "not running" */ }
+                try {
+                  activeBot.stop('Restarting');
+                } catch {
+                  /* suppress "not running" */
+                }
                 activeBot = null;
               }
             } catch {
@@ -126,9 +134,13 @@ export function createTelegramListener(
 
             // WHY: Fetching inside the retry loop guarantees every attempt uses the
             // latest credentials — covers credential-update auto-restarts.
-            const botDetail = await botRepo.getById(config.userId, config.sessionId);
+            const botDetail = await botRepo.getById(
+              config.userId,
+              config.sessionId,
+            );
             const botToken = botDetail
-              ? ((botDetail.credentials as any).telegramToken ?? config.botToken)
+              ? ((botDetail.credentials as any).telegramToken ??
+                config.botToken)
               : config.botToken;
             const prefix = botDetail
               ? (botDetail.prefix ?? config.prefix)
@@ -169,9 +181,12 @@ export function createTelegramListener(
             // Without this, handler rejections surface as unhandled promise rejections
             // which crash Node ≥15 and take down every other platform session.
             activeBot.catch((err: unknown, _ctx: unknown) => {
-              sessionLogger.error('[telegram] Handler error (session continues)', {
-                error: err,
-              });
+              sessionLogger.error(
+                '[telegram] Handler error (session continues)',
+                {
+                  error: err,
+                },
+              );
             });
 
             // Step 3: Start receiving updates.
@@ -252,7 +267,8 @@ export function createTelegramListener(
               const disabledNames = new Set<string>(
                 rows
                   .filter(
-                    (r: { isEnable: boolean; commandName: string }) => !r.isEnable,
+                    (r: { isEnable: boolean; commandName: string }) =>
+                      !r.isEnable,
                   )
                   .map((r: { commandName: string }) => r.commandName),
               );

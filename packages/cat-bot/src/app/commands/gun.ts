@@ -21,18 +21,28 @@ export const config: CommandConfig = {
   version: '1.0.0',
   role: Role.ANYONE,
   author: 'AjiroDesu',
-  description: "Generate a gun threat image with a user's avatar and your text.",
+  description:
+    "Generate a gun threat image with a user's avatar and your text.",
   category: 'fun',
   usage: '<text> [@user]',
   cooldown: 5,
   hasPrefix: true,
 };
 
-export const onCommand = async ({ chat, user, event, args, usage }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  chat,
+  user,
+  event,
+  args,
+  usage,
+}: AppCtx): Promise<void> => {
   const senderID = event['senderID'] as string;
   const mentions = event['mentions'] as Record<string, string> | undefined;
   const mentionIDs = Object.keys(mentions ?? {});
-  const messageReply = event['messageReply'] as Record<string, unknown> | null | undefined;
+  const messageReply = event['messageReply'] as
+    | Record<string, unknown>
+    | null
+    | undefined;
   const repliedSenderID = messageReply?.['senderID'] as string | undefined;
   const targetID = mentionIDs[0] ?? repliedSenderID ?? senderID;
 
@@ -40,7 +50,15 @@ export const onCommand = async ({ chat, user, event, args, usage }: AppCtx): Pro
   const mentionTexts = Object.values(mentions ?? {});
   const text = args
     .join(' ')
-    .replace(new RegExp(mentionTexts.map(m => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'g'), '')
+    .replace(
+      new RegExp(
+        mentionTexts
+          .map((m) => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+          .join('|'),
+        'g',
+      ),
+      '',
+    )
     .trim();
 
   if (!text) return usage();
@@ -59,7 +77,9 @@ export const onCommand = async ({ chat, user, event, args, usage }: AppCtx): Pro
     await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
       message: '🔫 **Gun**',
-      attachment: [{ name: 'gun.png', stream: Buffer.from(await res.arrayBuffer()) }],
+      attachment: [
+        { name: 'gun.png', stream: Buffer.from(await res.arrayBuffer()) },
+      ],
     });
   } catch (err) {
     const error = err as { message?: string };

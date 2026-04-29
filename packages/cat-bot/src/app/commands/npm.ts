@@ -27,7 +27,11 @@ export const config: CommandConfig = {
   hasPrefix: true,
 };
 
-export const onCommand = async ({ chat, args, usage }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  chat,
+  args,
+  usage,
+}: AppCtx): Promise<void> => {
   const query = args.join(' ').trim();
   if (!query) return usage();
 
@@ -38,7 +42,7 @@ export const onCommand = async ({ chat, args, usage }: AppCtx): Promise<void> =>
     const res = await fetch(`${base}?q=${encodeURIComponent(query)}`);
     if (!res.ok) throw new Error(`API responded with status ${res.status}`);
 
-    const json = await res.json() as {
+    const json = (await res.json()) as {
       error: boolean;
       message: {
         name: string;
@@ -54,7 +58,8 @@ export const onCommand = async ({ chat, args, usage }: AppCtx): Promise<void> =>
       };
     };
 
-    if (json.error) throw new Error('Package not found or API returned an error.');
+    if (json.error)
+      throw new Error('Package not found or API returned an error.');
 
     const m = json.message;
 
@@ -69,7 +74,9 @@ export const onCommand = async ({ chat, args, usage }: AppCtx): Promise<void> =>
       `📅 Last Published: **${m.last_published}**`,
       `📥 Downloads (year): **${m.downloads_this_year}**`,
       m.repository !== 'None' ? `🔗 ${m.repository}` : null,
-    ].filter(l => l !== null).join('\n');
+    ]
+      .filter((l) => l !== null)
+      .join('\n');
 
     await chat.replyMessage({
       style: MessageStyle.MARKDOWN,

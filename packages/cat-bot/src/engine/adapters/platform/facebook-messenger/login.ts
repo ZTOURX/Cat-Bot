@@ -96,7 +96,7 @@ export async function startBot(
         selfListen: false,
         forceLogin: true,
         logLevel: 'silent',
-        enableE2EE: true
+        enableE2EE: true,
       });
 
       // extra layer of login validation to ensure the appstate is valid

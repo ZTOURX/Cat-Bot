@@ -31,8 +31,7 @@ export const config: CommandConfig = {
   version: '1.0.0',
   role: Role.ANYONE,
   author: 'AjiroDesu',
-  description:
-    'Shows the owner and admin information for this bot session.',
+  description: 'Shows the owner and admin information for this bot session.',
   category: 'Info',
   usage: '',
   cooldown: 5,
@@ -83,12 +82,8 @@ async function buildOwnerCard(ctx: AppCtx): Promise<string> {
 
   // ── Resolve full user info in parallel for everyone ───────────────────────
   const [ownerInfo, ...adminInfos] = await Promise.all([
-    ownerID
-      ? user.getInfo(ownerID).catch(() => null)
-      : Promise.resolve(null),
-    ...adminOnlyIDs.map((id) =>
-      user.getInfo(id).catch(() => null),
-    ),
+    ownerID ? user.getInfo(ownerID).catch(() => null) : Promise.resolve(null),
+    ...adminOnlyIDs.map((id) => user.getInfo(id).catch(() => null)),
   ]);
 
   // ── Session uptime ────────────────────────────────────────────────────────
@@ -111,7 +106,9 @@ async function buildOwnerCard(ctx: AppCtx): Promise<string> {
   ];
 
   if (ownerID) {
-    lines.push(`👑 ${formatPerson(ownerInfo as UnifiedUserInfo | null, ownerID)}`);
+    lines.push(
+      `👑 ${formatPerson(ownerInfo as UnifiedUserInfo | null, ownerID)}`,
+    );
   } else {
     lines.push(`_No owner registered for this session._`);
   }
@@ -122,7 +119,8 @@ async function buildOwnerCard(ctx: AppCtx): Promise<string> {
     lines.push(`_No additional admins registered for this session._`);
   } else {
     adminOnlyIDs.forEach((id, i) => {
-      const info = (adminInfos[i] as UnifiedUserInfo | null | undefined) ?? null;
+      const info =
+        (adminInfos[i] as UnifiedUserInfo | null | undefined) ?? null;
       lines.push(`${i + 1}. 🛡️ ${formatPerson(info, id)}`);
     });
   }

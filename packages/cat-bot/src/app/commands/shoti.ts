@@ -53,20 +53,20 @@ async function fetchShoti(): Promise<{ data: ShotiResult; buffer: Buffer }> {
 
   // Step 2 — download the actual video as a raw binary Buffer
   const { data: videoData } = await axios.get<Buffer>(data.shotiurl, {
-    responseType: 'arraybuffer',          // ensures raw binary, not string
+    responseType: 'arraybuffer', // ensures raw binary, not string
     headers: {
       // Mimic a browser so TikTok CDN doesn't reject the request
       'User-Agent':
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
         '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-      'Referer': 'https://www.tiktok.com/',
-      'Accept': 'video/mp4,video/*;q=0.9,*/*;q=0.8',
+      Referer: 'https://www.tiktok.com/',
+      Accept: 'video/mp4,video/*;q=0.9,*/*;q=0.8',
     },
-    maxContentLength: Infinity,           // no size cap on the video download
+    maxContentLength: Infinity, // no size cap on the video download
     maxBodyLength: Infinity,
   });
 
-  const buffer = Buffer.from(videoData);  // guarantees a proper Node.js Buffer
+  const buffer = Buffer.from(videoData); // guarantees a proper Node.js Buffer
 
   return { data, buffer };
 }
@@ -109,7 +109,12 @@ export const button = {
     label: '🔁 More Shoti',
     style: ButtonStyle.PRIMARY,
 
-    onClick: async ({ chat, event, button: btn, session }: AppCtx): Promise<void> => {
+    onClick: async ({
+      chat,
+      event,
+      button: btn,
+      session,
+    }: AppCtx): Promise<void> => {
       const prevCount = (session.context['count'] as number | undefined) ?? 1;
       const newCount = prevCount + 1;
 
@@ -123,7 +128,7 @@ export const button = {
           message_id_to_edit: event['messageID'] as string,
           style: MessageStyle.MARKDOWN,
           message: buildCaption(data, newCount),
-          attachment: [{ name: 'shoti.mp4', stream: buffer }],  // .mp4 forces video MIME
+          attachment: [{ name: 'shoti.mp4', stream: buffer }], // .mp4 forces video MIME
           button: [session.id],
         });
       } catch (err) {
@@ -139,7 +144,10 @@ export const button = {
 
 // ── Command Handler ───────────────────────────────────────────────────────────
 
-export const onCommand = async ({ chat, button: btn }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  chat,
+  button: btn,
+}: AppCtx): Promise<void> => {
   try {
     const { data, buffer } = await fetchShoti();
 
@@ -150,7 +158,7 @@ export const onCommand = async ({ chat, button: btn }: AppCtx): Promise<void> =>
     await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
       message: buildCaption(data, 1),
-      attachment: [{ name: 'shoti.mp4', stream: buffer }],  // .mp4 forces video MIME
+      attachment: [{ name: 'shoti.mp4', stream: buffer }], // .mp4 forces video MIME
       button: [moreId],
     });
   } catch (err) {

@@ -194,9 +194,11 @@ export function createUnifiedPlatformListener(
         start: () => l.start(commands),
         stop: stopFn,
       });
-      void sessionManager.start(smKey).catch((err) =>
-        sessionLogger.error(`[discord] Fatal startup error:`, { error: err })
-      );
+      void sessionManager
+        .start(smKey)
+        .catch((err) =>
+          sessionLogger.error(`[discord] Fatal startup error:`, { error: err }),
+        );
     });
 
     // Retry and markActive are now owned by each Telegram listener internally.
@@ -216,9 +218,13 @@ export function createUnifiedPlatformListener(
         start: () => l.start(commands),
         stop: stopFn,
       });
-      void sessionManager.start(smKey).catch((err) =>
-        sessionLogger.error(`[telegram] Fatal startup error:`, { error: err })
-      );
+      void sessionManager
+        .start(smKey)
+        .catch((err) =>
+          sessionLogger.error(`[telegram] Fatal startup error:`, {
+            error: err,
+          }),
+        );
     });
 
     // Facebook Messenger MQTT login — no commands/prefix needed at transport level.
@@ -239,9 +245,13 @@ export function createUnifiedPlatformListener(
         start: () => l.start(),
         stop: stopFn,
       });
-      void sessionManager.start(smKey).catch((err) =>
-        sessionLogger.error(`[facebook-messenger] Fatal startup error:`, { error: err })
-      );
+      void sessionManager
+        .start(smKey)
+        .catch((err) =>
+          sessionLogger.error(`[facebook-messenger] Fatal startup error:`, {
+            error: err,
+          }),
+        );
     });
 
     // Facebook Page webhook server — Express startup; no commands/prefix at transport level.
@@ -262,9 +272,13 @@ export function createUnifiedPlatformListener(
         start: () => l.start(),
         stop: stopFn,
       });
-      void sessionManager.start(smKey).catch((err) =>
-        sessionLogger.error(`[facebook-page] Fatal startup error:`, { error: err })
-      );
+      void sessionManager
+        .start(smKey)
+        .catch((err) =>
+          sessionLogger.error(`[facebook-page] Fatal startup error:`, {
+            error: err,
+          }),
+        );
     });
   };
 

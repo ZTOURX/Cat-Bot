@@ -5,5 +5,8 @@
  *   import { normalizeMessageEvent, normalizeE2eeMessageEvent, bufferToStream } from './utils/index.js';
  */
 
-export { normalizeMessageEvent, normalizeE2eeMessageEvent } from './normalize-event.js';
+export {
+  normalizeMessageEvent,
+  normalizeE2eeMessageEvent,
+} from './normalize-event.js';
 export { bufferToStream, urlToStream } from './streams.js';

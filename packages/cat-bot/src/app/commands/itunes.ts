@@ -28,7 +28,11 @@ export const config: CommandConfig = {
   hasPrefix: true,
 };
 
-export const onCommand = async ({ chat, args, usage }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  chat,
+  args,
+  usage,
+}: AppCtx): Promise<void> => {
   const query = args.join(' ').trim();
   if (!query) return usage();
 
@@ -39,7 +43,7 @@ export const onCommand = async ({ chat, args, usage }: AppCtx): Promise<void> =>
     const res = await fetch(`${base}?q=${encodeURIComponent(query)}`);
     if (!res.ok) throw new Error(`API responded with status ${res.status}`);
 
-    const json = await res.json() as {
+    const json = (await res.json()) as {
       error: boolean;
       message: {
         url: string;
@@ -54,7 +58,8 @@ export const onCommand = async ({ chat, args, usage }: AppCtx): Promise<void> =>
       };
     };
 
-    if (json.error) throw new Error('Track not found or API returned an error.');
+    if (json.error)
+      throw new Error('Track not found or API returned an error.');
 
     const m = json.message;
 

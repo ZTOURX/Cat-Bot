@@ -35,7 +35,9 @@ async function streamToBuffer(stream: Readable): Promise<Buffer> {
   const chunks: Buffer[] = [];
   return new Promise<Buffer>((resolve, reject) => {
     stream.on('data', (chunk: unknown) => {
-      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as string));
+      chunks.push(
+        Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as string),
+      );
     });
     stream.on('end', () => resolve(Buffer.concat(chunks)));
     stream.on('error', (err: Error) => reject(err));
@@ -57,7 +59,8 @@ function detectMediaType(name: string): E2EEMediaType {
   // WebP is the WhatsApp-compatible animated sticker format used by Messenger
   if (ext === 'webp') return 'sticker';
   if (['mp4', 'mov', 'avi', 'webm', 'mkv', '3gp'].includes(ext)) return 'video';
-  if (['mp3', 'ogg', 'wav', 'm4a', 'aac', 'opus', 'flac'].includes(ext)) return 'audio';
+  if (['mp3', 'ogg', 'wav', 'm4a', 'aac', 'opus', 'flac'].includes(ext))
+    return 'audio';
   return 'document';
 }
 
@@ -136,7 +139,10 @@ export class E2EEApiProxy extends UnifiedApi {
         ? options.message
         : ((options.message as SendPayload | undefined)?.message ?? '');
     // Mirror standard replyMessage capabilities: parse and apply Unicode markdown fonts if specified
-    const message = options.style === MessageStyle.MARKDOWN ? mdToText(rawMessage) : rawMessage;
+    const message =
+      options.style === MessageStyle.MARKDOWN
+        ? mdToText(rawMessage)
+        : rawMessage;
     const replyToId = options.reply_to_message_id;
     const attachment = options.attachment ?? [];
     const attachment_url = options.attachment_url ?? [];
@@ -187,12 +193,15 @@ export class E2EEApiProxy extends UnifiedApi {
     if (typeof msg === 'string') {
       return e2eeSendText(this.#api, this.#chatJid, msg);
     }
-    
+
     // Cast appropriately: styles may be implicitly bound on incoming unflattened payloads
     const payload = msg as SendPayload & { style?: string };
     const rawText = payload.message ?? payload.body ?? '';
-    const text = payload.style === MessageStyle.MARKDOWN ? mdToText(rawText) : rawText;
-    const attachment = Array.isArray(payload.attachment) ? payload.attachment : [];
+    const text =
+      payload.style === MessageStyle.MARKDOWN ? mdToText(rawText) : rawText;
+    const attachment = Array.isArray(payload.attachment)
+      ? payload.attachment
+      : [];
     const attachment_url = payload.attachment_url ?? [];
 
     if (attachment.length > 0) {

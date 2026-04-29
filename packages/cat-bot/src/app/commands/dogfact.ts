@@ -39,7 +39,8 @@ async function fetchDogFact(): Promise<string> {
   );
 
   const fact = json.data[0];
-  if (!fact?.attributes?.body) throw new Error('No fact returned from the API.');
+  if (!fact?.attributes?.body)
+    throw new Error('No fact returned from the API.');
 
   return fact.attributes.body;
 }
@@ -68,7 +69,12 @@ export const button = {
     label: '🐾 Another Fact',
     style: ButtonStyle.PRIMARY,
 
-    onClick: async ({ chat, event, button: btn, session }: AppCtx): Promise<void> => {
+    onClick: async ({
+      chat,
+      event,
+      button: btn,
+      session,
+    }: AppCtx): Promise<void> => {
       try {
         const fact = await fetchDogFact();
 
@@ -91,7 +97,10 @@ export const button = {
 
 // ── Command Handler ───────────────────────────────────────────────────────────
 
-export const onCommand = async ({ chat, button: btn }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  chat,
+  button: btn,
+}: AppCtx): Promise<void> => {
   try {
     const fact = await fetchDogFact();
 

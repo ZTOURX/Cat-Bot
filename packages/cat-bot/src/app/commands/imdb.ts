@@ -65,7 +65,11 @@ export const config: CommandConfig = {
 
 // ── Command Handler ───────────────────────────────────────────────────────────
 
-export const onCommand = async ({ chat, args, usage }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  chat,
+  args,
+  usage,
+}: AppCtx): Promise<void> => {
   const query = args.join(' ').trim();
   if (!query) return usage();
 
@@ -76,18 +80,17 @@ export const onCommand = async ({ chat, args, usage }: AppCtx): Promise<void> =>
     const res = await fetch(`${base}?q=${encodeURIComponent(query)}`);
     if (!res.ok) throw new Error(`API responded with status ${res.status}`);
 
-    const json = await res.json() as { error: boolean; message: ImdbMessage };
-    if (json.error) throw new Error('Title not found or API returned an error.');
+    const json = (await res.json()) as { error: boolean; message: ImdbMessage };
+    if (json.error)
+      throw new Error('Title not found or API returned an error.');
 
     const m = json.message;
 
-    const released = m.released
-      ? new Date(m.released).toDateString()
-      : 'N/A';
+    const released = m.released ? new Date(m.released).toDateString() : 'N/A';
 
     // Build ratings line from the ratings array
     const ratingsLine = m.ratings
-      .map(r => `${r.source}: **${r.value}**`)
+      .map((r) => `${r.source}: **${r.value}**`)
       .join(' · ');
 
     const lines = [
@@ -107,10 +110,14 @@ export const onCommand = async ({ chat, args, usage }: AppCtx): Promise<void> =>
       `✍️ Writer: **${m.writer}**`,
       `🌟 Actors: **${m.actors}**`,
       ``,
-      m.boxoffice && m.boxoffice !== 'N/A' ? `💰 Box Office: **${m.boxoffice}**` : null,
-      m.awards && m.awards !== 'N/A'       ? `🏆 ${m.awards}`                    : null,
+      m.boxoffice && m.boxoffice !== 'N/A'
+        ? `💰 Box Office: **${m.boxoffice}**`
+        : null,
+      m.awards && m.awards !== 'N/A' ? `🏆 ${m.awards}` : null,
       `🔗 ${m.imdburl}`,
-    ].filter(l => l !== null).join('\n');
+    ]
+      .filter((l) => l !== null)
+      .join('\n');
 
     await chat.replyMessage({
       style: MessageStyle.MARKDOWN,

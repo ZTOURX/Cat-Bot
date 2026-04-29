@@ -153,13 +153,23 @@ async function buildDisabledNames(
         accessibleRoles.add(Role.PREMIUM);
         accessibleRoles.add(Role.SYSTEM_ADMIN);
       } else {
-        const isAdmin = await isBotAdmin(sessionUserId, native.platform, sessionId, senderID);
+        const isAdmin = await isBotAdmin(
+          sessionUserId,
+          native.platform,
+          sessionId,
+          senderID,
+        );
         if (isAdmin) {
           accessibleRoles.add(Role.THREAD_ADMIN);
           accessibleRoles.add(Role.BOT_ADMIN);
           accessibleRoles.add(Role.PREMIUM);
         } else {
-          const isPremium = await isBotPremium(sessionUserId, native.platform, sessionId, senderID);
+          const isPremium = await isBotPremium(
+            sessionUserId,
+            native.platform,
+            sessionId,
+            senderID,
+          );
           if (isPremium) {
             accessibleRoles.add(Role.THREAD_ADMIN);
             accessibleRoles.add(Role.PREMIUM);
@@ -177,7 +187,9 @@ async function buildDisabledNames(
   for (const mod of commands.values()) {
     const cfg = mod['config'] as Record<string, unknown> | undefined;
     const name = (cfg?.['name'] as string | undefined)?.toLowerCase();
-    const cmdRole = Number((cfg?.['role'] as number | undefined) ?? Role.ANYONE);
+    const cmdRole = Number(
+      (cfg?.['role'] as number | undefined) ?? Role.ANYONE,
+    );
     if (name && !accessibleRoles.has(cmdRole)) disabledNames.add(name);
   }
 
@@ -201,8 +213,12 @@ function getVisibleMods(
   }
 
   result.sort((a, b) => {
-    const an = String((a['config'] as Record<string, unknown> | undefined)?.['name'] ?? '');
-    const bn = String((b['config'] as Record<string, unknown> | undefined)?.['name'] ?? '');
+    const an = String(
+      (a['config'] as Record<string, unknown> | undefined)?.['name'] ?? '',
+    );
+    const bn = String(
+      (b['config'] as Record<string, unknown> | undefined)?.['name'] ?? '',
+    );
     return an.localeCompare(bn);
   });
 
@@ -213,7 +229,10 @@ function getVisibleMods(
 function groupByCategory(
   mods: Array<Record<string, unknown>>,
 ): Array<[string, Array<Record<string, unknown>>]> {
-  const map = new Map<string, { label: string; mods: Array<Record<string, unknown>> }>();
+  const map = new Map<
+    string,
+    { label: string; mods: Array<Record<string, unknown>> }
+  >();
 
   for (const mod of mods) {
     const cfg = mod['config'] as Record<string, unknown> | undefined;
@@ -478,7 +497,8 @@ export const onReply = {
     const { chat, event, state, session, prefix = '' } = ctx;
 
     const input = String(event['message'] ?? '').trim();
-    const categoryNames = (session.context['categories'] as string[] | undefined) ?? [];
+    const categoryNames =
+      (session.context['categories'] as string[] | undefined) ?? [];
 
     // Consume the state before doing anything else — prevents a stale entry
     // from matching a second reply to the same message.

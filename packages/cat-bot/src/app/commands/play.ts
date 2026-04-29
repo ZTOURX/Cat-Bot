@@ -142,7 +142,6 @@ export const onCommand = async ({
     return;
   }
 
-
   // ── Loading indicator ──────────────────────────────────────────────────────
   const waitId = await chat.replyMessage({
     style: MessageStyle.MARKDOWN,

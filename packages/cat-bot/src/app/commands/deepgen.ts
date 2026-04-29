@@ -8,7 +8,7 @@
  * Usage:
  *   !deepgen anime girl with short blue hair
  *
- * 
+ *
  * Button: 🔁 Generate Again — re-runs the same prompt on click.
  *
  * ── Conversion gaps flagged ──────────────────────────────────────────────────

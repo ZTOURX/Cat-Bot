@@ -213,7 +213,9 @@ class FbPageApi extends UnifiedApi {
   }
 
   override getAvatarUrl(userID: string): Promise<string | null> {
-    logger.debug('[facebook-page] getAvatarUrl called (delegated to lib)', { userID });
+    logger.debug('[facebook-page] getAvatarUrl called (delegated to lib)', {
+      userID,
+    });
     return getAvatarUrl(this.#pageApi, userID);
   }
 }

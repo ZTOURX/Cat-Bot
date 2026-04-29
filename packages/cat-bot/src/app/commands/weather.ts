@@ -52,9 +52,9 @@ const SKY_EMOJI: Record<string, string> = {
   '31': '🌙',
   '33': '🌙',
   '11': '🌧️',
-  '9':  '🌦️',
+  '9': '🌦️',
   '12': '🌧️',
-  '6':  '🌨️',
+  '6': '🌨️',
   '15': '❄️',
   '16': '❄️',
   '17': '⛈️',
@@ -85,7 +85,11 @@ export const config: CommandConfig = {
 
 // ── Command Handler ───────────────────────────────────────────────────────────
 
-export const onCommand = async ({ chat, args, usage }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  chat,
+  args,
+  usage,
+}: AppCtx): Promise<void> => {
   const query = args.join(' ').trim();
   if (!query) return usage();
 
@@ -97,7 +101,10 @@ export const onCommand = async ({ chat, args, usage }: AppCtx): Promise<void> =>
     const res = await fetch(apiUrl);
     if (!res.ok) throw new Error(`API responded with status ${res.status}`);
 
-    const json = await res.json() as { error: boolean; message: WeatherResult[] };
+    const json = (await res.json()) as {
+      error: boolean;
+      message: WeatherResult[];
+    };
 
     if (json.error || !json.message?.length) {
       throw new Error('Location not found or API returned an error.');
@@ -130,7 +137,7 @@ export const onCommand = async ({ chat, args, usage }: AppCtx): Promise<void> =>
       for (const day of forecast) {
         const emoji = skyEmoji(day.skytextday.trim());
         lines.push(
-          `${emoji} **${day.shortday}** — ${day.skytextday} · ⬇️ ${day.low}° ⬆️ ${day.high}° · 🌂 ${day.precip}%`
+          `${emoji} **${day.shortday}** — ${day.skytextday} · ⬇️ ${day.low}° ⬆️ ${day.high}° · 🌂 ${day.precip}%`,
         );
       }
     }
@@ -139,7 +146,7 @@ export const onCommand = async ({ chat, args, usage }: AppCtx): Promise<void> =>
     if (results.length > 1) {
       const others = results
         .slice(1)
-        .map(r => r.location.name)
+        .map((r) => r.location.name)
         .join(', ');
       lines.push(``, `ℹ️ _Other matching locations: ${others}_`);
     }

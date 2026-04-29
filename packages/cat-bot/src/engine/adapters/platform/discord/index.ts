@@ -99,7 +99,9 @@ export function createDiscordListener(config: DiscordConfig): EventEmitter & {
     // Claim the retry slot synchronously before any await — prevents a rapid second
     // call from passing the isRetrying guard and spawning a parallel loop.
     const controller = new AbortController();
-    const retryToken = sessionManager.markRetrying(smKey, () => controller.abort());
+    const retryToken = sessionManager.markRetrying(smKey, () =>
+      controller.abort(),
+    );
 
     // Signal the dashboard offline immediately; markActive fires on successful boot only.
     void sessionManager.markInactive(smKey);
@@ -135,12 +137,16 @@ export function createDiscordListener(config: DiscordConfig): EventEmitter & {
             // WHY: Fetching inside the retry loop means every attempt (including
             // credential-update triggered auto-restarts) uses the latest DB values
             // without requiring a process restart.
-            const botDetail = await botRepo.getById(config.userId, config.sessionId);
+            const botDetail = await botRepo.getById(
+              config.userId,
+              config.sessionId,
+            );
             const token = botDetail
               ? ((botDetail.credentials as any).discordToken ?? config.token)
               : config.token;
             const clientId = botDetail
-              ? ((botDetail.credentials as any).discordClientId ?? config.clientId)
+              ? ((botDetail.credentials as any).discordClientId ??
+                config.clientId)
               : config.clientId;
             const prefix = botDetail
               ? (botDetail.prefix ?? config.prefix)
@@ -150,10 +156,14 @@ export function createDiscordListener(config: DiscordConfig): EventEmitter & {
             sessionLogger.info('[discord] Starting Listener...');
 
             // Phase 1: Create and boot the Discord.js client (intents, login, signal handlers)
-            activeClient = await createDiscordClient(token, sessionLogger, (_err) => {
-              // Marks UI explicit offline if Discord gateway refuses token post-boot
-              void sessionManager.markInactive(smKey);
-            });
+            activeClient = await createDiscordClient(
+              token,
+              sessionLogger,
+              (_err) => {
+                // Marks UI explicit offline if Discord gateway refuses token post-boot
+                void sessionManager.markInactive(smKey);
+              },
+            );
 
             // Phase 2: Register or clear slash commands based on active prefix
             await registerSlashCommands({
@@ -199,7 +209,8 @@ export function createDiscordListener(config: DiscordConfig): EventEmitter & {
               const disabledNames = new Set<string>(
                 rows
                   .filter(
-                    (r: { isEnable: boolean; commandName: string }) => !r.isEnable,
+                    (r: { isEnable: boolean; commandName: string }) =>
+                      !r.isEnable,
                   )
                   .map((r: { commandName: string }) => r.commandName),
               );

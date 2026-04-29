@@ -233,14 +233,19 @@ class FacebookApi extends UnifiedApi {
       if (error.response?.headers?.location) {
         redirectUrl = error.response.headers.location as string;
       } else {
-        logger.warn('[facebook-messenger] Graph API failed for avatar, falling back to DB', { error: error });
+        logger.warn(
+          '[facebook-messenger] Graph API failed for avatar, falling back to DB',
+          { error: error },
+        );
       }
     }
 
     if (redirectUrl) {
       lruCache.set(cacheKey, redirectUrl);
-      await updateUserAvatar(userID, redirectUrl).catch(err => {
-        logger.warn('[facebook-messenger] Failed to save avatar to db', { error: err });
+      await updateUserAvatar(userID, redirectUrl).catch((err) => {
+        logger.warn('[facebook-messenger] Failed to save avatar to db', {
+          error: err,
+        });
       });
       return redirectUrl;
     }
@@ -258,6 +263,9 @@ class FacebookApi extends UnifiedApi {
 
 // ── Factory ────────────────────────────────────────────────────────────────────
 
-export function createFacebookApi(fcaApi: FcaApi, sessionId: string): UnifiedApi {
+export function createFacebookApi(
+  fcaApi: FcaApi,
+  sessionId: string,
+): UnifiedApi {
   return new FacebookApi(fcaApi, sessionId);
 }

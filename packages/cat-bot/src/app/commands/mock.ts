@@ -44,11 +44,10 @@ function toMockText(input: string): string {
   let letterIndex = 0;
   return input
     .split('')
-    .map(char => {
+    .map((char) => {
       if (!/[a-zA-Z]/.test(char)) return char;
-      const mocked = letterIndex % 2 === 0
-        ? char.toLowerCase()
-        : char.toUpperCase();
+      const mocked =
+        letterIndex % 2 === 0 ? char.toLowerCase() : char.toUpperCase();
       letterIndex++;
       return mocked;
     })
@@ -57,7 +56,11 @@ function toMockText(input: string): string {
 
 // ── Command Handler ───────────────────────────────────────────────────────────
 
-export const onCommand = async ({ chat, args, usage }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  chat,
+  args,
+  usage,
+}: AppCtx): Promise<void> => {
   const text = args.join(' ').trim();
   if (!text) return usage();
 

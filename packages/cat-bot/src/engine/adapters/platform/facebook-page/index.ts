@@ -89,7 +89,9 @@ export function createFacebookPageListener(
     // Claim the retry slot synchronously before any await — prevents a rapid second
     // call from passing the isRetrying guard and spawning a parallel loop.
     const controller = new AbortController();
-    const retryToken = sessionManager.markRetrying(smKey, () => controller.abort());
+    const retryToken = sessionManager.markRetrying(smKey, () =>
+      controller.abort(),
+    );
 
     // Signal the dashboard offline immediately; markActive fires on successful boot only.
     void sessionManager.markInactive(smKey);
@@ -107,7 +109,10 @@ export function createFacebookPageListener(
             // WHY: Fetching inside the retry loop guarantees every attempt (including
             // credential-update triggered auto-restarts) uses the latest DB values
             // without requiring a process restart.
-            const botDetail = await botRepo.getById(config.userId, config.sessionId);
+            const botDetail = await botRepo.getById(
+              config.userId,
+              config.sessionId,
+            );
             const pageAccessToken = botDetail
               ? ((botDetail.credentials as any).fbAccessToken ??
                 config.pageAccessToken)

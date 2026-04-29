@@ -43,7 +43,11 @@ export const config: CommandConfig = {
 
 // ── Command Handler ───────────────────────────────────────────────────────────
 
-export const onCommand = async ({ chat, args, usage }: AppCtx): Promise<void> => {
+export const onCommand = async ({
+  chat,
+  args,
+  usage,
+}: AppCtx): Promise<void> => {
   const song = args.join(' ').trim();
   if (!song) return usage();
 
@@ -55,7 +59,7 @@ export const onCommand = async ({ chat, args, usage }: AppCtx): Promise<void> =>
     const res = await fetch(apiUrl);
     if (!res.ok) throw new Error(`API responded with status ${res.status}`);
 
-    const json = await res.json() as {
+    const json = (await res.json()) as {
       error: boolean;
       message: {
         title: string;
@@ -71,13 +75,11 @@ export const onCommand = async ({ chat, args, usage }: AppCtx): Promise<void> =>
     const { title, image, artist, lyrics, url } = json.message;
 
     // Strip the contributor prefix Genius prepends (e.g. "15 ContributorsNobela Lyrics")
-    const cleanLyrics = lyrics.replace(/^\d+\s+Contributors.+?Lyrics/s, '').trim();
+    const cleanLyrics = lyrics
+      .replace(/^\d+\s+Contributors.+?Lyrics/s, '')
+      .trim();
 
-    const header = [
-      `🎵 **${title}**`,
-      `👤 ${artist}`,
-      `🔗 ${url}`,
-    ].join('\n');
+    const header = [`🎵 **${title}**`, `👤 ${artist}`, `🔗 ${url}`].join('\n');
 
     if (cleanLyrics.length <= LYRICS_SPLIT_THRESHOLD) {
       // ── Short lyrics: single message with art + full lyrics ──────────────
