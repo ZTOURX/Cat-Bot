@@ -365,7 +365,10 @@ async function main() {
   }
 
   try {
-    const rawThreads = await mongoDb.collection('botThreads').find({}).toArray();
+    const rawThreads = await mongoDb
+      .collection('botThreads')
+      .find({})
+      .toArray();
     db.botThread = rawThreads.map((t) => {
       const converted = deepConvert(t);
       if (converted._id && !converted.id) converted.id = converted._id;
@@ -383,7 +386,10 @@ async function main() {
   }
 
   try {
-    const rawServers = await mongoDb.collection('botDiscordServers').find({}).toArray();
+    const rawServers = await mongoDb
+      .collection('botDiscordServers')
+      .find({})
+      .toArray();
     db.botDiscordServer = rawServers.map((t) => {
       const converted = deepConvert(t);
       if (converted._id && !converted.id) converted.id = converted._id;
@@ -463,11 +469,15 @@ async function main() {
         const pData = [],
           aData = [];
         for (const t of rows) {
-          for (const p of t.participants || []) pData.push({ thread_id: t.id, user_id: p });
-          for (const a of t.admins || []) aData.push({ thread_id: t.id, user_id: a });
+          for (const p of t.participants || [])
+            pData.push({ thread_id: t.id, user_id: p });
+          for (const a of t.admins || [])
+            aData.push({ thread_id: t.id, user_id: a });
         }
         if (pData.length > 0) {
-          const pValues = pData.map((p) => `('${p.thread_id}', '${p.user_id}')`).join(', ');
+          const pValues = pData
+            .map((p) => `('${p.thread_id}', '${p.user_id}')`)
+            .join(', ');
           try {
             await client.query('SAVEPOINT p_insert');
             await client.query(
@@ -480,7 +490,9 @@ async function main() {
           }
         }
         if (aData.length > 0) {
-          const aValues = aData.map((a) => `('${a.thread_id}', '${a.user_id}')`).join(', ');
+          const aValues = aData
+            .map((a) => `('${a.thread_id}', '${a.user_id}')`)
+            .join(', ');
           try {
             await client.query('SAVEPOINT a_insert');
             await client.query(
@@ -499,11 +511,15 @@ async function main() {
         const pData = [],
           aData = [];
         for (const t of rows) {
-          for (const p of t.participants || []) pData.push({ server_id: t.id, user_id: p });
-          for (const a of t.admins || []) aData.push({ server_id: t.id, user_id: a });
+          for (const p of t.participants || [])
+            pData.push({ server_id: t.id, user_id: p });
+          for (const a of t.admins || [])
+            aData.push({ server_id: t.id, user_id: a });
         }
         if (pData.length > 0) {
-          const pValues = pData.map((p) => `('${p.server_id}', '${p.user_id}')`).join(', ');
+          const pValues = pData
+            .map((p) => `('${p.server_id}', '${p.user_id}')`)
+            .join(', ');
           try {
             await client.query('SAVEPOINT p_insert_ds');
             await client.query(
@@ -515,7 +531,9 @@ async function main() {
           }
         }
         if (aData.length > 0) {
-          const aValues = aData.map((a) => `('${a.server_id}', '${a.user_id}')`).join(', ');
+          const aValues = aData
+            .map((a) => `('${a.server_id}', '${a.user_id}')`)
+            .join(', ');
           try {
             await client.query('SAVEPOINT a_insert_ds');
             await client.query(

@@ -81,7 +81,10 @@ export async function getUserAvatar(userId: string): Promise<string | null> {
   return row?.avatarUrl ?? null;
 }
 
-export async function updateUserAvatar(userId: string, avatarUrl: string): Promise<void> {
+export async function updateUserAvatar(
+  userId: string,
+  avatarUrl: string,
+): Promise<void> {
   await prisma.botUser.updateMany({
     where: { id: userId },
     data: { avatarUrl },

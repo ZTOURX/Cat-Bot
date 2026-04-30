@@ -102,19 +102,20 @@ export async function getUserName(userId: string): Promise<string> {
 
 export async function getUserAvatar(userId: string): Promise<string | null> {
   const db = getMongoDb();
-  const rec = await db.collection<{ avatarUrl?: string | null }>('botUsers').findOne(
-    { id: userId },
-    { projection: { avatarUrl: 1, _id: 0 } }
-  );
+  const rec = await db
+    .collection<{ avatarUrl?: string | null }>('botUsers')
+    .findOne({ id: userId }, { projection: { avatarUrl: 1, _id: 0 } });
   return rec?.avatarUrl ?? null;
 }
 
-export async function updateUserAvatar(userId: string, avatarUrl: string): Promise<void> {
+export async function updateUserAvatar(
+  userId: string,
+  avatarUrl: string,
+): Promise<void> {
   const db = getMongoDb();
-  await db.collection('botUsers').updateOne(
-    { id: userId },
-    { $set: { avatarUrl, updatedAt: new Date() } }
-  );
+  await db
+    .collection('botUsers')
+    .updateOne({ id: userId }, { $set: { avatarUrl, updatedAt: new Date() } });
 }
 
 /**

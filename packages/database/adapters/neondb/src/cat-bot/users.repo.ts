@@ -97,16 +97,19 @@ export async function getUserName(userId: string): Promise<string> {
 export async function getUserAvatar(userId: string): Promise<string | null> {
   const res = await pool.query<{ avatar_url: string | null }>(
     `SELECT avatar_url FROM bot_users WHERE id = $1`,
-    [userId]
+    [userId],
   );
   return res.rows[0]?.avatar_url ?? null;
 }
 
-export async function updateUserAvatar(userId: string, avatarUrl: string): Promise<void> {
-  await pool.query(
-    `UPDATE bot_users SET avatar_url = $1 WHERE id = $2`,
-    [avatarUrl, userId]
-  );
+export async function updateUserAvatar(
+  userId: string,
+  avatarUrl: string,
+): Promise<void> {
+  await pool.query(`UPDATE bot_users SET avatar_url = $1 WHERE id = $2`, [
+    avatarUrl,
+    userId,
+  ]);
 }
 
 /**

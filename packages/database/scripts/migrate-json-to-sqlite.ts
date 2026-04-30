@@ -252,9 +252,17 @@ async function main(): Promise<void> {
     );
   }
   const botDiscordChannelRows = rows<any>(db, 'botDiscordChannel');
-  if (botDiscordChannelRows.length) await safeExec(prisma.botDiscordChannel.createMany({ data: botDiscordChannelRows }));
+  if (botDiscordChannelRows.length)
+    await safeExec(
+      prisma.botDiscordChannel.createMany({ data: botDiscordChannelRows }),
+    );
   const botDiscordServerSessionRows = rows<any>(db, 'botDiscordServerSession');
-  if (botDiscordServerSessionRows.length) await safeExec(prisma.botDiscordServerSession.createMany({ data: botDiscordServerSessionRows }));
+  if (botDiscordServerSessionRows.length)
+    await safeExec(
+      prisma.botDiscordServerSession.createMany({
+        data: botDiscordServerSessionRows,
+      }),
+    );
 
   // 4. BotSession, BotAdmin, BotPremium — FK to user (onDelete: Cascade)
   type BotSessionRow = Parameters<

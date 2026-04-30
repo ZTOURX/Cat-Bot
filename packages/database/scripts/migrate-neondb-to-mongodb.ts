@@ -380,10 +380,14 @@ async function main() {
     const servers = db.botDiscordServer || [];
     const dsParticipantsData = await client
       .query('SELECT server_id, user_id FROM bot_discord_server_participants')
-      .catch((e: any) => { return { rows: [] }; });
+      .catch((e: any) => {
+        return { rows: [] };
+      });
     const dsAdminsData = await client
       .query('SELECT server_id, user_id FROM bot_discord_server_admins')
-      .catch((e: any) => { return { rows: [] }; });
+      .catch((e: any) => {
+        return { rows: [] };
+      });
     const serverMap = new Map();
     for (const t of servers)
       serverMap.set(t.id, { ...t, participants: [], admins: [] });
@@ -394,7 +398,6 @@ async function main() {
       serverMap.get(a.server_id)?.admins.push(a.user_id);
     }
     db.botDiscordServer = Array.from(serverMap.values());
-
   } finally {
     client.release();
     await pool.end();
@@ -456,7 +459,10 @@ async function main() {
     console.log(`  ${'botThread'.padEnd(34)} ${threadDocs.length}`);
   }
 
-  await mongoDb.collection('botDiscordServers').deleteMany({}).catch(() => {});
+  await mongoDb
+    .collection('botDiscordServers')
+    .deleteMany({})
+    .catch(() => {});
   const servers = db.botDiscordServer;
   if (servers && servers.length > 0) {
     const serverDocs = servers.map((t) => {

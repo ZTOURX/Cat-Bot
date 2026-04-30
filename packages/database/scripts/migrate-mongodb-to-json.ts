@@ -113,7 +113,10 @@ async function main(): Promise<void> {
 
   // ── botDiscordServer requires mapping participantIDs -> participants
   try {
-    const servers = await mongoDb.collection('botDiscordServers').find({}).toArray();
+    const servers = await mongoDb
+      .collection('botDiscordServers')
+      .find({})
+      .toArray();
     outDb.botDiscordServer = servers.map((t) => {
       const converted = deepConvert(t);
       if (converted._id && !converted.id) converted.id = converted._id;

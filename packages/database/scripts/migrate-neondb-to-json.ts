@@ -402,7 +402,8 @@ async function main(): Promise<void> {
       });
 
     const serverMap = new Map<string, any>();
-    for (const t of servers) serverMap.set(t.id, { ...t, participants: [], admins: [] });
+    for (const t of servers)
+      serverMap.set(t.id, { ...t, participants: [], admins: [] });
     for (const p of dsParticipantsData.rows) {
       serverMap.get(p.server_id)?.participants.push(p.user_id);
     }

@@ -246,7 +246,10 @@ async function main() {
     console.log(`  ${'botThread'.padEnd(34)} ${threadDocs.length}`);
   }
 
-  await mongoDb.collection('botDiscordServers').deleteMany({}).catch(() => {});
+  await mongoDb
+    .collection('botDiscordServers')
+    .deleteMany({})
+    .catch(() => {});
   const servers = db.botDiscordServer;
   if (servers && servers.length > 0) {
     const serverDocs = servers.map((t) => {

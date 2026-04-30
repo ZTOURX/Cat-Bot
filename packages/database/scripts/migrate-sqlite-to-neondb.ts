@@ -14,7 +14,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const dbRoot = path.resolve(__dirname, '..');
 
-const rawUrl = process.env['SQLITE_DATABASE_URL'] ?? process.env['DATABASE_URL'];
+const rawUrl =
+  process.env['SQLITE_DATABASE_URL'] ?? process.env['DATABASE_URL'];
 const DB_SQLITE_FILE = rawUrl
   ? rawUrl.replace(/^file:/, '')
   : path.resolve(dbRoot, 'database/database.sqlite');
@@ -497,15 +498,21 @@ async function main() {
         const participantsData = [];
         const adminsData = [];
         for (const t of rows) {
-          for (const p of t.participants || []) participantsData.push({ thread_id: t.id, user_id: p });
-          for (const a of t.admins || []) adminsData.push({ thread_id: t.id, user_id: a });
+          for (const p of t.participants || [])
+            participantsData.push({ thread_id: t.id, user_id: p });
+          for (const a of t.admins || [])
+            adminsData.push({ thread_id: t.id, user_id: a });
         }
 
         if (participantsData.length > 0) {
-          const pValues = participantsData.map((p) => `('${p.thread_id}', '${p.user_id}')`).join(', ');
+          const pValues = participantsData
+            .map((p) => `('${p.thread_id}', '${p.user_id}')`)
+            .join(', ');
           try {
             await client.query('SAVEPOINT p_insert');
-            await client.query(`INSERT INTO bot_thread_participants (thread_id, user_id) VALUES ${pValues} ON CONFLICT DO NOTHING`);
+            await client.query(
+              `INSERT INTO bot_thread_participants (thread_id, user_id) VALUES ${pValues} ON CONFLICT DO NOTHING`,
+            );
             await client.query('RELEASE SAVEPOINT p_insert');
           } catch (e: any) {
             await client.query('ROLLBACK TO SAVEPOINT p_insert');
@@ -513,10 +520,14 @@ async function main() {
           }
         }
         if (adminsData.length > 0) {
-          const aValues = adminsData.map((a) => `('${a.thread_id}', '${a.user_id}')`).join(', ');
+          const aValues = adminsData
+            .map((a) => `('${a.thread_id}', '${a.user_id}')`)
+            .join(', ');
           try {
             await client.query('SAVEPOINT a_insert');
-            await client.query(`INSERT INTO bot_thread_admins (thread_id, user_id) VALUES ${aValues} ON CONFLICT DO NOTHING`);
+            await client.query(
+              `INSERT INTO bot_thread_admins (thread_id, user_id) VALUES ${aValues} ON CONFLICT DO NOTHING`,
+            );
             await client.query('RELEASE SAVEPOINT a_insert');
           } catch (e: any) {
             await client.query('ROLLBACK TO SAVEPOINT a_insert');
@@ -529,24 +540,34 @@ async function main() {
         const participantsData = [];
         const adminsData = [];
         for (const t of rows) {
-          for (const p of t.participants || []) participantsData.push({ server_id: t.id, user_id: p });
-          for (const a of t.admins || []) adminsData.push({ server_id: t.id, user_id: a });
+          for (const p of t.participants || [])
+            participantsData.push({ server_id: t.id, user_id: p });
+          for (const a of t.admins || [])
+            adminsData.push({ server_id: t.id, user_id: a });
         }
         if (participantsData.length > 0) {
-          const pValues = participantsData.map((p) => `('${p.server_id}', '${p.user_id}')`).join(', ');
+          const pValues = participantsData
+            .map((p) => `('${p.server_id}', '${p.user_id}')`)
+            .join(', ');
           try {
             await client.query('SAVEPOINT p_insert_ds');
-            await client.query(`INSERT INTO bot_discord_server_participants (server_id, user_id) VALUES ${pValues} ON CONFLICT DO NOTHING`);
+            await client.query(
+              `INSERT INTO bot_discord_server_participants (server_id, user_id) VALUES ${pValues} ON CONFLICT DO NOTHING`,
+            );
             await client.query('RELEASE SAVEPOINT p_insert_ds');
           } catch (e: any) {
             await client.query('ROLLBACK TO SAVEPOINT p_insert_ds');
           }
         }
         if (adminsData.length > 0) {
-          const aValues = adminsData.map((a) => `('${a.server_id}', '${a.user_id}')`).join(', ');
+          const aValues = adminsData
+            .map((a) => `('${a.server_id}', '${a.user_id}')`)
+            .join(', ');
           try {
             await client.query('SAVEPOINT a_insert_ds');
-            await client.query(`INSERT INTO bot_discord_server_admins (server_id, user_id) VALUES ${aValues} ON CONFLICT DO NOTHING`);
+            await client.query(
+              `INSERT INTO bot_discord_server_admins (server_id, user_id) VALUES ${aValues} ON CONFLICT DO NOTHING`,
+            );
             await client.query('RELEASE SAVEPOINT a_insert_ds');
           } catch (e: any) {
             await client.query('ROLLBACK TO SAVEPOINT a_insert_ds');

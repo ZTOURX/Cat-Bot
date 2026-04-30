@@ -113,7 +113,10 @@ export async function getUserAvatar(userId: string): Promise<string | null> {
   return rec?.avatarUrl ?? null;
 }
 
-export async function updateUserAvatar(userId: string, avatarUrl: string): Promise<void> {
+export async function updateUserAvatar(
+  userId: string,
+  avatarUrl: string,
+): Promise<void> {
   const db = await getDb();
   const rec = db.botUser.find((u: any) => u.id === userId);
   if (rec) {

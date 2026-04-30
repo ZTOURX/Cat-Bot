@@ -15,7 +15,10 @@
  */
 
 import type { Request, Response } from 'express';
-import { requireSession, checkAdminSession } from '@/server/validators/auth-session.validator.js';
+import {
+  requireSession,
+  checkAdminSession,
+} from '@/server/validators/auth-session.validator.js';
 import { botRepo } from '@/server/repos/bot.repo.js';
 import { ID_TO_PLATFORM } from '@/engine/modules/platform/platform.constants.js';
 import {
@@ -188,7 +191,9 @@ export class BotSessionConfigController {
       if (cfg?.['role'] === Role.SYSTEM_ADMIN) {
         res
           .status(403)
-          .json({ error: 'Forbidden: system admin commands cannot be modified' });
+          .json({
+            error: 'Forbidden: system admin commands cannot be modified',
+          });
         return;
       }
     }
