@@ -100,7 +100,10 @@ export default function AdminUsersPage() {
     } catch (err) {
       // WHY: Extract explicit { error: "..." } from Axios/fetch responses to surface backend validation errors (e.g., email collisions) instead of generic 400 messages
       const e = err as { response?: { data?: { error?: string } } }
-      setEditError(e.response?.data?.error || (err instanceof Error ? err.message : 'Failed to update user'))
+      setEditError(
+        e.response?.data?.error ||
+          (err instanceof Error ? err.message : 'Failed to update user'),
+      )
     } finally {
       setIsEditing(false)
     }
@@ -134,7 +137,10 @@ export default function AdminUsersPage() {
     } catch (err) {
       // WHY: Ensure server-side verification errors are surfaced correctly to the UI
       const e = err as { response?: { data?: { error?: string } } }
-      setVerifyError(e.response?.data?.error || (err instanceof Error ? err.message : 'Failed to verify user'))
+      setVerifyError(
+        e.response?.data?.error ||
+          (err instanceof Error ? err.message : 'Failed to verify user'),
+      )
     } finally {
       setIsVerifying(false)
     }

@@ -229,12 +229,14 @@ const Pagination = forwardRefWithAs<'nav', PaginationOwnProps>((props, ref) => {
 
   // Track viewport width to adjust the number of visible page buttons —
   // 7 buttons + labels overflow a 375px phone, 3 fits cleanly.
-  const [viewport, setViewport] = useState<'mobile' | 'tablet' | 'desktop'>(() => {
-    if (typeof window === 'undefined') return 'desktop'
-    if (window.innerWidth < 640) return 'mobile'
-    if (window.innerWidth < 1024) return 'tablet'
-    return 'desktop'
-  })
+  const [viewport, setViewport] = useState<'mobile' | 'tablet' | 'desktop'>(
+    () => {
+      if (typeof window === 'undefined') return 'desktop'
+      if (window.innerWidth < 640) return 'mobile'
+      if (window.innerWidth < 1024) return 'tablet'
+      return 'desktop'
+    },
+  )
 
   useEffect(() => {
     const update = () => {
@@ -250,9 +252,11 @@ const Pagination = forwardRefWithAs<'nav', PaginationOwnProps>((props, ref) => {
   // Cap visible pages per breakpoint; still respects the consumer's maxVisiblePages
   // if they pass a lower value than the cap (Math.min preserves the stricter limit)
   const effectiveMaxVisiblePages =
-    viewport === 'mobile' ? Math.min(maxVisiblePages, 3) :
-    viewport === 'tablet' ? Math.min(maxVisiblePages, 5) :
-    maxVisiblePages
+    viewport === 'mobile'
+      ? Math.min(maxVisiblePages, 3)
+      : viewport === 'tablet'
+        ? Math.min(maxVisiblePages, 5)
+        : maxVisiblePages
 
   // Calculate total pages
   const totalPages = Math.ceil(totalItems / itemsPerPage)
@@ -332,7 +336,12 @@ const Pagination = forwardRefWithAs<'nav', PaginationOwnProps>((props, ref) => {
             {currentPage}/{totalPages}
           </p>
           {/* Full "Showing X to Y of Z items" on sm+ where horizontal space allows it */}
-          <p className={cn('text-on-surface-variant hidden sm:block', config.text)}>
+          <p
+            className={cn(
+              'text-on-surface-variant hidden sm:block',
+              config.text,
+            )}
+          >
             {getInfoText()}
           </p>
         </>

@@ -171,17 +171,17 @@ export default function AdminBotsPage() {
                 <Table.Row>
                   <Table.Head>Nickname</Table.Head>
                   <Table.Head>Owner</Table.Head>
-              <Table.Head>Platform</Table.Head>
-              <Table.Head>Prefix</Table.Head>
-              <Table.Head>Status</Table.Head>
-              <Table.Head align="right">Actions</Table.Head>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {isLoading && <Table.Loading colSpan={6} rows={4} />}
-            {!isLoading &&
-              bots.map((session) => (
-                <Table.Row key={`${session.userId}:${session.sessionId}`}>
+                  <Table.Head>Platform</Table.Head>
+                  <Table.Head>Prefix</Table.Head>
+                  <Table.Head>Status</Table.Head>
+                  <Table.Head align="right">Actions</Table.Head>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {isLoading && <Table.Loading colSpan={6} rows={4} />}
+                {!isLoading &&
+                  bots.map((session) => (
+                    <Table.Row key={`${session.userId}:${session.sessionId}`}>
                       <Table.Cell className="font-medium">
                         {session.nickname}
                       </Table.Cell>
@@ -286,7 +286,10 @@ export default function AdminBotsPage() {
                 </span>{' '}
                 owned by{' '}
                 <span className="font-semibold text-on-surface">
-                  {deleteTarget?.userName ?? deleteTarget?.userEmail ?? deleteTarget?.userId} ({deleteTarget?.userEmail})
+                  {deleteTarget?.userName ??
+                    deleteTarget?.userEmail ??
+                    deleteTarget?.userId}{' '}
+                  ({deleteTarget?.userEmail})
                 </span>
                 ? This action cannot be undone and removes all associated data.
               </p>

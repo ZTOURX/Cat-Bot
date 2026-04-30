@@ -83,7 +83,11 @@ export function VerificationStatusDisplay({
           <Field.Root>
             <Field.Label>Verify Token</Field.Label>
             <div className="flex gap-2">
-              <Input readOnly value={status.verifyToken} className="font-mono" />
+              <Input
+                readOnly
+                value={status.verifyToken}
+                className="font-mono"
+              />
               <ClipboardButton
                 text={status.verifyToken}
                 size="md"
@@ -138,11 +142,7 @@ export function VerificationStatusDisplay({
           <p className="font-mono text-3xl font-bold tracking-widest text-on-surface">
             {status.otp}
           </p>
-          <ClipboardButton
-            text={status.otp}
-            size="md"
-            aria-label="Copy OTP"
-          />
+          <ClipboardButton text={status.otp} size="md" aria-label="Copy OTP" />
         </div>
         <p className="text-body-sm text-on-surface-variant animate-pulse">
           Waiting for confirmation from Facebook…

@@ -44,7 +44,7 @@ const ACTION_COOLDOWN_MS = 3_000;
 // cooldown entries are only checked on the next action and never explicitly deleted.
 const actionCooldowns = new TTLMap<string>({
   ttlMs: ACTION_COOLDOWN_MS,
-  sliding: false,       // must NOT extend on read — resetting the penalty clock on retry defeats rate-limiting
+  sliding: false, // must NOT extend on read — resetting the penalty clock on retry defeats rate-limiting
   cleanupIntervalMs: 60_000,
 });
 

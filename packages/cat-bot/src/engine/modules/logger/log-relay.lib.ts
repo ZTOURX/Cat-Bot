@@ -24,7 +24,10 @@ class LogRelay extends EventEmitter {
   readonly #MAX_HISTORY = 100;
   // Per-session sliding windows — keyed by `${userId}:${platformId}:${sessionId}` so the
   // bot detail page can hydrate its console with only that session's buffered history.
-  readonly #keyedHistory = new Map<string, Array<{ format: () => string; cached?: string }>>();
+  readonly #keyedHistory = new Map<
+    string,
+    Array<{ format: () => string; cached?: string }>
+  >();
   // Tracks active Socket.IO subscriber count per session key. When zero, emitKeyed skips
   // the EventEmitter dispatch entirely — no bandwidth wasted on unwatched sessions.
   readonly #subscribers = new Map<string, number>();
@@ -48,7 +51,7 @@ class LogRelay extends EventEmitter {
     // sole code path where chalk formatting runs for an idle (unsubscribed) session's entry.
     if ((this.#subscribers.get(key) ?? 0) > 0) {
       const formatted = format();
-      entry.cached = formatted;                    // cache so getKeyedHistory re-uses the same string
+      entry.cached = formatted; // cache so getKeyedHistory re-uses the same string
       this.emit('log:keyed', { key, entry: formatted });
     }
   }
@@ -57,7 +60,9 @@ class LogRelay extends EventEmitter {
   getKeyedHistory(key: string): string[] {
     // `??=` formats and caches on first access; subsequent calls return the pre-rendered string.
     // Idle entries (never seen by a subscriber) are formatted exactly once here, on hydration.
-    return (this.#keyedHistory.get(key) ?? []).map((e) => (e.cached ??= e.format()));
+    return (this.#keyedHistory.get(key) ?? []).map(
+      (e) => (e.cached ??= e.format()),
+    );
   }
 
   /**

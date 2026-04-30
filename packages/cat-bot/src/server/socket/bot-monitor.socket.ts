@@ -31,7 +31,10 @@ export function registerBotMonitorHandlers(io: SocketIOServer): void {
     // own sessionKey. The singleton socket may join multiple bot-log rooms simultaneously
     // (concurrent bot detail pages open), making the event name alone insufficient to isolate
     // which hook instance should process a given delivery.
-    io.to(`bot-log:${data.key}`).emit('bot:log:keyed', { key: data.key, entry: data.entry });
+    io.to(`bot-log:${data.key}`).emit('bot:log:keyed', {
+      key: data.key,
+      entry: data.entry,
+    });
   });
 
   // ── Session status broadcast ──────────────────────────────────────────────────

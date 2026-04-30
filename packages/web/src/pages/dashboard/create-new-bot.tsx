@@ -84,14 +84,15 @@ export default function NewBotPage() {
   // ── Validation ──────────────────────────────────────────────────────────
 
   const isStep1Valid =
-    form.botNickname.trim() !== '' &&
-    form.botPrefix.trim() !== ''
+    form.botNickname.trim() !== '' && form.botPrefix.trim() !== ''
 
   // Step 2 requires an explicit successful verification — the user cannot skip by
   // typing credentials and clicking Next; they must click Verify first.
   const isStep2Valid =
-    form.platform !== '' && verificationStatus.phase === 'success' &&
-    (form.platform === Platforms.FacebookPage || form.botAdmins.some((a) => a.trim() !== ''))
+    form.platform !== '' &&
+    verificationStatus.phase === 'success' &&
+    (form.platform === Platforms.FacebookPage ||
+      form.botAdmins.some((a) => a.trim() !== ''))
 
   const handleStepChange = (step: number) => {
     if (step <= currentStep) {
@@ -245,7 +246,10 @@ export default function NewBotPage() {
     void createBot({
       botNickname: form.botNickname,
       botPrefix: form.botPrefix,
-      botAdmins: form.platform === Platforms.FacebookPage ? [] : form.botAdmins.filter((a) => a.trim() !== ''),
+      botAdmins:
+        form.platform === Platforms.FacebookPage
+          ? []
+          : form.botAdmins.filter((a) => a.trim() !== ''),
       credentials,
     })
   }
@@ -470,18 +474,25 @@ export default function NewBotPage() {
 
                         <div className="flex flex-col gap-2 rounded-lg">
                           {form.botAdmins.map((adminId, index) => (
-                            <div key={index} className="flex items-center gap-2">
+                            <div
+                              key={index}
+                              className="flex items-center gap-2"
+                            >
                               <div className="flex-1">
                                 <Input
                                   placeholder={`Admin user ID ${index + 1}`}
                                   value={adminId}
-                                  onChange={(e) => handleAdminChange(index, e.target.value)}
+                                  onChange={(e) =>
+                                    handleAdminChange(index, e.target.value)
+                                  }
                                   aria-label={`Admin user ID ${index + 1}`}
                                 />
                               </div>
                               {form.botAdmins.length > 1 && (
                                 <Button
-                                  variant="text" color="error" iconOnly
+                                  variant="text"
+                                  color="error"
+                                  iconOnly
                                   onClick={() => handleRemoveAdmin(index)}
                                   aria-label={`Remove admin user ID ${index + 1}`}
                                   leftIcon={<Trash2 className="h-4 w-4" />}

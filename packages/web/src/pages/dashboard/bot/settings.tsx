@@ -319,8 +319,12 @@ export default function BotSettingsPage() {
       const updated = await updateBot(bot.sessionId, {
         botNickname: form.botNickname,
         botPrefix: form.botPrefix,
-        botAdmins: isFbPage ? [] : form.botAdmins.filter((a) => a.trim() !== ''),
-        botPremiums: isFbPage ? [] : form.botPremiums.filter((p) => p.trim() !== ''),
+        botAdmins: isFbPage
+          ? []
+          : form.botAdmins.filter((a) => a.trim() !== ''),
+        botPremiums: isFbPage
+          ? []
+          : form.botPremiums.filter((p) => p.trim() !== ''),
         credentials,
       })
 
@@ -379,7 +383,8 @@ export default function BotSettingsPage() {
           <div>
             <Card.Title as="h3">Bot Identity</Card.Title>
             <Card.Description>
-              Display name, command prefix{isFbPage ? '' : ', and admin user IDs'}.
+              Display name, command prefix
+              {isFbPage ? '' : ', and admin user IDs'}.
             </Card.Description>
           </div>
         </Card.Header>
