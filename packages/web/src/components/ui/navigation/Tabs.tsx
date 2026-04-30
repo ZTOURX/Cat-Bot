@@ -130,24 +130,71 @@ const TabsList: React.FC<TabsListProps> = ({
   onVariantChange,
 }) => {
   const { orientation } = useTabsContext()
+  const scrollRef = React.useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = React.useState(false)
+  const [canScrollRight, setCanScrollRight] = React.useState(false)
 
   // Notify parent about variant on mount and when it changes
   React.useEffect(() => {
     onVariantChange?.(variant)
   }, [variant, onVariantChange])
 
+  // Track scroll overflow so we can paint inset shadow indicators.
+  // ResizeObserver rechecks whenever the container or its content resizes
+  // (window resize, dynamic tab additions) without a separate viewport listener.
+  // Only runs for horizontal orientation — vertical tabs never overflow this axis.
+  React.useEffect(() => {
+    if (orientation !== 'horizontal') return
+
+    const el = scrollRef.current
+    if (!el) return
+
+    const update = () => {
+      setCanScrollLeft(el.scrollLeft > 0)
+      // 1px tolerance absorbs sub-pixel rounding on HiDPI / fractional-zoom displays
+      setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 1)
+    }
+
+    update()
+    el.addEventListener('scroll', update, { passive: true })
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+
+    return () => {
+      el.removeEventListener('scroll', update)
+      ro.disconnect()
+    }
+  }, [orientation])
+
+  // Inset box-shadow is the background-agnostic scroll indicator strategy:
+  //   • Desktop: the native scrollbar track also shows (scrollbar-hiding classes removed),
+  //     giving two reinforcing cues.
+  //   • Mobile (iOS / Android): browsers never render a persistent scrollbar track, so
+  //     this inset vignette is the sole persistent visual affordance for touch users.
+  // rgb() notation with opacity is used to avoid needing a CSS variable reference inside
+  // an inline style string — works on both light and dark surfaces.
+  const shadows: string[] = []
+  if (canScrollLeft) shadows.push('inset 12px 0 8px -8px rgb(0 0 0 / 0.15)')
+  if (canScrollRight) shadows.push('inset -12px 0 8px -8px rgb(0 0 0 / 0.15)')
+  const scrollStyle: React.CSSProperties | undefined =
+    orientation === 'horizontal' && shadows.length > 0
+      ? { boxShadow: shadows.join(', ') }
+      : undefined
+
   return (
     <div
+      ref={scrollRef}
       role="tablist"
       aria-orientation={orientation}
+      style={scrollStyle}
       className={cn(
         'flex',
         orientation === 'vertical' ? 'flex-col' : 'flex-row',
-        // Horizontal scroll for viewports too narrow to show all tabs (e.g. mobile with 4+ tabs).
-        // scrollbar-width:none (Firefox) + webkit pseudo-element (Chrome/Safari/Edge) hide the
-        // scrollbar visually — touch swipe and mouse wheel still scroll the list.
-        orientation === 'horizontal' &&
-          'overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+        // overflow-x-auto enables horizontal scroll. The scrollbar-hiding classes that
+        // were here previously are intentionally removed: on desktop the native scrollbar
+        // track acts as a secondary scroll indicator; on mobile it is always
+        // overlay-and-fade, so the inset box-shadow above is the primary cue.
+        orientation === 'horizontal' && 'overflow-x-auto',
         variant === 'line' && orientation === 'horizontal' && 'gap-6',
         variant === 'line' && orientation === 'vertical' && 'gap-2',
         variant === 'enclosed' && 'gap-1',
