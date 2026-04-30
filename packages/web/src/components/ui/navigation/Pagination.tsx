@@ -402,7 +402,7 @@ const Pagination = forwardRefWithAs<'nav', PaginationOwnProps>((props, ref) => {
                   config.button,
                   isCurrentPage
                     ? 'bg-primary text-on-primary'
-                    : 'text-on-surface hover:bg-surface-container-high',
+                    : 'bg-surface-container text-on-surface hover:bg-surface-container-high',
                 )}
                 aria-label={`Go to page ${page}`}
                 aria-current={isCurrentPage ? 'page' : undefined}
