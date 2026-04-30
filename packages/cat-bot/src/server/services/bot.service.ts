@@ -293,14 +293,20 @@ export class BotService {
         // abortRetry() cancels any live back-off loop before the restart; it is a
         // no-op when the session is active-and-running (not retrying).
         sessionManager.abortRetry(key);
-        // Fire-and-forget: the API response must not block on transport boot time.
-        // After abortRetry the isRetrying guard inside restartBot is already cleared.
-        void this.restartBot(userId, sessionId).catch((err) => {
-          logger.error(
-            '[bot.service] Auto-restart on credential update failed (non-fatal)',
-            { error: err },
-          );
-        });
+        // Wait for any in-progress boot to release its lock before restarting — without
+        // this wait, abortRetry() on a mid-boot session (isLocked=true) causes restartBot
+        // to throw BusyError that the catch below silently swallowed, leaving the session
+        // running forever on the old credentials after the locked boot completed.
+        // Fire-and-forget: HTTP response must not block on platform transport boot time.
+        void sessionManager
+          .waitForUnlock(key, 15_000)
+          .then(() => this.restartBot(userId, sessionId))
+          .catch((err) => {
+            logger.error(
+              '[bot.service] Auto-restart on credential update failed (non-fatal)',
+              { error: err },
+            );
+          });
       } else {
         // Session was intentionally stopped — only evict the stale lifecycle closure.
         await sessionManager.unregister(key);

@@ -308,6 +308,63 @@ class SessionManager extends EventEmitter {
     }
     await Promise.all(promises);
   }
+
+  /**
+   * Returns a Promise that resolves when the session lock is released, or rejects
+   * after timeoutMs if the lock is never released within that window.
+   *
+   * Uses the existing 'locked' EventEmitter events so there is zero polling overhead —
+   * the Promise resolves on the exact tick that markUnlocked() fires for this key.
+   * Resolves immediately (synchronously skips the Promise allocation) when already unlocked.
+   *
+   * WHY THIS EXISTS:
+   *   bot.service.ts updateBot() calls abortRetry(key) then restartBot() fire-and-forget.
+   *   When a boot attempt is mid-flight (isLocked=true), restartBot() throws BusyError
+   *   which the catch() swallowed silently — the session continued running on stale
+   *   credentials after the old boot completed. waitForUnlock() chains the restart so it
+   *   fires exactly once after the lock clears, not before.
+   */
+  waitForUnlock(key: string, timeoutMs = 15_000): Promise<void> {
+    // Fast path: already unlocked — skip Promise allocation entirely
+    if (!this.isLocked(key)) return Promise.resolve();
+
+    return new Promise<void>((resolve, reject) => {
+      // settled flag prevents double-resolution if the timeout fires on the same tick
+      // as the 'locked' event (unlikely but possible under heavy event-loop contention).
+      let settled = false;
+
+      const cleanup = (): void => {
+        settled = true;
+        clearTimeout(timer);
+        // Exact function reference removal — avoids listener accumulation on the shared
+        // SessionManager EventEmitter when many sessions are waiting simultaneously.
+        this.off('locked', handler);
+      };
+
+      // Only respond to unlock events for THIS specific session key — other sessions
+      // emit 'locked' on the same emitter; key equality is the isolation boundary.
+      const handler = (event: { key: string; locked: boolean }): void => {
+        if (event.key !== key || event.locked || settled) return;
+        cleanup();
+        resolve();
+      };
+
+      // Safety valve: prevents the caller from hanging indefinitely when a boot
+      // deadlocks or the platform runner never calls markUnlocked (e.g., process OOM,
+      // unhandled rejection inside boot() that bypasses the finally block).
+      const timer = setTimeout(() => {
+        if (settled) return;
+        cleanup();
+        reject(
+          new Error(
+            `[session-manager] waitForUnlock timed out after ${timeoutMs}ms for key "${key}"`,
+          ),
+        );
+      }, timeoutMs);
+
+      this.on('locked', handler);
+    });
+  }
 }
 
 export const sessionManager = new SessionManager();
