@@ -12,6 +12,7 @@ import {
   isNetworkError,
   isAuthError,
 } from '@/engine/lib/retry.lib.js';
+import { TTLMap } from '@/engine/lib/ttl-map.lib.js';
 import type {
   CreateBotRequestDto,
   CreateBotResponseDto,
@@ -34,15 +35,26 @@ export class BusyError extends Error {
   }
 }
 
-// 10-second per-button cooldown per session — prevents zombie MQTT/WebSocket listener
+// 3-second per-button cooldown per session — prevents zombie MQTT/WebSocket listener
 // accumulation from rapid Start / Stop / Restart clicks that bypass the session lock
 // (the lock is held only during the transport transition, not across the full lifecycle).
-const ACTION_COOLDOWN_MS = 10_000;
-const actionCooldowns = new Map<string, { expiry: number; action: string }>(); // `${userId}:${sessionId}` → { expiry ms, action }
+const ACTION_COOLDOWN_MS = 3_000;
+// TTLMap auto-expires entries and runs a background cleanup sweep — a raw Map would
+// leak one entry per button click per session for the full process lifetime, since
+// cooldown entries are only checked on the next action and never explicitly deleted.
+const actionCooldowns = new TTLMap<string>({
+  ttlMs: ACTION_COOLDOWN_MS,
+  sliding: false,       // must NOT extend on read — resetting the penalty clock on retry defeats rate-limiting
+  cleanupIntervalMs: 60_000,
+});
 
 // Restart action gets its own isolated cooldown so users can immediately restart without hitting the start/stop cooldown.
-const RESTART_COOLDOWN_MS = 10_000;
-const restartCooldowns = new Map<string, { expiry: number; action: string }>(); // `${userId}:${sessionId}` → { expiry ms, action }
+const RESTART_COOLDOWN_MS = 3_000;
+const restartCooldowns = new TTLMap<string>({
+  ttlMs: RESTART_COOLDOWN_MS,
+  sliding: false,
+  cleanupIntervalMs: 60_000,
+});
 
 // Global session-level cooldown (omitting 'action') prevents interleaving
 // conflicting commands (e.g., start then immediate stop) which can cause zombie listeners.
@@ -50,10 +62,8 @@ function getActiveSessionCooldownAction(
   userId: string,
   sessionId: string,
 ): string | undefined {
-  const entry = actionCooldowns.get(`${userId}:${sessionId}`);
-  return entry !== undefined && Date.now() < entry.expiry
-    ? entry.action
-    : undefined;
+  // TTLMap.get() handles expiry check and lazy eviction internally — no manual Date.now() needed
+  return actionCooldowns.get(`${userId}:${sessionId}`);
 }
 
 function setSessionCooldown(
@@ -61,20 +71,16 @@ function setSessionCooldown(
   sessionId: string,
   action: string,
 ): void {
-  actionCooldowns.set(`${userId}:${sessionId}`, {
-    expiry: Date.now() + ACTION_COOLDOWN_MS,
-    action,
-  });
+  // TTLMap.set() starts the TTL clock — value is the action name string, not the full {expiry, action} object
+  actionCooldowns.set(`${userId}:${sessionId}`, action);
 }
 
 function getActiveRestartCooldownAction(
   userId: string,
   sessionId: string,
 ): string | undefined {
-  const entry = restartCooldowns.get(`${userId}:${sessionId}`);
-  return entry !== undefined && Date.now() < entry.expiry
-    ? entry.action
-    : undefined;
+  // TTLMap.get() handles expiry check and lazy eviction internally
+  return restartCooldowns.get(`${userId}:${sessionId}`);
 }
 
 function setRestartCooldown(
@@ -82,10 +88,7 @@ function setRestartCooldown(
   sessionId: string,
   action: string,
 ): void {
-  restartCooldowns.set(`${userId}:${sessionId}`, {
-    expiry: Date.now() + RESTART_COOLDOWN_MS,
-    action,
-  });
+  restartCooldowns.set(`${userId}:${sessionId}`, action);
 }
 
 // Fetches the Discord Application (Client) ID via the bot token.
