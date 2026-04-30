@@ -293,14 +293,20 @@ export class BotService {
         // abortRetry() cancels any live back-off loop before the restart; it is a
         // no-op when the session is active-and-running (not retrying).
         sessionManager.abortRetry(key);
-        // Fire-and-forget: the API response must not block on transport boot time.
-        // After abortRetry the isRetrying guard inside restartBot is already cleared.
-        void this.restartBot(userId, sessionId).catch((err) => {
-          logger.error(
-            '[bot.service] Auto-restart on credential update failed (non-fatal)',
-            { error: err },
-          );
-        });
+        // Wait for any in-progress boot to release its lock before restarting — without
+        // this wait, abortRetry() on a mid-boot session (isLocked=true) causes restartBot
+        // to throw BusyError that the catch below silently swallowed, leaving the session
+        // running forever on the old credentials after the locked boot completed.
+        // Fire-and-forget: HTTP response must not block on platform transport boot time.
+        void sessionManager
+          .waitForUnlock(key, 15_000)
+          .then(() => this.restartBot(userId, sessionId))
+          .catch((err) => {
+            logger.error(
+              '[bot.service] Auto-restart on credential update failed (non-fatal)',
+              { error: err },
+            );
+          });
       } else {
         // Session was intentionally stopped — only evict the stale lifecycle closure.
         await sessionManager.unregister(key);
@@ -344,6 +350,11 @@ export class BotService {
       setSessionCooldown(userId, sessionId, 'start');
     }
     const key = `${userId}:${botDetail.platform}:${sessionId}`;
+    // Guard: session is already running — a second start() passes both isLocked=false and
+    // isRetrying=false guards in runManagedSession, spawning a concurrent zombie transport
+    // that duplicates every event handler on the same account credentials. The DB row is
+    // already isRunning=true and the transport is healthy; early-return changes nothing.
+    if (sessionManager.isActive(key)) return;
     // Start is the only action permitted during retry — abort the back-off loop so
     // the session boots immediately with the latest credentials from the database.
     sessionManager.abortRetry(key);
