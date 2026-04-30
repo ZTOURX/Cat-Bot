@@ -54,15 +54,16 @@ The platform transport layer absorbs every SDK difference (discord.js gateway, T
 7. [Features](#features)
 8. [Architecture](#architecture)
 9. [Production Setup](#production-setup)
-10. [Writing Commands](#writing-commands)
-11. [Converting Existing Commands](#converting-existing-commands)
-12. [Writing Event Handlers](#writing-event-handlers)
-13. [Constants & Type Safety](#constants--type-safety)
-14. [Developer Reference](#developer-reference)
-15. [Database Adapters](#database-adapters)
-16. [Environment Variables](#environment-variables)
-17. [npm Scripts](#npm-scripts)
-18. [Authors](#authors)
+10. [Cloud Deployment](#cloud-deployment)
+11. [Writing Commands](#writing-commands)
+12. [Converting Existing Commands](#converting-existing-commands)
+13. [Writing Event Handlers](#writing-event-handlers)
+14. [Constants & Type Safety](#constants--type-safety)
+15. [Developer Reference](#developer-reference)
+16. [Database Adapters](#database-adapters)
+17. [Environment Variables](#environment-variables)
+18. [npm Scripts](#npm-scripts)
+19. [Authors](#authors)
 
 ---
 
@@ -1259,7 +1260,7 @@ npm run seed:admin
 4. Build the project:
 
 ```bash
-npm install; npm run build:all
+npm install && npm run build:all
 ```
 
 5. Start the production server:
@@ -1304,15 +1305,79 @@ GOOGLE_APP_PASSWORD=xxxx xxxx xxxx xxxx
 VITE_EMAIL_SERVICES_ENABLE=true
 ```
 
-### Telegram Webhooks (optional)
+### Telegram Webhooks (recommended for production)
 
-By default, Telegram sessions use long-polling — no public domain required. For webhook mode:
+By default, Telegram sessions use long-polling — no public domain required. However, for production deployments, webhook mode is highly recommended for better reliability and scalability:
 
 ```env
 TELEGRAM_WEBHOOK_DOMAIN=https://your-domain.com
 ```
 
 The Telegram adapter switches to webhook mode automatically when this variable is present.
+
+---
+
+## Cloud Deployment
+
+The build and start commands are the same for every platform:
+
+| | Command |
+|---|---|
+| **Build** | `npm install && npm run build:all` |
+| **Start** | `npm start` |
+
+> **`BETTER_AUTH_URL` = `TELEGRAM_WEBHOOK_DOMAIN`** — both must be set to your public deployment URL.
+
+---
+
+### Render
+
+Render provisions a unique `*.onrender.com` HTTPS subdomain automatically and manages TLS certificates. The `PORT` environment variable is injected by Render (default `10000`) — Cat-Bot reads it via `env.config.ts`, so no port configuration is needed.
+
+**Steps:**
+
+1. Go to [render.com](https://render.com) and sign in (or create an account).
+2. In the dashboard, click **New → Web Service**.
+3. Select **Build and deploy from a Git repository** → click **Next**.
+4. Connect your GitHub account and select the **Cat-Bot** repository → click **Connect**.
+5. Fill in the service creation form:
+   - **Name:** any name (becomes your subdomain, e.g. `cat-bot.onrender.com`)
+   - **Region:** closest to your users
+   - **Branch:** `main`
+   - **Build Command:** `npm install && npm run build:all`
+   - **Start Command:** `npm start`
+6. Choose an instance type and click **Create Web Service**. Render kicks off the first build — the deploy log streams in real time.
+7. Once the first deploy finishes, copy your assigned `onrender.com` URL (e.g. `https://cat-bot.onrender.com`).
+8. Open the **Environment** tab → click **Add Environment Variable** and add all required variables (see [Environment Variables](#environment-variables)):
+   - `BETTER_AUTH_URL` → `https://your-service.onrender.com`
+   - `TELEGRAM_WEBHOOK_DOMAIN` → same value as `BETTER_AUTH_URL`
+   - Remove `VITE_URL` entirely — it must not be set in production (causes trusted-origin errors in better-auth)
+9. Click **Save Changes** → Render triggers an automatic redeploy with the new variables applied.
+
+> **Free tier note:** Free Render instances spin down after 15 minutes of inactivity and spin back up on the next request (cold start ~30 s). Use a paid instance for always-on bot sessions.
+
+---
+
+### Railway
+
+Railway does not assign a public domain until you explicitly generate one — the domain is needed before you can fill in `BETTER_AUTH_URL` and `TELEGRAM_WEBHOOK_DOMAIN`, so the sequence differs from Render.
+
+Railway injects `PORT` automatically; Cat-Bot reads it via `env.config.ts` — no port configuration is needed.
+
+**Steps:**
+
+1. Go to [railway.com](https://railway.com) and sign in with your GitHub account.
+2. In the dashboard, click **New Project → Deploy from GitHub repo**.
+3. Select the **Cat-Bot** repository → click **Deploy Now**. Railway detects the Node.js project via Railpack and kicks off an initial build on your default branch.
+4. Once the project canvas appears, click on your service to open the service panel.
+5. Go to **Settings → Networking** and click **Generate Domain** — Railway provisions a `*.up.railway.app` subdomain (e.g. `https://cat-bot-production.up.railway.app`). Copy it.
+6. Open the **Variables** tab and add all required environment variables (see [Environment Variables](#environment-variables)):
+   - `BETTER_AUTH_URL` → your Railway domain (e.g. `https://cat-bot-production.up.railway.app`)
+   - `TELEGRAM_WEBHOOK_DOMAIN` → same value as `BETTER_AUTH_URL`
+   - Remove `VITE_URL` entirely — it must not be set in production
+7. Click **Deploy** (or push a new commit to your linked branch) — Railway redeploys with the variables applied.
+
+> **Auto-deploys:** Every push to your linked branch (default `main`) triggers an automatic rebuild and redeploy with zero downtime.
 
 ---
 
@@ -1792,7 +1857,7 @@ MONGODB_URI=mongodb+srv://username:<PASSWORD>@cluster0.mongodb.net?...
 MONGO_PASSWORD=
 MONGO_DATABASE_NAME=catbot
 
-# Telegram Webhooks (optional)
+# Telegram Webhooks (optional — recommended for production)
 TELEGRAM_WEBHOOK_DOMAIN=https://your-domain.com
 
 # Gmail SMTP / Email Verification (optional — recommended for production)
