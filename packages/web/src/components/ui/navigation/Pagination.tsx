@@ -112,16 +112,22 @@ function generatePageNumbers(
   let startPage = Math.max(2, currentPage - sidePages)
   let endPage = Math.min(totalPages - 1, currentPage + sidePages)
 
-  // Adjust range if at the beginning
+  // Adjust range if at the beginning. When maxVisiblePages is very small (3 on
+  // mobile), Math.min(totalPages-1, maxVisiblePages-2) evaluates to 1 while
+  // startPage is 2 — endPage < startPage makes the middle loop a no-op and
+  // drops page 2 from the rendered list. Math.max clamps so the loop always
+  // executes at least once (page 2 always appears when near the start).
   if (currentPage <= sidePages + 2) {
-    endPage = Math.min(totalPages - 1, maxVisiblePages - 2)
     startPage = 2
+    endPage = Math.max(startPage, Math.min(totalPages - 1, maxVisiblePages - 2))
   }
 
-  // Adjust range if at the end
+  // Adjust range if at the end. Mirror of the beginning fix — Math.min prevents
+  // startPage from overshooting endPage when the viewport window is narrow,
+  // which would otherwise drop the second-to-last page from the list.
   if (currentPage >= totalPages - sidePages - 1) {
-    startPage = Math.max(2, totalPages - maxVisiblePages + 3)
     endPage = totalPages - 1
+    startPage = Math.min(endPage, Math.max(2, totalPages - maxVisiblePages + 3))
   }
 
   // Add start ellipsis if needed
@@ -396,7 +402,7 @@ const Pagination = forwardRefWithAs<'nav', PaginationOwnProps>((props, ref) => {
                   config.button,
                   isCurrentPage
                     ? 'bg-primary text-on-primary'
-                    : 'text-on-surface hover:bg-surface-container-high',
+                    : 'bg-surface-container text-on-surface hover:bg-surface-container-high',
                 )}
                 aria-label={`Go to page ${page}`}
                 aria-current={isCurrentPage ? 'page' : undefined}
