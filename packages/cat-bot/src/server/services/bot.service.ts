@@ -350,6 +350,11 @@ export class BotService {
       setSessionCooldown(userId, sessionId, 'start');
     }
     const key = `${userId}:${botDetail.platform}:${sessionId}`;
+    // Guard: session is already running — a second start() passes both isLocked=false and
+    // isRetrying=false guards in runManagedSession, spawning a concurrent zombie transport
+    // that duplicates every event handler on the same account credentials. The DB row is
+    // already isRunning=true and the transport is healthy; early-return changes nothing.
+    if (sessionManager.isActive(key)) return;
     // Start is the only action permitted during retry — abort the back-off loop so
     // the session boots immediately with the latest credentials from the database.
     sessionManager.abortRetry(key);
