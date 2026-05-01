@@ -1223,7 +1223,7 @@ Your command module never imports `discord.js`. Your button handler never calls 
 
 <table>
   <tr>
-    <td><img src="assets/agent.jpg" alt="AI Agent running daily and work commands" width="60%" /></td>
+    <td><img src="assets/agent.jpg" alt="AI Agent running daily and work commands" width="50%" /></td>
   </tr>
 </table>
 
