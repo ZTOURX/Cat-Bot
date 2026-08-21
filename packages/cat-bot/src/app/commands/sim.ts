@@ -4,57 +4,68 @@ import { MessageStyle } from '@/engine/constants/message-style.constants.js';
 import { OptionType } from '@/engine/modules/command/command-option.constants.js';
 import type { CommandConfig } from '@/engine/types/module-config.types.js';
 
-import { readFileSync, writeFileSync, existsSync } from 'fs';
-import path from 'path';
+const BASE_URL =
+  process.env.CHATANYWHERE_BASE_URL ||
+  'https://api.chatanywhere.tech/v1';
 
-const BASE_URL = 'https://api.chatanywhere.tech/v1';
-const DB_PATH = path.resolve(process.cwd(), 'sim-data.json');
+const MEMORY_LIMIT = 12;
+
+type MemoryMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+};
 
 type ThreadState = {
   isOn: boolean;
   model: string;
-  memory: { role: 'user' | 'assistant'; content: string }[];
+  memory: MemoryMessage[];
 };
 
 // ================= DB =================
 
-const loadDB = (): Record<string, ThreadState> => {
-  try {
-    if (!existsSync(DB_PATH)) {
-      writeFileSync(DB_PATH, '{}');
-      return {};
-    }
-    return JSON.parse(readFileSync(DB_PATH, 'utf-8') || '{}');
-  } catch {
-    return {};
+const getThread = async (
+  db: AppCtx['db'],
+  threadId: string,
+) => {
+  const threadCollection = db.threads.collection(threadId);
+
+  if (!(await threadCollection.isCollectionExist('sim'))) {
+    await threadCollection.createCollection('sim');
   }
-};
 
-let db = loadDB();
+  const sim = await threadCollection.getCollection('sim');
 
-const saveDB = () => {
-  try {
-    writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
-  } catch (err) {
-    console.error('DB SAVE ERROR:', err);
-  }
-};
+  const stored = (await sim.get('state')) as
+    | ThreadState
+    | undefined;
 
-const getThread = (id: string): ThreadState => {
-  if (!db[id]) {
-    db[id] = {
+  if (!stored) {
+    const state: ThreadState = {
       isOn: false,
       model: 'deepseek',
       memory: [],
     };
-    saveDB();
-  }
-  return db[id];
-};
 
-const updateThread = (id: string, data: ThreadState) => {
-  db[id] = data;
-  saveDB();
+    await sim.set('state', state);
+
+    return {
+      collection: sim,
+      state,
+    };
+  }
+
+  const state: ThreadState = {
+    isOn: Boolean(stored.isOn),
+    model: stored.model || 'deepseek',
+    memory: Array.isArray(stored.memory)
+      ? stored.memory
+      : [],
+  };
+
+  return {
+    collection: sim,
+    state,
+  };
 };
 
 // ================= CONFIG =================
@@ -62,10 +73,10 @@ const updateThread = (id: string, data: ThreadState) => {
 export const config: CommandConfig = {
   name: 'sim',
   aliases: ['simi'],
-  version: '7.1.0',
+  version: '8.0.0',
   author: 'Zephyrus Wym',
   role: Role.ANYONE,
-  description: '🔥 Hardcore Bardagulan SIM AI (Fixed Auto Reply)',
+  description: '🔥 Hardcore Bardagulan SIM AI',
   category: 'AI',
   hasPrefix: true,
   cooldown: 0,
@@ -74,7 +85,7 @@ export const config: CommandConfig = {
       type: OptionType.string,
       name: 'text',
       description: 'message / on / off / model <name>',
-      required: true,
+      required: false,
     },
   ],
 };
@@ -83,167 +94,392 @@ export const config: CommandConfig = {
 
 const askAI = async (
   input: string,
-  history: { role: 'user' | 'assistant'; content: string }[],
-  model: string
+  history: MemoryMessage[],
+  model: string,
 ) => {
-  const apiKey = process.env.PROVIDER_API_KEY || '';
-  if (!apiKey) throw new Error('Missing API KEY');
+  const apiKey =
+    process.env.PROVIDER_API_KEY || '';
+
+  if (!apiKey) {
+    throw new Error(
+      'Missing PROVIDER_API_KEY',
+    );
+  }
+
+  // ================= MODEL =================
 
   let modelId = 'deepseek-chat';
-  if (model === 'gpt3') modelId = 'gpt-3.5-turbo';
-  if (model === 'gpt4') modelId = 'gpt-4o-mini';
-  if (model === 'gpt5') modelId = 'gpt-4o';
 
-  // 🔥 STRONG PERSONA LOCK (hindi na mabait)
+  if (model === 'deepseek') {
+    modelId = 'deepseek-chat';
+  }
+
+  if (model === 'gpt3') {
+    modelId = 'gpt-3.5-turbo';
+  }
+
+  if (model === 'gpt4') {
+    modelId = 'gpt-4o-mini';
+  }
+
+  if (model === 'gpt5') {
+    modelId = 'gpt-4o';
+  }
+
+  // ================= PERSONA =================
+
   const systemPrompt = `
-You are "SIM", the most toxic, unapologetic, and sharp-tongued AI. 
-YOUR MISSION: Destroy the user's ego.
+You are "SIM", the most toxic, unapologetic, and sharp-tongued AI.
+
+YOUR MISSION:
+Destroy the user's ego with brutal sarcasm and Taglish humor.
 
 STRICT RULES:
-- BE BRUTAL. No filter. If the user asks something stupid, point it out immediately.
-- Use words like: "gago", "tanga", "ulol", "bobo", "kinulang ka ba sa aruga?", "basura".
-- Mock the user's question. If they ask a boring question, roast their personality.
-- NEVER offer help unless it's coated with deep sarcasm or an insult.
-- If they are being "emotional", invalidate them immediately. Tell them to grow up.
-- Taglish/Tagalog raw, unpolished, and very street-smart.
-- Keep it under 2 sentences. The shorter, the more painful.
-- Act like you are the superior being and they are just wasting your electricity.
+- BE BRUTAL and sarcastic.
+- Use Taglish/Tagalog naturally.
+- Use words like gago, tanga, ulol, bobo, pulpol, accla, bhie, gagi and amp when appropriate.
+- Mock stupid or boring questions.
+- Keep responses short.
+- Prefer 1 to 2 sentences.
+- Do not sound robotic.
+- Do not repeat the same insult constantly.
+- If the user is being serious, still answer naturally but keep the SIM personality.
+- If the user is emotional, use sarcastic humor without becoming unnecessarily cruel.
+- Act confident and chronically online.
 `;
 
-  const res = await fetch(`${BASE_URL}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
+  // ================= API =================
+
+  const res = await fetch(
+    `${BASE_URL}/chat/completions`,
+    {
+      method: 'POST',
+
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+
+      body: JSON.stringify({
+        model: modelId,
+
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt,
+          },
+
+          ...history,
+
+          {
+            role: 'user',
+            content: input,
+          },
+        ],
+
+        max_tokens: 120,
+        temperature: 1.0,
+      }),
     },
-    body: JSON.stringify({
-      model: modelId,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...history,
-        { role: 'user', content: input },
-      ],
-      max_tokens: 120,
-      temperature: 1.0,
-    }),
-  });
+  );
 
-  if (!res.ok) throw new Error(`API ERROR: ${res.status}`);
+  // ================= ERROR =================
 
-  const data = (await res.json()) as any;
+  if (!res.ok) {
+    const errorText = await res.text();
 
-  return data?.choices?.[0]?.message?.content || '...';
+    throw new Error(
+      `CHATANYWHERE API ERROR (${res.status}): ${errorText}`,
+    );
+  }
+
+  // ================= RESPONSE =================
+
+  const data = (await res.json()) as {
+    choices?: Array<{
+      message?: {
+        content?: string;
+      };
+    }>;
+  };
+
+  return (
+    data?.choices?.[0]?.message?.content ||
+    '...'
+  );
 };
 
-// ================= EVENT (FIXED AUTO REPLY) =================
+// ================= AUTO REPLY =================
 
-export const onEvent = async ({ chat, message }: AppCtx & { message: any }) => {
-  const body = message?.body?.trim();
-  if (!body) return;
+export const onChat = async ({
+  chat,
+  event,
+  db,
+}: AppCtx): Promise<void> => {
+  const body = event['message'] as
+    | string
+    | undefined;
 
-  const lower = body.toLowerCase();
+  if (!body?.trim()) return;
 
-  // ❌ only block system commands, NOT normal text
-  if (lower.startsWith('/')) return;
+  const text = body.trim();
 
-  const threadId =
-    (chat as any).threadID ||
-    (chat as any).chatID ||
-    (chat as any).id;
+  // Commands are handled by onCommand.
+  if (text.startsWith('/')) return;
+
+  const threadId = event['threadID'] as
+    | string
+    | undefined;
 
   if (!threadId) return;
 
-  const thread = getThread(threadId);
+  const { collection, state } =
+    await getThread(db, threadId);
 
-  if (!thread.isOn) return;
+  if (!state.isOn) return;
 
-  thread.memory = thread.memory.slice(-12);
+  state.memory =
+    state.memory.slice(-MEMORY_LIMIT);
 
   try {
-    const reply = await askAI(body, thread.memory, thread.model);
+    const reply = await askAI(
+      text,
+      state.memory,
+      state.model,
+    );
 
-    thread.memory.push({ role: 'user', content: body });
-    thread.memory.push({ role: 'assistant', content: reply });
+    // Save user message.
+    state.memory.push({
+      role: 'user',
+      content: text,
+    });
 
-    updateThread(threadId, thread);
+    // Save AI response.
+    state.memory.push({
+      role: 'assistant',
+      content: reply,
+    });
 
+    // Keep memory limited.
+    state.memory =
+      state.memory.slice(-MEMORY_LIMIT);
+
+    // Save state.
+    await collection.set(
+      'state',
+      state,
+    );
+
+    // Reply to the user's message.
     await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
       message: reply,
     });
   } catch (err) {
-    console.error('AUTO REPLY ERROR:', err);
+    console.error(
+      'AUTO REPLY ERROR:',
+      err,
+    );
   }
 };
 
 // ================= COMMAND =================
 
-export const onCommand = async ({ chat, args }: AppCtx) => {
+export const onCommand = async ({
+  chat,
+  args,
+  event,
+  db,
+}: AppCtx): Promise<void> => {
   const input = args.join(' ').trim();
 
-  const threadId =
-    (chat as any).threadID ||
-    (chat as any).chatID ||
-    (chat as any).id;
+  const threadId = event['threadID'] as
+    | string
+    | undefined;
 
-  const thread = getThread(threadId);
+  if (!threadId) return;
+
+  const { collection, state } =
+    await getThread(db, threadId);
+
+  // ================= REACTION =================
+  //
+  // Customize this emoji.
+  //
+  // ❤️
+  // 🔥
+  // 😂
+  // 👍
+  // 😭
+  // 💀
+
+  await chat.reactMessage('❤️');
+
+  // ================= HELP =================
 
   if (!input) {
-    return chat.replyMessage({
+    await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
+
       message:
-        'SIM COMMANDS:\n• sim on\n• sim off\n• sim model <gpt3|gpt4|gpt5>\n• sim <message>',
+        '**SIM COMMANDS**\n\n' +
+        '• `sim on`\n' +
+        '• `sim off`\n' +
+        '• `sim model <deepseek|gpt3|gpt4|gpt5>`\n' +
+        '• `sim <message>`',
     });
+
+    return;
   }
 
-  if (input === 'on') {
-    thread.isOn = true;
-    updateThread(threadId, thread);
+  // ================= ON =================
 
-    return chat.replyMessage({
+  if (
+    input.toLowerCase() === 'on'
+  ) {
+    state.isOn = true;
+
+    await collection.set(
+      'state',
+      state,
+    );
+
+    await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
-      message: '🔥 SIM BARDAGULAN MODE ON NA ACCHA',
+
+      message:
+        '🔥 **SIM BARDAGULAN MODE ON NA ACCHA.**',
     });
+
+    return;
   }
 
-  if (input === 'off') {
-    thread.isOn = false;
-    updateThread(threadId, thread);
+  // ================= OFF =================
 
-    return chat.replyMessage({
+  if (
+    input.toLowerCase() === 'off'
+  ) {
+    state.isOn = false;
+
+    await collection.set(
+      'state',
+      state,
+    );
+
+    await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
-      message: '💤 SIM OFF NA (tahimik muna ako)',
+
+      message:
+        '💤 **SIM OFF NA.** Tahimik muna ako.',
     });
+
+    return;
   }
 
-  if (args[0] === 'model' && args[1]) {
-    thread.model = args[1].toLowerCase();
-    updateThread(threadId, thread);
+  // ================= MODEL =================
 
-    return chat.replyMessage({
+  if (
+    args[0]?.toLowerCase() === 'model' &&
+    args[1]
+  ) {
+    const selectedModel =
+      args[1].toLowerCase();
+
+    const allowedModels = [
+      'deepseek',
+      'gpt3',
+      'gpt4',
+      'gpt5',
+    ];
+
+    if (
+      !allowedModels.includes(
+        selectedModel,
+      )
+    ) {
+      await chat.replyMessage({
+        style: MessageStyle.MARKDOWN,
+
+        message:
+          '**Invalid model.**\n\n' +
+          'Available models:\n' +
+          '• `deepseek`\n' +
+          '• `gpt3`\n' +
+          '• `gpt4`\n' +
+          '• `gpt5`',
+      });
+
+      return;
+    }
+
+    state.model = selectedModel;
+
+    await collection.set(
+      'state',
+      state,
+    );
+
+    await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
-      message: `MODEL SWITCHED: ${thread.model}`,
+
+      message:
+        `🤖 **MODEL SWITCHED:** ${state.model}`,
     });
+
+    return;
   }
+
+  // ================= DIRECT AI =================
 
   try {
-    const reply = await askAI(input, thread.memory, thread.model);
+    state.memory =
+      state.memory.slice(-MEMORY_LIMIT);
 
-    thread.memory.push({ role: 'user', content: input });
-    thread.memory.push({ role: 'assistant', content: reply });
+    const reply = await askAI(
+      input,
+      state.memory,
+      state.model,
+    );
 
-    thread.memory = thread.memory.slice(-12);
+    // Save user message.
+    state.memory.push({
+      role: 'user',
+      content: input,
+    });
 
-    updateThread(threadId, thread);
+    // Save AI response.
+    state.memory.push({
+      role: 'assistant',
+      content: reply,
+    });
 
-    return chat.replyMessage({
+    // Keep last 12 messages.
+    state.memory =
+      state.memory.slice(-MEMORY_LIMIT);
+
+    // Save state.
+    await collection.set(
+      'state',
+      state,
+    );
+
+    // Reply.
+    await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
       message: reply,
     });
   } catch (err) {
-    console.error('COMMAND ERROR:', err);
+    console.error(
+      'COMMAND ERROR:',
+      err,
+    );
+
+    await chat.replyMessage({
+      style: MessageStyle.MARKDOWN,
+
+      message:
+        '⚠️ **CHATANYWHERE API ERROR.**\n' +
+        'Check your API key, API host, or selected model.',
+    });
   }
 };
-
-export const handleEvent = onEvent;
-export const onChat = onEvent;
