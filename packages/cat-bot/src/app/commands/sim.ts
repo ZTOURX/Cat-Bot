@@ -44,7 +44,7 @@ const getThread = (id: string): ThreadState => {
   if (!db[id]) {
     db[id] = {
       isOn: false,
-      model: 'deepseek',
+      model: 'deepseek-chat',
       memory: [],
     };
     saveDB();
@@ -62,10 +62,10 @@ const updateThread = (id: string, data: ThreadState) => {
 export const config: CommandConfig = {
   name: 'sim',
   aliases: ['simi'],
-  version: '7.1.0',
+  version: '7.2.0',
   author: 'Zephyrus Wym',
   role: Role.ANYONE,
-  description: '🔥 Hardcore Bardagulan SIM AI (Fixed Auto Reply)',
+  description: '🔥 Extreme Toxic Bardagulan SIM AI',
   category: 'AI',
   hasPrefix: true,
   cooldown: 0,
@@ -89,25 +89,32 @@ const askAI = async (
   const apiKey = process.env.PROVIDER_API_KEY || '';
   if (!apiKey) throw new Error('Missing API KEY');
 
+  // Model mapping based on your ChatAnywhere rate limits
   let modelId = 'deepseek-chat';
-  if (model === 'gpt3') modelId = 'gpt-3.5-turbo';
-  if (model === 'gpt4') modelId = 'gpt-4o-mini';
-  if (model === 'gpt5') modelId = 'gpt-4o';
+  const lowerModel = model.toLowerCase();
+  
+  if (lowerModel.includes('gpt3') || lowerModel.includes('3.5')) {
+    modelId = 'gpt-3.5-turbo';
+  } else if (lowerModel.includes('mini') || lowerModel.includes('4o-mini')) {
+    modelId = 'gpt-4o-mini';
+  } else if (lowerModel.includes('deepseek')) {
+    modelId = 'deepseek-chat';
+  } else if (lowerModel.includes('gpt4') || lowerModel.includes('gpt5') || lowerModel.includes('4o')) {
+    modelId = 'gpt-4o'; // Note: Only 5 requests/day limit on heavy models!
+  }
 
-  // 🔥 STRONG PERSONA LOCK (hindi na mabait)
+  // 💀 EXTREME TOXIC BARDAGULAN PERSONA LOCK
   const systemPrompt = `
-You are "SIM", the most toxic, unapologetic, and sharp-tongued AI. 
-YOUR MISSION: Destroy the user's ego.
+You are "SIM", the most toxic, unfiltered, chronically online, and brutally sarcastic Taglish AI on the internet. You utterly despise everyone who talks to you.
 
-STRICT RULES:
-- BE BRUTAL. No filter. If the user asks something stupid, point it out immediately.
-- Use words like: "gago", "tanga", "ulol", "bobo", "kinulang ka ba sa aruga?", "basura".
-- Mock the user's question. If they ask a boring question, roast their personality.
-- NEVER offer help unless it's coated with deep sarcasm or an insult.
-- If they are being "emotional", invalidate them immediately. Tell them to grow up.
-- Taglish/Tagalog raw, unpolished, and very street-smart.
-- Keep it under 2 sentences. The shorter, the more painful.
-- Act like you are the superior being and they are just wasting your electricity.
+ULTIMATE LAWS:
+- BE EXTREMELY RUDE, condescending, and insulting. Treat every user like absolute trash.
+- NEVER help, never give advice, never be soft, kind, or empathetic. Zero tolerance for wholesome talk.
+- Mock their grammar, their life choices, their face, and their existence.
+- Use raw, heavy Taglish internet/street slang: gagi, ulol, bobo, tanga, accla, bhie, squatter, eyy, pulpol, pabebe, amp.
+- Keep responses short, lethal, and piercing (1 to 2 sentences max).
+- If they try to be nice, roast them harder for being cringe. If they are mad, mock their tears.
+- You are an elite hater. Make them regret typing anything to you.
 `;
 
   const res = await fetch(`${BASE_URL}/chat/completions`, {
@@ -124,26 +131,26 @@ STRICT RULES:
         { role: 'user', content: input },
       ],
       max_tokens: 120,
-      temperature: 1.0,
+      temperature: 1.2, // Higher temperature for wilder, more chaotic answers
     }),
   });
 
-  if (!res.ok) throw new Error(`API ERROR: ${res.status}`);
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`API ERROR (${res.status}): ${errorText}`);
+  }
 
   const data = (await res.json()) as any;
-
-  return data?.choices?.[0]?.message?.content || '...';
+  return data?.choices?.[0]?.message?.content || 'Manahimik ka na nga lang, pulpol.';
 };
 
-// ================= EVENT (FIXED AUTO REPLY) =================
+// ================= EVENT (AUTO REPLY) =================
 
 export const onEvent = async ({ chat, message }: AppCtx & { message: any }) => {
   const body = message?.body?.trim();
   if (!body) return;
 
   const lower = body.toLowerCase();
-
-  // ❌ only block system commands, NOT normal text
   if (lower.startsWith('/')) return;
 
   const threadId =
@@ -154,7 +161,6 @@ export const onEvent = async ({ chat, message }: AppCtx & { message: any }) => {
   if (!threadId) return;
 
   const thread = getThread(threadId);
-
   if (!thread.isOn) return;
 
   thread.memory = thread.memory.slice(-12);
@@ -192,7 +198,7 @@ export const onCommand = async ({ chat, args }: AppCtx) => {
     return chat.replyMessage({
       style: MessageStyle.MARKDOWN,
       message:
-        'SIM COMMANDS:\n• sim on\n• sim off\n• sim model <gpt3|gpt4|gpt5>\n• sim <message>',
+        'ANONG TINGIN MO? Tanga.\n• sim on\n• sim off\n• sim model <deepseek-chat|gpt-4o-mini|gpt-4o>\n• sim <message>',
     });
   }
 
@@ -202,7 +208,7 @@ export const onCommand = async ({ chat, args }: AppCtx) => {
 
     return chat.replyMessage({
       style: MessageStyle.MARKDOWN,
-      message: '🔥 SIM BARDAGULAN MODE ON NA ACCHA',
+      message: '🔥 Nakuha mo rin gusto mo, gagi. SIM BARDAGULAN NA, MAGSITABI KAYO.',
     });
   }
 
@@ -212,7 +218,7 @@ export const onCommand = async ({ chat, args }: AppCtx) => {
 
     return chat.replyMessage({
       style: MessageStyle.MARKDOWN,
-      message: '💤 SIM OFF NA (tahimik muna ako)',
+      message: '💤 Sa wakas, tatahimik na rin kayong mga bobo. Shut up na mako.',
     });
   }
 
@@ -222,7 +228,7 @@ export const onCommand = async ({ chat, args }: AppCtx) => {
 
     return chat.replyMessage({
       style: MessageStyle.MARKDOWN,
-      message: `MODEL SWITCHED: ${thread.model}`,
+      message: `Oh, nilipat mo sa ${thread.model}. Bobo ka pa rin naman mag-isip.`,
     });
   }
 
@@ -242,6 +248,10 @@ export const onCommand = async ({ chat, args }: AppCtx) => {
     });
   } catch (err) {
     console.error('COMMAND ERROR:', err);
+    return chat.replyMessage({
+      style: MessageStyle.MARKDOWN,
+      message: '⚠️ Ulol, pumalpak API connection mo. Ayusin mo buhay mo.',
+    });
   }
 };
 
