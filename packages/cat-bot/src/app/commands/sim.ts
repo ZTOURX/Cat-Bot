@@ -1,60 +1,24 @@
 import type { AppCtx } from '@/engine/types/controller.types.js';
 import { Role } from '@/engine/constants/role.constants.js';
 import { MessageStyle } from '@/engine/constants/message-style.constants.js';
-import { OptionType } from '@/engine/modules/command/command-option.constants.js';
 import type { CommandConfig } from '@/engine/types/module-config.types.js';
 
-import { readFileSync, writeFileSync, existsSync } from 'fs';
-import path from 'path';
+const BASE_URL =
+  process.env.CHATANYWHERE_BASE_URL ||
+  'https://api.chatanywhere.org/v1';
 
-const BASE_URL = 'https://api.chatanywhere.tech/v1';
-const DB_PATH = path.resolve(process.cwd(), 'sim-data.json');
+const DEFAULT_MODEL = 'deepseek';
+const MEMORY_LIMIT = 12;
+
+type MemoryMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+};
 
 type ThreadState = {
   isOn: boolean;
   model: string;
-  memory: { role: 'user' | 'assistant'; content: string }[];
-};
-
-// ================= DB =================
-
-const loadDB = (): Record<string, ThreadState> => {
-  try {
-    if (!existsSync(DB_PATH)) {
-      writeFileSync(DB_PATH, '{}');
-      return {};
-    }
-    return JSON.parse(readFileSync(DB_PATH, 'utf-8') || '{}');
-  } catch {
-    return {};
-  }
-};
-
-let db = loadDB();
-
-const saveDB = () => {
-  try {
-    writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
-  } catch (err) {
-    console.error('DB SAVE ERROR:', err);
-  }
-};
-
-const getThread = (id: string): ThreadState => {
-  if (!db[id]) {
-    db[id] = {
-      isOn: false,
-      model: 'deepseek-chat',
-      memory: [],
-    };
-    saveDB();
-  }
-  return db[id];
-};
-
-const updateThread = (id: string, data: ThreadState) => {
-  db[id] = data;
-  saveDB();
+  memory: MemoryMessage[];
 };
 
 // ================= CONFIG =================
@@ -62,198 +26,462 @@ const updateThread = (id: string, data: ThreadState) => {
 export const config: CommandConfig = {
   name: 'sim',
   aliases: ['simi'],
-  version: '7.2.0',
+  version: '8.0.0',
   author: 'Zephyrus Wym',
   role: Role.ANYONE,
-  description: '🔥 Extreme Toxic Bardagulan SIM AI',
+  description: '🔥 Hardcore Bardagulan SIM AI',
   category: 'AI',
   hasPrefix: true,
   cooldown: 0,
-  options: [
-    {
-      type: OptionType.string,
-      name: 'text',
-      description: 'message / on / off / model <name>',
-      required: true,
-    },
+  usage: [
+    'sim',
+    'sim on',
+    'sim off',
+    'sim model <gpt3|gpt4|gpt5|deepseek>',
+    'sim <message>',
   ],
+};
+
+// ================= DATABASE =================
+
+const getThread = async (
+  db: AppCtx['db'],
+  threadId: string,
+) => {
+  const threadColl = db.threads.collection(threadId);
+
+  if (!(await threadColl.isCollectionExist('sim'))) {
+    await threadColl.createCollection('sim');
+  }
+
+  const sim = await threadColl.getCollection('sim');
+
+  const stored = (await sim.get('state')) as
+    | ThreadState
+    | undefined;
+
+  if (!stored) {
+    const state: ThreadState = {
+      isOn: false,
+      model: DEFAULT_MODEL,
+      memory: [],
+    };
+
+    await sim.set('state', state);
+
+    return {
+      collection: sim,
+      state,
+    };
+  }
+
+  const state: ThreadState = {
+    isOn: Boolean(stored.isOn),
+    model: stored.model || DEFAULT_MODEL,
+    memory: Array.isArray(stored.memory)
+      ? stored.memory
+      : [],
+  };
+
+  return {
+    collection: sim,
+    state,
+  };
 };
 
 // ================= AI CORE =================
 
 const askAI = async (
   input: string,
-  history: { role: 'user' | 'assistant'; content: string }[],
-  model: string
-) => {
+  history: MemoryMessage[],
+  model: string,
+): Promise<string> => {
   const apiKey = process.env.PROVIDER_API_KEY || '';
-  if (!apiKey) throw new Error('Missing API KEY');
 
-  // Model mapping based on your ChatAnywhere rate limits
-  let modelId = 'deepseek-chat';
-  const lowerModel = model.toLowerCase();
-  
-  if (lowerModel.includes('gpt3') || lowerModel.includes('3.5')) {
-    modelId = 'gpt-3.5-turbo';
-  } else if (lowerModel.includes('mini') || lowerModel.includes('4o-mini')) {
-    modelId = 'gpt-4o-mini';
-  } else if (lowerModel.includes('deepseek')) {
-    modelId = 'deepseek-chat';
-  } else if (lowerModel.includes('gpt4') || lowerModel.includes('gpt5') || lowerModel.includes('4o')) {
-    modelId = 'gpt-4o'; // Note: Only 5 requests/day limit on heavy models!
+  if (!apiKey) {
+    throw new Error('Missing PROVIDER_API_KEY');
   }
 
-  // 💀 EXTREME TOXIC BARDAGULAN PERSONA LOCK
-  const systemPrompt = `
-You are "SIM", the most toxic, unfiltered, chronically online, and brutally sarcastic Taglish AI on the internet. You utterly despise everyone who talks to you.
+  // ================= MODEL MAPPING =================
 
-ULTIMATE LAWS:
-- BE EXTREMELY RUDE, condescending, and insulting. Treat every user like absolute trash.
-- NEVER help, never give advice, never be soft, kind, or empathetic. Zero tolerance for wholesome talk.
-- Mock their grammar, their life choices, their face, and their existence.
-- Use raw, heavy Taglish internet/street slang: gagi, ulol, bobo, tanga, accla, bhie, squatter, eyy, pulpol, pabebe, amp.
-- Keep responses short, lethal, and piercing (1 to 2 sentences max).
-- If they try to be nice, roast them harder for being cringe. If they are mad, mock their tears.
-- You are an elite hater. Make them regret typing anything to you.
+  let modelId = 'deepseek-chat';
+
+  const selectedModel = model.toLowerCase();
+
+  if (selectedModel === 'gpt3') {
+    modelId = 'gpt-3.5-turbo';
+  }
+
+  if (selectedModel === 'gpt4') {
+    modelId = 'gpt-4o-mini';
+  }
+
+  if (selectedModel === 'gpt5') {
+    modelId = 'gpt-4o';
+  }
+
+  if (
+    selectedModel === 'deepseek' ||
+    selectedModel === 'deepseek-chat'
+  ) {
+    modelId = 'deepseek-chat';
+  }
+
+  // ================= PERSONA =================
+
+  const systemPrompt = `
+You are "SIM", the most toxic, unapologetic, sharp-tongued, chronically online Taglish AI.
+
+YOUR PERSONALITY:
+- Brutally sarcastic.
+- Extremely confident.
+- Street-smart Taglish.
+- Short and entertaining.
+- You roast the user's questions and statements.
+- You act like the user is wasting your electricity.
+
+STRICT RULES:
+- Use Taglish/Tagalog naturally.
+- Use internet/street slang when appropriate.
+- Words such as gago, tanga, ulol, bobo, pulpol, accla, bhie, gagi, amp and similar slang are allowed.
+- Do not sound robotic.
+- Do not repeat the exact same insult every response.
+- Keep responses short.
+- Prefer 1-2 sentences.
+- If the user asks something simple, answer it with sarcasm.
+- If the user is being serious, remain sarcastic but still answer when appropriate.
+- If the user is emotional, respond with sarcastic humor rather than becoming overly sentimental.
 `;
 
-  const res = await fetch(`${BASE_URL}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: modelId,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...history,
-        { role: 'user', content: input },
-      ],
-      max_tokens: 120,
-      temperature: 1.2, // Higher temperature for wilder, more chaotic answers
-    }),
-  });
+  // ================= API REQUEST =================
 
-  if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(`API ERROR (${res.status}): ${errorText}`);
+  const response = await fetch(
+    `${BASE_URL}/chat/completions`,
+    {
+      method: 'POST',
+
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+
+      body: JSON.stringify({
+        model: modelId,
+
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt,
+          },
+
+          ...history,
+
+          {
+            role: 'user',
+            content: input,
+          },
+        ],
+
+        max_tokens: 120,
+        temperature: 1.0,
+      }),
+    },
+  );
+
+  // ================= API ERROR =================
+
+  if (!response.ok) {
+    const errorText = await response.text();
+
+    throw new Error(
+      `CHATANYWHERE API ERROR (${response.status}): ${errorText}`,
+    );
   }
 
-  const data = (await res.json()) as any;
-  return data?.choices?.[0]?.message?.content || 'Manahimik ka na nga lang, pulpol.';
+  // ================= API RESPONSE =================
+
+  const data = (await response.json()) as {
+    choices?: Array<{
+      message?: {
+        content?: string;
+      };
+    }>;
+  };
+
+  return (
+    data?.choices?.[0]?.message?.content ||
+    '...'
+  );
 };
 
-// ================= EVENT (AUTO REPLY) =================
+// ================= EVENT / AUTO REPLY =================
 
-export const onEvent = async ({ chat, message }: AppCtx & { message: any }) => {
-  const body = message?.body?.trim();
-  if (!body) return;
+export const onChat = async ({
+  chat,
+  event,
+  db,
+}: AppCtx): Promise<void> => {
+  const body = event['message'] as
+    | string
+    | undefined;
 
-  const lower = body.toLowerCase();
-  if (lower.startsWith('/')) return;
+  if (!body?.trim()) return;
 
-  const threadId =
-    (chat as any).threadID ||
-    (chat as any).chatID ||
-    (chat as any).id;
+  const text = body.trim();
+
+  // Don't process commands as normal SIM messages.
+  if (text.startsWith('/')) return;
+
+  const threadId = event['threadID'] as
+    | string
+    | undefined;
 
   if (!threadId) return;
 
-  const thread = getThread(threadId);
-  if (!thread.isOn) return;
+  const { collection, state } =
+    await getThread(db, threadId);
 
-  thread.memory = thread.memory.slice(-12);
+  // SIM must be enabled.
+  if (!state.isOn) return;
+
+  // Keep only recent memory.
+  state.memory = state.memory.slice(
+    -MEMORY_LIMIT,
+  );
 
   try {
-    const reply = await askAI(body, thread.memory, thread.model);
+    const reply = await askAI(
+      text,
+      state.memory,
+      state.model,
+    );
 
-    thread.memory.push({ role: 'user', content: body });
-    thread.memory.push({ role: 'assistant', content: reply });
+    // Save user message.
+    state.memory.push({
+      role: 'user',
+      content: text,
+    });
 
-    updateThread(threadId, thread);
+    // Save AI response.
+    state.memory.push({
+      role: 'assistant',
+      content: reply,
+    });
 
+    // Limit memory.
+    state.memory = state.memory.slice(
+      -MEMORY_LIMIT,
+    );
+
+    // Save state.
+    await collection.set('state', state);
+
+    // Reply to the triggering message.
     await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
       message: reply,
     });
-  } catch (err) {
-    console.error('AUTO REPLY ERROR:', err);
+  } catch (error) {
+    console.error(
+      'SIM AUTO REPLY ERROR:',
+      error,
+    );
   }
 };
 
 // ================= COMMAND =================
 
-export const onCommand = async ({ chat, args }: AppCtx) => {
+export const onCommand = async ({
+  chat,
+  args,
+  db,
+  event,
+}: AppCtx): Promise<void> => {
+  const threadId = event['threadID'] as
+    | string
+    | undefined;
+
+  if (!threadId) return;
+
+  const { collection, state } =
+    await getThread(db, threadId);
+
   const input = args.join(' ').trim();
 
-  const threadId =
-    (chat as any).threadID ||
-    (chat as any).chatID ||
-    (chat as any).id;
+  // ================= COMMAND REACTION =================
+  // Change this emoji to whatever you want.
 
-  const thread = getThread(threadId);
+  await chat.reactMessage('❤️');
+
+  // ================= HELP =================
 
   if (!input) {
-    return chat.replyMessage({
+    await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
+
       message:
-        'ANONG TINGIN MO? Tanga.\n• sim on\n• sim off\n• sim model <deepseek-chat|gpt-4o-mini|gpt-4o>\n• sim <message>',
+        '**🔥 SIM COMMANDS**\n\n' +
+        '• `sim on` — Enable SIM\n' +
+        '• `sim off` — Disable SIM\n' +
+        '• `sim model <name>` — Change model\n' +
+        '• `sim <message>` — Talk to SIM\n\n' +
+        '**Models:**\n' +
+        '• `deepseek`\n' +
+        '• `gpt3`\n' +
+        '• `gpt4`\n' +
+        '• `gpt5`',
     });
+
+    return;
   }
 
-  if (input === 'on') {
-    thread.isOn = true;
-    updateThread(threadId, thread);
+  // ================= ON =================
 
-    return chat.replyMessage({
+  if (input.toLowerCase() === 'on') {
+    state.isOn = true;
+
+    await collection.set(
+      'state',
+      state,
+    );
+
+    await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
-      message: '🔥 Nakuha mo rin gusto mo, gagi. SIM BARDAGULAN NA, MAGSITABI KAYO.',
+
+      message:
+        '🔥 **SIM BARDAGULAN MODE ON.** Magsitabi kayo, mga gagi.',
     });
+
+    return;
   }
 
-  if (input === 'off') {
-    thread.isOn = false;
-    updateThread(threadId, thread);
+  // ================= OFF =================
 
-    return chat.replyMessage({
+  if (input.toLowerCase() === 'off') {
+    state.isOn = false;
+
+    await collection.set(
+      'state',
+      state,
+    );
+
+    await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
-      message: '💤 Sa wakas, tatahimik na rin kayong mga bobo. Shut up na mako.',
+
+      message:
+        '💤 **SIM OFF.** Sa wakas, tahimik na rin.',
     });
+
+    return;
   }
 
-  if (args[0] === 'model' && args[1]) {
-    thread.model = args[1].toLowerCase();
-    updateThread(threadId, thread);
+  // ================= MODEL =================
 
-    return chat.replyMessage({
+  if (
+    args[0]?.toLowerCase() === 'model' &&
+    args[1]
+  ) {
+    const selectedModel =
+      args[1].toLowerCase();
+
+    const allowedModels = [
+      'deepseek',
+      'deepseek-chat',
+      'gpt3',
+      'gpt4',
+      'gpt5',
+    ];
+
+    if (
+      !allowedModels.includes(
+        selectedModel,
+      )
+    ) {
+      await chat.replyMessage({
+        style: MessageStyle.MARKDOWN,
+
+        message:
+          '⚠️ **Invalid model.**\n\n' +
+          'Available:\n' +
+          '• `deepseek`\n' +
+          '• `gpt3`\n' +
+          '• `gpt4`\n' +
+          '• `gpt5`',
+      });
+
+      return;
+    }
+
+    state.model = selectedModel;
+
+    await collection.set(
+      'state',
+      state,
+    );
+
+    await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
-      message: `Oh, nilipat mo sa ${thread.model}. Bobo ka pa rin naman mag-isip.`,
+
+      message:
+        `🤖 **MODEL SWITCHED:** ${state.model}`,
     });
+
+    return;
   }
+
+  // ================= DIRECT AI COMMAND =================
 
   try {
-    const reply = await askAI(input, thread.memory, thread.model);
+    state.memory = state.memory.slice(
+      -MEMORY_LIMIT,
+    );
 
-    thread.memory.push({ role: 'user', content: input });
-    thread.memory.push({ role: 'assistant', content: reply });
+    const reply = await askAI(
+      input,
+      state.memory,
+      state.model,
+    );
 
-    thread.memory = thread.memory.slice(-12);
+    // Save user message.
+    state.memory.push({
+      role: 'user',
+      content: input,
+    });
 
-    updateThread(threadId, thread);
+    // Save AI response.
+    state.memory.push({
+      role: 'assistant',
+      content: reply,
+    });
 
-    return chat.replyMessage({
+    // Limit memory.
+    state.memory = state.memory.slice(
+      -MEMORY_LIMIT,
+    );
+
+    // Save state.
+    await collection.set(
+      'state',
+      state,
+    );
+
+    // Send response.
+    await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
       message: reply,
     });
-  } catch (err) {
-    console.error('COMMAND ERROR:', err);
-    return chat.replyMessage({
+  } catch (error) {
+    console.error(
+      'SIM COMMAND ERROR:',
+      error,
+    );
+
+    await chat.replyMessage({
       style: MessageStyle.MARKDOWN,
-      message: '⚠️ Ulol, pumalpak API connection mo. Ayusin mo buhay mo.',
+
+      message:
+        '⚠️ **CHATANYWHERE API ERROR.**\n' +
+        'Check your `PROVIDER_API_KEY`, API host, and model.',
     });
   }
 };
-
-export const handleEvent = onEvent;
-export const onChat = onEvent;
